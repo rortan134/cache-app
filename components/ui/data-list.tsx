@@ -9,14 +9,14 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import type * as React from "react";
 
-export function MetricsPanel({
+export function DataList({
     className,
     render,
     ...props
 }: useRender.ComponentProps<"div">) {
     const defaultProps = {
         className: cn("flex w-full min-w-56 flex-col gap-3", className),
-        "data-slot": "metrics-panel",
+        "data-slot": "data-list",
     };
 
     return useRender({
@@ -26,14 +26,14 @@ export function MetricsPanel({
     });
 }
 
-export function MetricsPanelHeader({
+export function DataListHeader({
     className,
     render,
     ...props
 }: useRender.ComponentProps<"div">) {
     const defaultProps = {
         className: cn("flex flex-col gap-0.5", className),
-        "data-slot": "metrics-panel-header",
+        "data-slot": "data-list-header",
     };
 
     return useRender({
@@ -43,14 +43,14 @@ export function MetricsPanelHeader({
     });
 }
 
-export function MetricsPanelTitle({
+export function DataListTitle({
     className,
     render,
     ...props
 }: useRender.ComponentProps<"div">) {
     const defaultProps = {
         className: cn("font-regular text-muted-foreground text-xs", className),
-        "data-slot": "metrics-panel-title",
+        "data-slot": "data-list-title",
     };
 
     return useRender({
@@ -60,14 +60,14 @@ export function MetricsPanelTitle({
     });
 }
 
-export function MetricsPanelSection({
+export function DataListSection({
     className,
     render,
     ...props
 }: useRender.ComponentProps<"section">) {
     const defaultProps = {
         className: cn("flex flex-col gap-2", className),
-        "data-slot": "metrics-panel-section",
+        "data-slot": "data-list-section",
     };
 
     return useRender({
@@ -77,29 +77,29 @@ export function MetricsPanelSection({
     });
 }
 
-export function MetricsPanelChart({
+export function DataListChart({
     className,
     segments,
     ...props
-}: MetricsPanelChartProps) {
+}: DataListChartProps) {
     return (
         <StackedBarChart
             {...props}
             className={className}
-            data-slot="metrics-panel-chart"
+            data-slot="data-list-chart"
             segments={segments}
         />
     );
 }
 
-export function MetricsDataList({
+export function DataListItems({
     className,
     render,
     ...props
 }: useRender.ComponentProps<"dl">) {
     const defaultProps = {
         className: cn("mt-1.5 flex flex-col gap-1.5", className),
-        "data-slot": "metrics-data-list",
+        "data-slot": "data-list-items",
     };
 
     return useRender({
@@ -109,14 +109,14 @@ export function MetricsDataList({
     });
 }
 
-export function MetricsDataListItem({
+export function DataListItem({
     className,
     color,
     label,
     value,
     render,
     ...props
-}: MetricsDataListItemProps) {
+}: DataListItemProps) {
     const defaultProps = {
         children: (
             <>
@@ -137,7 +137,7 @@ export function MetricsDataListItem({
             "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs",
             className
         ),
-        "data-slot": "metrics-data-list-item",
+        "data-slot": "data-list-item",
     };
 
     return useRender({
@@ -147,13 +147,12 @@ export function MetricsDataListItem({
     });
 }
 
-export interface MetricsPanelChartProps
+export interface DataListChartProps
     extends Omit<React.ComponentProps<typeof StackedBarChart>, "segments"> {
     segments: readonly StackedBarChartSegment[];
 }
 
-export interface MetricsDataListItemProps
-    extends useRender.ComponentProps<"div"> {
+export interface DataListItemProps extends useRender.ComponentProps<"div"> {
     color?: string;
     label: React.ReactNode;
     value: React.ReactNode;

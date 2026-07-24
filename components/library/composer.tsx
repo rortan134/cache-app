@@ -23,14 +23,14 @@ import {
 import { DisclosureListHorizontal } from "@/components/ui/disclosure-list";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
-    MetricsDataList,
-    MetricsDataListItem,
-    MetricsPanel,
-    MetricsPanelChart,
-    MetricsPanelHeader,
-    MetricsPanelSection,
-    MetricsPanelTitle,
-} from "@/components/ui/metrics-panel";
+    DataList,
+    DataListChart,
+    DataListHeader,
+    DataListItem,
+    DataListItems,
+    DataListSection,
+    DataListTitle,
+} from "@/components/ui/data-list";
 import {
     Popover,
     PopoverClose,
@@ -663,7 +663,7 @@ function ComposerLibraryMetricsPanel({
     }
 
     return (
-        <MetricsPanel>
+        <DataList>
             {canClear ? (
                 <PopoverClose
                     render={
@@ -678,40 +678,40 @@ function ComposerLibraryMetricsPanel({
                     Reset filters
                 </PopoverClose>
             ) : null}
-            <MetricsPanelHeader>
-                <MetricsPanelTitle render={<PopoverTitle />}>
+            <DataListHeader>
+                <DataListTitle render={<PopoverTitle />}>
                     Library Breakdown
-                </MetricsPanelTitle>
-            </MetricsPanelHeader>
-            <MetricsPanelSection>
-                <MetricsPanelChart segments={sourceSegments} />
-                <MetricsDataList>
+                </DataListTitle>
+            </DataListHeader>
+            <DataListSection>
+                <DataListChart segments={sourceSegments} />
+                <DataListItems>
                     {sourceSegments.map((segment) => (
-                        <MetricsDataListItem
+                        <DataListItem
                             color={segment.color}
                             key={segment.key}
                             label={segment.label}
                             value={formatShareValue(segment.value, itemCount)}
                         />
                     ))}
-                </MetricsDataList>
-            </MetricsPanelSection>
-            <MetricsPanelSection>
-                <MetricsDataList>
-                    <MetricsDataListItem
+                </DataListItems>
+            </DataListSection>
+            <DataListSection>
+                <DataListItems>
+                    <DataListItem
                         label="Favorites"
                         value={formatShareValue(
                             metrics.favoriteCount,
                             itemCount
                         )}
                     />
-                    <MetricsDataListItem
+                    <DataListItem
                         label="Notes"
                         value={formatShareValue(metrics.noteCount, itemCount)}
                     />
-                </MetricsDataList>
-                <MetricsDataList>
-                    <MetricsDataListItem
+                </DataListItems>
+                <DataListItems>
+                    <DataListItem
                         label="In Collections"
                         value={formatShareValue(
                             metrics.inCollectionCount,
@@ -719,15 +719,15 @@ function ComposerLibraryMetricsPanel({
                         )}
                     />
                     {gapRows.map((row) => (
-                        <MetricsDataListItem
+                        <DataListItem
                             key={row.key}
                             label={row.label}
                             value={row.value}
                         />
                     ))}
-                </MetricsDataList>
-            </MetricsPanelSection>
-        </MetricsPanel>
+                </DataListItems>
+            </DataListSection>
+        </DataList>
     );
 }
 
