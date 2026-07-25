@@ -280,7 +280,7 @@ export function itemPreviewImageUrl(item: {
         return null;
     }
 
-    return `/api/preview?url=${encodeURIComponent(href)}`;
+    return `/api/preview?url=${encodeURIComponent(href)}&delivery=redirect`;
 }
 
 /**
