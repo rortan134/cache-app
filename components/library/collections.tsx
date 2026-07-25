@@ -2687,7 +2687,7 @@ function CollectionsListClearFilterButton({
         >
             <X
                 aria-hidden
-                className="inline-block size-4 shrink-0"
+                className="inline-block size-3.5 shrink-0"
                 focusable="false"
             />
         </Button>
@@ -2811,7 +2811,7 @@ function CollectionsListSortingCombobox({
             >
                 <ListFilter
                     aria-hidden
-                    className="inline-block size-4 shrink-0"
+                    className="inline-block size-3.5 shrink-0"
                     focusable="false"
                 />
             </ComboboxTrigger>
