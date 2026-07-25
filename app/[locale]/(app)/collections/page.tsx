@@ -85,7 +85,7 @@ async function CollectionsPageBody() {
         return (
             <FadeIn className="flex flex-col gap-8">
                 <CollectionsPageHeader />
-                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-border border-dashed py-20 text-center">
+                <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl bg-muted/50 p-8 text-center">
                     <p className="font-medium text-foreground text-sm">
                         <T>No collections yet</T>
                     </p>

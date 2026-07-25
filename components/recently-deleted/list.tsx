@@ -351,9 +351,7 @@ function RecentlyDeletedRow({
 
     return (
         <div
-            className={cn(
-                "flex items-start gap-4 rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm"
-            )}
+            className={cn("flex items-start gap-4 rounded-2xl bg-muted/60 p-4")}
         >
             <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <SourceIcon aria-hidden className="size-5" focusable="false" />

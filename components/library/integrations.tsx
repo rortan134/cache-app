@@ -673,7 +673,7 @@ function IntegrationsListItemActions({
         <div
             {...props}
             className={cn(
-                "-mr-2.5 flex min-w-0 shrink-0 items-center justify-end gap-1",
+                "-mr-2.5 flex min-w-0 shrink-0 items-center justify-end gap-0.5",
                 className
             )}
         >

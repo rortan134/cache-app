@@ -850,7 +850,7 @@ export function CollectionsGrid({
 
 function CollectionCard({ collection }: { collection: CollectionPreview }) {
     return (
-        <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-background">
+        <div className="flex flex-col overflow-hidden rounded-2xl bg-muted/60">
             <CollectionThumbnailGrid urls={collection.previewImageUrls} />
             <div className="flex flex-col gap-1 p-3">
                 <h3
