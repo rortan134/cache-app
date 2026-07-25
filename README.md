@@ -1,12 +1,4 @@
 <p align="center">
-  <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer">
-    <img src="app/opengraph-image.png" alt="Cache App Preview" width="800"/>
-  </a>
-</p>
-
-<p align="center">Unify your bookmarks across every platform into a single, searchable, actionable library</p>
-
-<p align="center">
   <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/cachd.app-000000?logo=vercel&logoColor=white" alt="cachd.app"></a>
   <a href="https://docs.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Docs-33c482.svg" alt="Documentation"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
@@ -15,6 +7,14 @@
   <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
   <a href="https://twitter.com/gsmmtt" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/twitter/follow/gsmmtt" alt="Twitter Follow"></a>
 </p>
+
+<p align="center">
+  <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer">
+    <img src="app/opengraph-image.png" alt="Cache App Preview" width="800"/>
+  </a>
+</p>
+
+<p align="center">Unify your bookmarks across platforms into a single actionable library.</p>
 
 <p align="center">
   <a href="#features">Features</a> •
@@ -34,6 +34,8 @@ Bookmarking is broken. When you hit "save" on a tweet, a video, or a post, you a
 
 Cache exists because that signal is too valuable to waste. It treats the act of saving as a first-class event and builds the entire experience around turning that intent into action. It does not replace your platforms; it respects the intent behind why you use them and gives it a destination.
 
+<a href="https://deepwiki.com/rortan134/cache-app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Ask-DeepWiki-E6E6E6?labelColor=C3C3C3&color=E6E6E6" alt="Ask DeepWiki"></a>
+
 ---
 
 ## What Cache does for you
@@ -42,10 +44,9 @@ Cache exists because that signal is too valuable to waste. It treats the act of 
 - **Smart collections** — Automatically organizes entries into your collections with AI-assisted relevance ranking. Cache even learns your preferences over time.
 - **Overviews** — See a 1-line summary above every collection. As new entries are added, it updates instantly. And if you want to see more detail, just hit expand.
 - **AI-assisted search** — Ask the Cache AI agent and search across all your saved content.
-- **Automations** — Create custom agents to do anything. Generate daily digests, summaries, and much more.
+- **Automations** — Create custom agents to do anything. Generate daily digests, summaries, weekly reminders, and much more.
 - **Note-taking** — First-party note-taking support alongside bookmarks.
 - **Collaboration** — Share a live view of any collection with anyone, even if they don't use Cache.
-- **Remind me (Soon)** — Set up reminders when saving or browsing on items to come back to later.
 - **Browser extension** — Capture and sync saved content from anywhere on the web.
 - **Export & integrate** — Pipe results into other tools you already use.
 - **Simple and low maintenance** — Cache is designed to be simple, low-maintenance, and always portable.
@@ -101,7 +102,7 @@ See the [environment variables reference](.env.example) for the full list.
 ## Tech Stack
 
 <details>
-<summary>Next.js · Bun · PostgreSQL · Prisma ORM · Better Auth · Tailwind — and the rest of the stack</summary>
+<summary>Next.js · Bun · PostgreSQL · Prisma ORM · Better Auth · Tailwind — and more</summary>
 
 | Category                  | Technology                                                                                                      |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -119,16 +120,15 @@ See the [environment variables reference](.env.example) for the full list.
 | **Durable Execution**     | [Workflow SDK](https://workflow-sdk.dev/)                                                                       |
 | **Security (Cloud-only)** | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction)                                               |
 | **Linting**               | [Ultracite](https://ultracite.dev/) (Biome)                                                                     |
-| **React Compiler**        | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler)                                           |
 | **Date Handling**         | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                 |
 
 </details>
 
 ---
 
-## Cache MCP
+## Cache App MCP
 
-Cache exposes an [MCP](https://modelcontextprotocol.io/) server so AI agents like Claude, Cursor, and others can read and write your library directly — search bookmarks, save new items, list collections, and more.
+Cache exposes an [MCP](https://modelcontextprotocol.io/) server so AI agents like Claude, Cursor, and others can read and write your library directly. Search bookmarks, save new items, list collections, and more.
 
 Endpoint: `https://www.cachd.app/mcp`
 
@@ -139,6 +139,7 @@ Endpoint: `https://www.cachd.app/mcp`
 
 ## Roadmap
 
+- **Remind me** — Set up unique reminders when saving or browsing on items to come back to later.
 - **Comments** — Add and view threaded comments on entries.
 - **Inbox view** — Triage view for reviewing entries.
 - **Notes improvements** — Richer editing experience, advanced formatting.
