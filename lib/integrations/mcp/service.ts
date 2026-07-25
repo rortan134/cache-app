@@ -10,7 +10,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import { upsertLibraryItemImports } from "@/lib/integrations/import-upsert";
+import { upsertLibraryItemImports } from "@/lib/integrations/import";
 import { generateMcpToken } from "@/lib/integrations/mcp/auth";
 import type { McpLibraryItemSchema } from "@/lib/integrations/mcp/protocol";
 import { createNoteFromPlainText } from "@/lib/integrations/notes/service";

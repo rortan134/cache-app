@@ -3,7 +3,7 @@ import "server-only";
 import { parseDate } from "@/lib/common/dates";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { importLibraryItemSnapshot } from "@/lib/integrations/import-snapshot";
+import { importLibraryItemSnapshot } from "@/lib/integrations/import";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
 

@@ -4,7 +4,7 @@ import { mapConcurrent } from "@/lib/common/arrays";
 import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { upsertLibraryItemImports } from "@/lib/integrations/import-upsert";
+import { upsertLibraryItemImports } from "@/lib/integrations/import";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import { LibraryItemSource } from "@/prisma/client/enums";

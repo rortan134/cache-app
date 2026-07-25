@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { importLibraryItemSnapshot } from "@/lib/integrations/import-snapshot";
+import { importLibraryItemSnapshot } from "@/lib/integrations/import";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     getGitHubAuthenticatedUser,
