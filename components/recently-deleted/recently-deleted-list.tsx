@@ -292,9 +292,9 @@ export function RecentlyDeletedList({
                         </DialogTitle>
                         <DialogDescription>
                             <T>
-                                Permanently delete all {visibleItems.length}{" "}
-                                items from Recently deleted. This cannot be
-                                undone.
+                                Permanently delete all{" "}
+                                <Var>{visibleItems.length}</Var> items from
+                                Recently deleted. This cannot be undone.
                             </T>
                         </DialogDescription>
                     </DialogHeader>

@@ -1,7 +1,6 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { AutomationsList } from "@/components/automations/automations";
-import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getServerSession } from "@/lib/auth/session";
@@ -12,7 +11,9 @@ import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { Suspense, type ReactNode } from "react";
+import * as React from "react";
+
+const AUTOMATION_SKELETON_KEYS = ["a0", "a1", "a2"] as const;
 
 export async function generateMetadata({
     params,
@@ -34,18 +35,15 @@ export async function generateMetadata({
 
 export default function AutomationsPage() {
     return (
-        <>
-            <ApplicationSidebar />
-            <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-6 p-8">
-                <Suspense fallback={<AutomationsPageSkeleton />}>
-                    <AutomationsPageBody />
-                </Suspense>
-            </div>
-        </>
+        <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-6 p-8">
+            <React.Suspense fallback={<AutomationsPageSkeleton />}>
+                <AutomationsPageBody />
+            </React.Suspense>
+        </div>
     );
 }
 
-function AutomationsPageHeader({ actions }: { actions: ReactNode }) {
+function AutomationsPageHeader({ children }: { children: React.ReactNode }) {
     return (
         <header className="flex items-end justify-between gap-4">
             <div className="flex flex-col gap-1.5">
@@ -59,7 +57,7 @@ function AutomationsPageHeader({ actions }: { actions: ReactNode }) {
                     </T>
                 </p>
             </div>
-            {actions}
+            {children}
         </header>
     );
 }
@@ -86,11 +84,9 @@ async function AutomationsPageBody() {
 
     return (
         <FadeIn className="flex flex-col gap-8">
-            <AutomationsPageHeader
-                actions={
-                    <AutomationComposerDialog collections={collectionOptions} />
-                }
-            />
+            <AutomationsPageHeader>
+                <AutomationComposerDialog collections={collectionOptions} />
+            </AutomationsPageHeader>
             <AutomationsList
                 automations={automations}
                 collections={collectionOptions}
@@ -102,9 +98,9 @@ async function AutomationsPageBody() {
 function AutomationsPageSkeleton() {
     return (
         <>
-            <AutomationsPageHeader
-                actions={<Skeleton className="h-8 w-36 rounded-full" />}
-            />
+            <AutomationsPageHeader>
+                <Skeleton className="h-8 w-36 rounded-xl" />
+            </AutomationsPageHeader>
             <div
                 aria-busy="true"
                 aria-label="Loading automations"
@@ -131,5 +127,3 @@ function AutomationsPageSkeleton() {
         </>
     );
 }
-
-const AUTOMATION_SKELETON_KEYS = ["a0", "a1", "a2"] as const;

@@ -1,6 +1,5 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { RecentlyDeletedList } from "@/components/recently-deleted/recently-deleted-list";
-import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getServerSession } from "@/lib/auth/session";
@@ -10,7 +9,15 @@ import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { Suspense } from "react";
+import * as React from "react";
+
+const RECENTLY_DELETED_SKELETON_KEYS = [
+    "rd0",
+    "rd1",
+    "rd2",
+    "rd3",
+    "rd4",
+] as const;
 
 export async function generateMetadata({
     params,
@@ -32,26 +39,22 @@ export async function generateMetadata({
 
 export default function RecentlyDeletedPage() {
     return (
-        <>
-            <ApplicationSidebar />
-            <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8">
-                <RecentlyDeletedPageHeader />
-                <Suspense fallback={<RecentlyDeletedListSkeleton />}>
-                    <RecentlyDeletedPageBody />
-                </Suspense>
-            </div>
-        </>
+        <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-6 p-8">
+            <React.Suspense fallback={<RecentlyDeletedPageSkeleton />}>
+                <RecentlyDeletedPageBody />
+            </React.Suspense>
+        </div>
     );
 }
 
 function RecentlyDeletedPageHeader() {
     return (
-        <header className="flex items-end justify-between gap-4 border-border border-b pb-6">
-            <div className="flex flex-col gap-2">
-                <h1 className="font-semibold text-foreground text-xl">
+        <header className="flex items-end justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+                <h1 className="font-semibold text-2xl text-foreground tracking-tight">
                     <T>Recently deleted</T>
                 </h1>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-sm">
                     <T>
                         Restored items go back to your library with their
                         collections and previews intact. Items left here are
@@ -76,7 +79,8 @@ async function RecentlyDeletedPageBody() {
     const items = await listRecentlyDeletedItems({ userId });
 
     return (
-        <FadeIn>
+        <FadeIn className="flex flex-col gap-8">
+            <RecentlyDeletedPageHeader />
             <RecentlyDeletedList
                 itemDaysRemainingById={Object.fromEntries(
                     items.map((entry) => [
@@ -93,35 +97,30 @@ async function RecentlyDeletedPageBody() {
     );
 }
 
-function RecentlyDeletedListSkeleton() {
+function RecentlyDeletedPageSkeleton() {
     return (
-        <div
-            aria-busy="true"
-            aria-label="Loading recently deleted items"
-            className="flex flex-col gap-3"
-            role="status"
-        >
-            {RECENTLY_DELETED_SKELETON_KEYS.map((key) => (
-                <div
-                    className="flex items-center gap-4 rounded-xl border border-border p-3"
-                    key={key}
-                >
-                    <Skeleton className="size-14 shrink-0 rounded-lg" />
-                    <div className="flex min-w-0 flex-1 flex-col gap-2">
-                        <Skeleton className="h-4 w-2/3" />
-                        <Skeleton className="h-3 w-1/3" />
+        <>
+            <RecentlyDeletedPageHeader />
+            <div
+                aria-busy="true"
+                aria-label="Loading recently deleted items"
+                className="flex flex-col gap-3"
+                role="status"
+            >
+                {RECENTLY_DELETED_SKELETON_KEYS.map((key) => (
+                    <div
+                        className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4"
+                        key={key}
+                    >
+                        <Skeleton className="size-14 shrink-0 rounded-xl" />
+                        <div className="flex min-w-0 flex-1 flex-col gap-2">
+                            <Skeleton className="h-4 w-2/3" />
+                            <Skeleton className="h-3 w-1/3" />
+                        </div>
+                        <Skeleton className="h-8 w-20 shrink-0 rounded-xl" />
                     </div>
-                    <Skeleton className="h-8 w-20 shrink-0" />
-                </div>
-            ))}
-        </div>
+                ))}
+            </div>
+        </>
     );
 }
-
-const RECENTLY_DELETED_SKELETON_KEYS = [
-    "rd0",
-    "rd1",
-    "rd2",
-    "rd3",
-    "rd4",
-] as const;

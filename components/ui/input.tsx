@@ -4,7 +4,7 @@ import { cn } from "@/lib/common/cn";
 import { Input as InputPrimitive } from "@base-ui/react/input";
 import type * as React from "react";
 
-export type InputSize = "sm" | "default" | "lg" | number;
+export type InputSize = "sm" | "default" | "lg";
 
 export interface InputProps
     extends Omit<
@@ -49,7 +49,6 @@ export function Input({
                     {...props}
                     className={inputClassName}
                     data-slot="input"
-                    size={typeof size === "number" ? size : undefined}
                     style={
                         typeof props.style === "function"
                             ? undefined
@@ -62,7 +61,6 @@ export function Input({
                     {...props}
                     className={inputClassName}
                     data-slot="input"
-                    size={typeof size === "number" ? size : undefined}
                     spellCheck="true"
                     translate="no"
                 />

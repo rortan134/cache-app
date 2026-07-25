@@ -263,11 +263,11 @@ export function AttachmentPreview({
 }
 
 interface AttachmentInfoProps extends React.ComponentProps<"div"> {
-    showMediaType?: boolean;
+    shouldShowMediaType?: boolean;
 }
 
 export function AttachmentInfo({
-    showMediaType = false,
+    shouldShowMediaType = false,
     className,
     ...props
 }: AttachmentInfoProps) {
@@ -281,7 +281,7 @@ export function AttachmentInfo({
     return (
         <div {...props} className={cn("min-w-0 flex-1", className)}>
             <span className="block truncate">{label}</span>
-            {showMediaType && data.mediaType ? (
+            {shouldShowMediaType && data.mediaType ? (
                 <span className="block truncate text-muted-foreground text-xs">
                     {data.mediaType}
                 </span>
@@ -319,13 +319,13 @@ export function AttachmentRemove({
                 variant === "grid" && [
                     "absolute top-2 right-2 size-6 rounded-full p-0",
                     "bg-background/80",
-                    "opacity-0 transition-opacity group-hover:opacity-100",
+                    "opacity-0 group-hover:opacity-100",
                     "hover:bg-background",
                     "[&>svg]:size-3",
                 ],
                 variant === "inline" && [
                     "size-5 rounded p-0",
-                    "opacity-0 transition-opacity group-hover:opacity-100",
+                    "opacity-0 group-hover:opacity-100",
                     "[&>svg]:size-2.5",
                 ],
                 variant === "list" && [

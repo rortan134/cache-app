@@ -2285,7 +2285,7 @@ function CollectionsListFavoritesCarouselSlide({
     return (
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
             <div
-                className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted transition-transform duration-100 ease-out focus-within:ring-2 focus-within:ring-ring/60 active:scale-[0.97]"
+                className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted focus-within:ring-2 focus-within:ring-ring/60 active:scale-[0.97]"
                 title={previewLabel}
             >
                 <PreviewCardTrigger
@@ -2310,7 +2310,7 @@ function CollectionsListFavoritesCarouselSlide({
                 </PreviewCardTrigger>
                 <button
                     aria-label="Remove from favorites"
-                    className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-100 pointer-fine:opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 pointer-fine:group-hover:opacity-100"
+                    className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-100 pointer-fine:opacity-0 hover:bg-black/60 focus-visible:opacity-100 pointer-fine:group-hover:opacity-100"
                     onClick={handleRemoveFavorite}
                     type="button"
                 >
@@ -2408,10 +2408,7 @@ function CollectionsListToolbarButton({
     return (
         <Toolbar.Button
             {...props}
-            className={cn(
-                "opacity-80 transition-opacity duration-150 ease-out hover:opacity-100",
-                className
-            )}
+            className={cn("opacity-80 hover:opacity-100", className)}
         />
     );
 }
@@ -2540,7 +2537,7 @@ function CollectionRecommendationItem({
                     {isCreating ? (
                         <Spinner className="absolute right-3 size-3.5" />
                     ) : (
-                        <span className="absolute right-3 text-muted-foreground text-xs opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
+                        <span className="absolute right-3 text-muted-foreground text-xs opacity-0 group-hover:opacity-100">
                             <T>Add</T>
                         </span>
                     )}
@@ -2582,7 +2579,7 @@ function CollectionsListRecommendations() {
             open={isRecommendationsOpen}
         >
             <CollapsibleTrigger
-                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs transition-colors duration-150 ease-out hover:text-foreground"
+                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs hover:text-foreground"
                 title={
                     isRecommendationsOpen
                         ? "Hide suggested collections"
@@ -2690,7 +2687,7 @@ function CollectionsListClearFilterButton({
         >
             <X
                 aria-hidden
-                className="inline-block size-3.5 shrink-0"
+                className="inline-block size-4 shrink-0"
                 focusable="false"
             />
         </Button>
@@ -2806,15 +2803,15 @@ function CollectionsListSortingCombobox({
                         <Button
                             aria-label="Sort and organize collections"
                             size="icon-xs"
+                            title={`Sort and organize collections (${getSystemControlKey()}F)`}
                             variant="ghost"
                         />
                     )
                 }
-                title={`Sort and organize collections (${getSystemControlKey()}F)`}
             >
                 <ListFilter
                     aria-hidden
-                    className="inline-block size-3 shrink-0"
+                    className="inline-block size-4 shrink-0"
                     focusable="false"
                 />
             </ComboboxTrigger>
@@ -3316,7 +3313,7 @@ function CollectionsListItemPriorityCombobox() {
                 render={
                     <Button
                         aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--accent-color) transition-transform duration-100 ease-out active:scale-[0.97]"
+                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--accent-color)"
                         size="icon-xs"
                         title="Organize collections by relevance level"
                         variant="ghost"
@@ -3593,7 +3590,7 @@ function CollectionsListItemMetadata({
 
     return (
         <div className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center">
-            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity duration-150 ease-out focus-visible:opacity-0 group-focus-within:opacity-0 pointer-fine:group-hover:opacity-0">
+            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums focus-visible:opacity-0 group-focus-within:opacity-0 pointer-fine:group-hover:opacity-0">
                 {children}
             </span>
             <Menu>
@@ -3601,7 +3598,7 @@ function CollectionsListItemMetadata({
                     render={
                         <Button
                             aria-label={`Collection actions for ${collection.name}`}
-                            className="absolute opacity-100 pointer-fine:opacity-0 transition-opacity duration-150 ease-out focus-visible:opacity-100 group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100 group-focus:opacity-100 data-popup-open:bg-muted data-popup-open:opacity-100"
+                            className="absolute opacity-100 pointer-fine:opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100 group-focus:opacity-100 data-popup-open:bg-muted data-popup-open:opacity-100"
                             size="icon-xs"
                             title={`Collection actions for ${collection.name}`}
                             variant="ghost"
