@@ -1,5 +1,6 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { CollectionsGrid } from "@/components/library/collections";
+import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getServerSession } from "@/lib/auth/session";
@@ -42,11 +43,14 @@ export async function generateMetadata({
 
 export default function CollectionsPage() {
     return (
-        <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-6 p-8">
-            <React.Suspense fallback={<CollectionsPageSkeleton />}>
-                <CollectionsPageBody />
-            </React.Suspense>
-        </div>
+        <>
+            <ApplicationSidebar />
+            <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-6 p-8">
+                <React.Suspense fallback={<CollectionsPageSkeleton />}>
+                    <CollectionsPageBody />
+                </React.Suspense>
+            </div>
+        </>
     );
 }
 
