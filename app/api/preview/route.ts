@@ -570,9 +570,11 @@ async function resolveImagePreviewAfterLease(
             shouldRetainDirectImageResponse,
             externalSignal
         );
-        return preview
-            ? { status: "resolved", value: preview }
-            : { status: "not_found" };
+        if (!preview) {
+            await writeCachedNegativePreview(targetUrl.href, "image");
+            return { status: "not_found" };
+        }
+        return { status: "resolved", value: preview };
     } finally {
         if (lease.status === "acquired") {
             releasePreviewResolutionLease(key, lease.token).catch(
@@ -1476,7 +1478,7 @@ async function readCachedNegativePreview<T>(
 function writeCachedNegativePreview(
     targetHref: string,
     type: PreviewType
-): void {
+): Promise<void> {
     const key = previewNegativeCacheKey(targetHref, type);
     memoryCacheSet(
         memoryNegativePreviewCache,
@@ -1484,9 +1486,7 @@ function writeCachedNegativePreview(
         true,
         PREVIEW_NEGATIVE_CACHE_TTL_SECONDS
     );
-    writeToRedis(key, "1", PREVIEW_NEGATIVE_CACHE_TTL_SECONDS).catch(
-        () => undefined
-    );
+    return writeToRedis(key, "1", PREVIEW_NEGATIVE_CACHE_TTL_SECONDS);
 }
 
 async function waitForImagePreview(
