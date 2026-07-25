@@ -27,7 +27,7 @@ import {
     NoteTitle,
     useNoteContext,
     type NoteDraft,
-} from "@/components/library/notes";
+} from "@/components/library/new";
 import {
     openQuickLookDrawer,
     QuickLookDrawer,

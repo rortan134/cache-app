@@ -1,5 +1,5 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { RecentlyDeletedList } from "@/components/recently-deleted/recently-deleted-list";
+import { RecentlyDeletedList } from "@/components/recently-deleted/list";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
