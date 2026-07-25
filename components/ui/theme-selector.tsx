@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { type Theme, useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Monitor, Moon, Sun } from "lucide-react";
 
@@ -34,17 +35,14 @@ export function ThemeSelector() {
     );
 }
 
-function ThemeButton({
-    Icon,
-    isSelected,
-    label,
-    value,
-}: {
+interface ThemeButtonProps {
     Icon: typeof Sun;
     isSelected: boolean;
     label: string;
     value: Theme;
-}) {
+}
+
+function ThemeButton({ Icon, isSelected, label, value }: ThemeButtonProps) {
     const { setTheme } = useTheme();
     const handleClick = useStableCallback(() => setTheme(value));
 
@@ -52,6 +50,10 @@ function ThemeButton({
         <Button
             aria-label={label}
             aria-pressed={isSelected}
+            className={cn(
+                isSelected &&
+                    "bg-accent text-accent-foreground hover:bg-accent/90 data-pressed:bg-accent/90"
+            )}
             data-pressed={isSelected ? "" : undefined}
             onClick={handleClick}
             size="icon-sm"

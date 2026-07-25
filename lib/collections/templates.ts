@@ -61,6 +61,12 @@ export const TEMPLATES = [
     },
     {
         description:
+            "Products, experiences, and ideas to give for birthdays, holidays, and other occasions.",
+        name: "Gifts",
+        value: "gifts",
+    },
+    {
+        description:
             "Restaurants, cafes, shops, and spots you want to check out soon.",
         name: "Places to Try",
         value: "places_to_try",
