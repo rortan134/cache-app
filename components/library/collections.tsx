@@ -300,9 +300,15 @@ interface ComboboxValue {
 }
 
 interface ComboboxGroupData {
-    group: "sort" | "view";
+    group: "sort" | "text-match" | "view";
     items: ComboboxValue[];
 }
+
+const GROUP_LABELS: Record<ComboboxGroupData["group"], string> = {
+    sort: "Sort by",
+    "text-match": "Match text",
+    view: "View",
+};
 
 const PREVIEW_SLIDE_INTERVAL_MS = 1400;
 const PREVIEW_CROSSFADE_MS = 400;
@@ -1850,59 +1856,71 @@ function getComboboxCollectionsSortingGroups(
         option.label.toLowerCase().includes(normalizedQuery)
     );
 
-    const textMatchOption: ComboboxValue | null =
+    const hasActiveTextMatch =
         currentValue.sortField === "text-match" &&
-        currentValue.sortQuery.length > 0 &&
-        (normalizedQuery.length === 0 ||
-            currentValue.sortQuery.toLowerCase().includes(normalizedQuery) ||
-            `sort by "${currentValue.sortQuery}"`.includes(normalizedQuery))
-            ? {
-                  icon: ListFilter,
-                  label: `Sort by "${currentValue.sortQuery}"`,
-                  sortField: "text-match",
-                  sortQuery: currentValue.sortQuery,
-                  view: currentValue.view,
-              }
-            : null;
+        currentValue.sortQuery.length > 0;
 
-    const sortItems: ComboboxValue[] =
-        normalizedQuery.length === 0 || matchingSortOptions.length > 0
-            ? [
-                  ...(textMatchOption ? [textMatchOption] : []),
-                  ...matchingSortOptions.map((option) => ({
-                      icon: option.icon,
-                      label: option.label,
-                      sortField: option.value,
-                      sortQuery: currentValue.sortQuery,
-                      view: currentValue.view,
-                  })),
-              ]
-            : [
-                  {
-                      icon: ListFilter,
-                      label: `Sort by "${query}"`,
-                      sortField: "text-match",
-                      sortQuery: query,
-                      view: currentValue.view,
-                  },
-              ];
+    const queryMatchesActiveTextMatch =
+        hasActiveTextMatch &&
+        currentValue.sortQuery.toLowerCase().includes(normalizedQuery);
+
+    let textMatchItem: ComboboxValue | null = null;
+
+    if (
+        hasActiveTextMatch &&
+        (normalizedQuery.length === 0 || queryMatchesActiveTextMatch)
+    ) {
+        textMatchItem = {
+            icon: ListFilter,
+            label: `\u201c${currentValue.sortQuery}\u201d`,
+            sortField: "text-match",
+            sortQuery: currentValue.sortQuery,
+            view: currentValue.view,
+        };
+    } else if (normalizedQuery.length > 0) {
+        textMatchItem = {
+            icon: ListFilter,
+            label: `\u201c${query}\u201d`,
+            sortField: "text-match",
+            sortQuery: query,
+            view: currentValue.view,
+        };
+    }
+
+    const groups: ComboboxGroupData[] = [];
+
+    if (matchingSortOptions.length > 0) {
+        groups.push({
+            group: "sort",
+            items: matchingSortOptions.map((option) => ({
+                icon: option.icon,
+                label: option.label,
+                sortField: option.value,
+                sortQuery: currentValue.sortQuery,
+                view: currentValue.view,
+            })),
+        });
+    }
+
+    if (textMatchItem) {
+        groups.push({ group: "text-match", items: [textMatchItem] });
+    }
 
     const matchingViewOptions = VIEW_OPTIONS.filter((option) =>
         option.label.toLowerCase().includes(normalizedQuery)
     );
 
-    const viewItems: ComboboxValue[] = matchingViewOptions.map((option) => ({
-        icon: option.icon,
-        label: option.label,
-        sortField: currentValue.sortField,
-        sortQuery: currentValue.sortQuery,
-        view: option.value,
-    }));
-
-    const groups: ComboboxGroupData[] = [{ group: "sort", items: sortItems }];
-
-    if (viewItems.length > 0) {
-        groups.push({ group: "view", items: viewItems });
+    if (matchingViewOptions.length > 0) {
+        groups.push({
+            group: "view",
+            items: matchingViewOptions.map((option) => ({
+                icon: option.icon,
+                label: option.label,
+                sortField: currentValue.sortField,
+                sortQuery: currentValue.sortQuery,
+                view: option.value,
+            })),
+        });
     }
 
     return groups;
@@ -2419,9 +2437,22 @@ function CollectionsListEmpty({
 }: React.ComponentProps<"div">) {
     const { collections, collectionSummaries } = useWorkspaceContext();
     const { requestCreate } = useCollectionsState();
+    const {
+        collectionTextMatchQuery,
+        collectionView,
+        setCollectionTextMatchQuery,
+        setCollectionView,
+    } = useCollectionsSortStore();
     const collectionCount = collections.length;
 
+    const hasActiveFilters =
+        collectionView !== "show-all" || collectionTextMatchQuery.length > 0;
+
     const handleRequestCreate = useStableCallback(() => requestCreate());
+    const handleClearFilters = useStableCallback(() => {
+        setCollectionView("show-all");
+        setCollectionTextMatchQuery("");
+    });
 
     if (collectionSummaries.length > 0) {
         return null;
@@ -2437,7 +2468,20 @@ function CollectionsListEmpty({
                 )}
             >
                 {collectionCount > 0 ? (
-                    "No collections match this view."
+                    <div className="flex flex-col items-center gap-3">
+                        <span>
+                            <T>No collections match this view.</T>
+                        </span>
+                        {hasActiveFilters ? (
+                            <Button
+                                onClick={handleClearFilters}
+                                size="sm"
+                                variant="secondary"
+                            >
+                                <T>Clear filters</T>
+                            </Button>
+                        ) : null}
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center gap-3">
                         <Image
@@ -2722,7 +2766,7 @@ function CollectionsListSortingCombobox({
         collectionSortField === "text-match"
             ? {
                   icon: ListFilter,
-                  label: `Sort by "${collectionTextMatchQuery}"`,
+                  label: `\u201c${collectionTextMatchQuery}\u201d`,
               }
             : (SORT_OPTION_BY_VALUE.get(collectionSortField) ?? null);
 
@@ -2830,9 +2874,7 @@ function CollectionsListSortingCombobox({
                         <React.Fragment key={group.group}>
                             <ComboboxGroup items={group.items}>
                                 <ComboboxGroupLabel>
-                                    {group.group === "sort"
-                                        ? "Sort by"
-                                        : "View"}
+                                    {GROUP_LABELS[group.group]}
                                 </ComboboxGroupLabel>
                                 <ComboboxCollection>
                                     {(option: ComboboxValue) => (
@@ -3582,8 +3624,8 @@ function CollectionsListItemMetadata({
     const handleMakeCopy = useStableCallback(() =>
         onDuplicateAction(collection)
     );
-    const handleArchive = useStableCallback(() =>
-        onUpdatePriorityAction(collection.id, "archive")
+    const handleArchiveToggle = useStableCallback(() =>
+        onUpdatePriorityAction(collection.id, isArchived ? "none" : "archive")
     );
 
     const updatedAt = dayjs(collection.updatedAt);
@@ -3672,13 +3714,21 @@ function CollectionsListItemMetadata({
                             />
                             Make a copy
                         </MenuItem>
-                        <MenuItem disabled={isArchived} onClick={handleArchive}>
-                            <ArchiveIcon
-                                aria-hidden
-                                className="size-4 text-muted-foreground"
-                                focusable="false"
-                            />
-                            Archive
+                        <MenuItem onClick={handleArchiveToggle}>
+                            {isArchived ? (
+                                <ArchiveX
+                                    aria-hidden
+                                    className="size-4 text-muted-foreground"
+                                    focusable="false"
+                                />
+                            ) : (
+                                <ArchiveIcon
+                                    aria-hidden
+                                    className="size-4 text-muted-foreground"
+                                    focusable="false"
+                                />
+                            )}
+                            {isArchived ? "Unarchive" : "Archive"}
                         </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />

@@ -39,6 +39,7 @@ import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { Toolbar } from "@base-ui/react";
 import { Checkbox } from "@base-ui/react/checkbox";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T, useGT } from "gt-next";
 import {
     Check,
     ChevronDown,
@@ -234,6 +235,7 @@ export function OnboardingMenu({
     } = useLibraryOnboardingStore();
 
     const { copyToClipboard } = useCopyToClipboard();
+    const gt = useGT();
 
     const completedTaskIdSet = getCompletedTaskIdSet({
         clientCompletedTaskIds: completedOnboardingTaskIds,
@@ -436,7 +438,16 @@ export function OnboardingMenu({
                                 openOnHover
                                 render={
                                     <Button
-                                        aria-label={`Get to know Cache, ${completedTaskCount} of ${ONBOARDING_TASK_COUNT} checklist items complete`}
+                                        aria-label={gt(
+                                            "Get to know Cache, {completedTaskCount} of {totalTasks} checklist items complete",
+                                            {
+                                                completedTaskCount:
+                                                    String(completedTaskCount),
+                                                totalTasks: String(
+                                                    ONBOARDING_TASK_COUNT
+                                                ),
+                                            }
+                                        )}
                                         className="rounded-full"
                                         size="xs"
                                         variant="ghost"
@@ -447,7 +458,7 @@ export function OnboardingMenu({
                                             size={9}
                                             value={progressValue}
                                         />
-                                        &nbsp;Get to know Cache
+                                        &nbsp;<T>Get to know Cache</T>
                                         <ChevronDown className="inline-block size-3.5 shrink-0" />
                                     </Button>
                                 }
@@ -457,7 +468,7 @@ export function OnboardingMenu({
                     <MenuPopup align="start" className="min-w-72">
                         <MenuGroup>
                             <MenuGroupLabel>
-                                Complete this checklist
+                                <T>Complete this checklist</T>
                             </MenuGroupLabel>
                             {tasks.map((task) => (
                                 <OnboardingMenuItem key={task.id} task={task} />

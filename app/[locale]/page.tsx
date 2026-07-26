@@ -683,6 +683,10 @@ export default async function Home() {
                                             Use cases
                                         </span>
                                         <br />
+                                        <span className="opacity-80">
+                                            Work, life, and everything in
+                                            between.
+                                        </span>{" "}
                                         Cache is for…
                                     </T>
                                 </h2>

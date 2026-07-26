@@ -10,7 +10,6 @@ import {
     DialogPopup,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     purgeAllRecentlyDeletedItems,
     purgeLibraryItem,
@@ -160,25 +159,16 @@ export function RecentlyDeletedList({
 
     if (visibleItems.length === 0) {
         return (
-            <div className="flex flex-col items-center gap-6 py-24 text-center">
-                <MediaPlaceholder className="flex h-32 w-full max-w-md flex-col items-center justify-center rounded-2xl">
-                    <Trash
-                        aria-hidden
-                        className="size-8 text-muted-foreground"
-                        focusable="false"
-                    />
-                </MediaPlaceholder>
-                <div className="space-y-2">
-                    <p className="font-medium text-foreground text-sm">
-                        <T>Nothing to restore right now</T>
-                    </p>
-                    <p className="mx-auto max-w-sm text-muted-foreground text-xs">
-                        <T>
-                            Items you remove from your library stay here for 30
-                            days before being deleted forever.
-                        </T>
-                    </p>
-                </div>
+            <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl bg-muted/50 p-8 text-center">
+                <p className="font-medium text-foreground text-sm">
+                    <T>Nothing to restore right now</T>
+                </p>
+                <p className="text-muted-foreground text-xs">
+                    <T>
+                        Items you remove from your library stay here for 30 days
+                        before being deleted forever.
+                    </T>
+                </p>
             </div>
         );
     }

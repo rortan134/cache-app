@@ -143,6 +143,7 @@ Endpoint: `https://www.cachd.app/mcp`
 - **Comments** — Add and view threaded comments on entries.
 - **Inbox view** — Triage view for reviewing entries.
 - **Notes improvements** — Richer editing experience, advanced formatting.
+- **Smart collection controls** — Review suggestions and control automatic assignment for each collection.
 - **Raycast integration** — Capture and search Cache from Raycast.
 - **Substack integration** — Import and save Substack posts and newsletters.
 

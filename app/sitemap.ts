@@ -21,7 +21,6 @@ const PUBLIC_STATIC_ROUTES = [
     { path: "/legal", priority: 0.7 },
     { path: "/legal/terms-of-service", priority: 0.7 },
     { path: "/legal/privacy-policy", priority: 0.7 },
-    { path: "/legal/cookie-policy", priority: 0.7 },
 ] satisfies SitemapRoute[];
 
 function getLocalizedUrl(locale: string, path: SitemapRoute["path"]) {

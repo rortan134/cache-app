@@ -4005,7 +4005,7 @@ function MediaPreview({
                     {isVideoLoading ? (
                         <div
                             className={cn(
-                                "pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out",
+                                "pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out",
                                 { "opacity-100": isHovered }
                             )}
                         >
@@ -4024,7 +4024,7 @@ function MediaPreview({
                             }
                             aria-pressed={isSoundEnabled}
                             className={cn(
-                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
+                                "pointer-events-auto absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
                                 { "opacity-100": isHovered }
                             )}
                             onClick={handleSoundToggle}
@@ -4496,6 +4496,11 @@ function CardMenu({
                     <ChevronDown className="ml-auto inline-block size-4" />
                 </CollapsibleTrigger>
                 <CollapsiblePanel className="px-2.5 text-[11px] text-muted-foreground">
+                    {isNote || !canPreview ? null : (
+                        <span className="block max-w-48 truncate py-0.5 text-muted-foreground underline">
+                            {href}
+                        </span>
+                    )}
                     <div className="flex items-center justify-between gap-3 py-0.5">
                         <span>Created</span>
                         <span className="text-foreground tabular-nums">
@@ -4649,7 +4654,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const previewVideoUrl = itemPreviewVideoUrl(item);
     const createdLabel = itemDateLabel(item.createdAt);
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
-    const noteExcerpt = getNoteExcerpt(item.noteContentText);
+    const hasNoteContent = (item.noteContentText ?? "").trim().length > 0;
     const displayTitle = getItemTitle(item);
     const { markVisited, isLastVisited } = useLastVisited();
     const isPickerOpen = openPickerItemId === item.id;
@@ -4769,22 +4774,27 @@ function MediaCard({ item }: LibraryGridCardProps) {
             >
                 {/* biome-ignore lint/a11y/useSemanticElements: ControlledZoom conflicts with anchor elements */}
                 <div
-                    aria-label={displayTitle}
-                    className="squircle relative flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    aria-label={
+                        isNote
+                            ? item.noteContentText?.trim() || "Note"
+                            : displayTitle
+                    }
+                    className={cn(
+                        "squircle relative flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                        { "bg-muted/90": isNote }
+                    )}
                     onClick={handlePrimaryClick}
                     onKeyDown={handlePrimaryKeyDown}
                     role="link"
                     tabIndex={0}
                 >
                     {isNote ? (
-                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-note-surface-from via-background to-note-surface-to p-3">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
-                            <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
-                                <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
-                                    {noteExcerpt ||
-                                        "Tap to start writing in this note"}
-                                </p>
-                            </div>
+                        <div className="mask-b-from-[calc(100%-var(--fade-size))] size-full max-h-60 select-none p-4 [--fade-size:5rem]">
+                            <Streamdown className="text-[11px] text-foreground">
+                                {hasNoteContent
+                                    ? (item.noteContentHtml ?? undefined)
+                                    : "Tap to start writing in this note"}
+                            </Streamdown>
                         </div>
                     ) : (
                         <>

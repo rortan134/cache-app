@@ -85,32 +85,6 @@ export function RssManageDialog() {
         }
     });
 
-    let feedContent: React.ReactNode;
-    if (isLoadingFeeds) {
-        feedContent = (
-            <p className="text-muted-foreground text-sm">Loading feeds...</p>
-        );
-    } else if (feeds.length === 0) {
-        feedContent = (
-            <p className="text-muted-foreground text-sm">
-                No feeds added yet. Paste a feed URL above to get started.
-            </p>
-        );
-    } else {
-        feedContent = (
-            <div className="flex flex-col gap-2">
-                {feeds.map((feed) => (
-                    <FeedRow
-                        feed={feed}
-                        isRemoving={removingFeedIds.has(feed.id)}
-                        key={feed.id}
-                        onRemove={handleRemove}
-                    />
-                ))}
-            </div>
-        );
-    }
-
     const handleOpenChange = useStableCallback((open: boolean) => {
         setIsOpen(open);
     });
@@ -127,7 +101,12 @@ export function RssManageDialog() {
                 </DialogHeader>
                 <DialogPanel className="flex flex-col gap-4">
                     <AddFeedForm onFeedAdded={loadFeeds} />
-                    {feedContent}
+                    <FeedList
+                        feeds={feeds}
+                        isLoading={isLoadingFeeds}
+                        onRemove={handleRemove}
+                        removingFeedIds={removingFeedIds}
+                    />
                 </DialogPanel>
                 <DialogFooter>
                     <DialogClose render={<Button variant="ghost" />}>
@@ -136,6 +115,47 @@ export function RssManageDialog() {
                 </DialogFooter>
             </DialogPopup>
         </Dialog>
+    );
+}
+
+interface FeedListProps {
+    feeds: FeedViewModel[];
+    isLoading: boolean;
+    onRemove: (feedId: string) => void;
+    removingFeedIds: Set<string>;
+}
+
+function FeedList({
+    feeds,
+    isLoading,
+    onRemove,
+    removingFeedIds,
+}: FeedListProps) {
+    if (isLoading) {
+        return (
+            <p className="text-muted-foreground text-sm">Loading feeds...</p>
+        );
+    }
+
+    if (feeds.length === 0) {
+        return (
+            <p className="text-muted-foreground text-sm">
+                No feeds added yet. Paste a feed URL above to get started.
+            </p>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-2">
+            {feeds.map((feed) => (
+                <FeedRow
+                    feed={feed}
+                    isRemoving={removingFeedIds.has(feed.id)}
+                    key={feed.id}
+                    onRemove={onRemove}
+                />
+            ))}
+        </div>
     );
 }
 

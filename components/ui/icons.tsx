@@ -499,6 +499,7 @@ export function ModelContextProtocolIcon({
             {...props}
             aria-label="Model Context Protocol"
             className={cn("inline-block size-5 shrink-0", className)}
+            fill="currentColor"
             fillRule="evenodd"
             focusable="false"
             height="28"
