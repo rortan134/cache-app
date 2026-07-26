@@ -4,7 +4,7 @@
 
 [Cache](https://www.cachd.app) is a modern well-crafted purpose-built personal bookmark knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single, searchable, actionable library. Read [README.md](README.md) for more.
 
-## On development
+## Development workflow
 
 Cache has a zero technical debt policy. Do it right the first time: the design that lands in the codebase should be the correct one, with no intentional debt in that surface. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. "Right the first time" describes the landed output, not the exploration that produced it — see simplicity below. When rules conflict, prefer in order: correctness and safety of the change surface, then scope discipline (task-only files and isolation), then local coherence in files you already touch, then YAGNI, then style.
 
@@ -54,6 +54,10 @@ Minimize risk by anticipating what’s most likely to fail (platforms, language 
 
 Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
 
+Before adding a new utility, check if a similar one exists in the `lib/common` directory or nearby module scope as utils.
+
+Anchor design decisions on the user's primary task or focus, to make sure the user can complete those tasks easily, not overwhelmed by unrelated UI clutter or user flows. Our UI should help users complete their tasks, not hinder them.
+
 Constants Are Module-Level and UPPER_SNAKE_CASE. Physics constants, selectors, and thresholds are declared at the top of the file, never inside the component.
 
 Inline single-use values when the expression is obvious in place. Keep a name when it encodes units, domain meaning, or a non-obvious intermediate — even if used once.
@@ -67,7 +71,7 @@ const journalPath = path.join(dir, "journal.json")
 const journal = await Bun.file(journalPath).json()
 ```
 
-## On React components
+## React components
 
 Always build React components following full `vercel-composition-patterns` and `vercel-react-best-practices` rules.
 
@@ -180,14 +184,6 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 | xRef.current = fn     | resetSwipeRef.current = resetSwipe | Callback ref pattern                    |
 | isNestedDrawerOpenRef | isNestedDrawerOpenRef              | Boolean ref for stale-closure avoidance |
 
-## On this project
-
-This is a shared codebase. Multiple agents may be working concurrently. Never revert, restore, or overwrite files you did not personally modify — `git status` showing files you never touched is a signal that someone else is working, not that your tooling misbehaved. Scope every `git restore`, `git checkout`, `git stash`, and destructive file operation strictly to the files you changed. When in doubt, leave it alone.
-
-Before adding a new utility, check if a similar one exists in the `lib/common` directory or nearby module scope as utils.
-
-Anchor design decisions on the user's primary task or focus, to make sure the user can complete those tasks easily, not overwhelmed by unrelated UI clutter or user flows. Our UI should help users complete their tasks, not hinder them.
-
 ### Tech stack
 
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
@@ -213,13 +209,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 <!-- END:nextjs-agent-rules -->
 
-### Server Actions / Service module pattern
+## Server Actions / Service module pattern
 
 We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for other modules, as side effects, or pure server components.
 
 Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. On the client, an action is consumed in one of two ways: as a read, by wrapping it in a small fetcher function passed to [swr](https://swr.vercel.app/llms.txt) (SWR calls the function locally); or as a mutation, by calling it directly from an event handler or form action. Either way the action is imported and invoked as an ordinary async function — the type signature of the export is the type of the call site, so requests and responses are fully inferred without an intermediate schema. Actions should return the minimal stable contract the current consumer needs — prefer a small DTO over entire domain objects or field-by-field thrash.
 
-### Logging and error handling pattern
+## Logging and error handling pattern
 
 Instrument critical paths. Log errors with context. Emit metrics for failure rates. Trace requests across service boundaries.
 
@@ -231,6 +227,6 @@ Named error module lives at `lib/common/error.ts`:
 
 Use these in services and actions to propagate domain failures with structured metadata (e.g., `{ operation, message, ... }`).
 
-### Data model
+## Data model
 
 The data model can be found at `prisma/schema.prisma`
