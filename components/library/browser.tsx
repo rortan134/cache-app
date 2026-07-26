@@ -4791,8 +4791,8 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     {isNote ? (
                         <div className="mask-b-from-[calc(100%-var(--fade-size))] size-full max-h-60 select-none p-4 [--fade-size:5rem]">
                             <Streamdown className="text-[11px] text-foreground">
-                                {hasNoteContent
-                                    ? (item.noteContentHtml ?? undefined)
+                                {hasNoteContent && item.noteContentHtml
+                                    ? item.noteContentHtml
                                     : "Tap to start writing in this note"}
                             </Streamdown>
                         </div>
