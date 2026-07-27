@@ -58,6 +58,17 @@ export async function addRssFeed(args: {
 
     log.info("Feed added", { feedId: feed.id, url: feedUrl });
 
+    try {
+        await fetchAndImportFeed(feed, new Date(), args.userId);
+    } catch (error) {
+        const message = getErrorMessage(error, "Failed to fetch feed.");
+        await prisma.rssFeed.update({
+            data: { lastError: message },
+            where: { id: feed.id },
+        });
+        log.warn("Initial feed fetch failed", { error, feedId: feed.id });
+    }
+
     return feed.id;
 }
 
@@ -88,6 +99,70 @@ export function listRssFeeds(args: { userId: string }) {
         },
         where: { userId: args.userId },
     });
+}
+
+async function fetchAndImportFeed(
+    feed: {
+        description: string | null;
+        feedUrl: string;
+        id: string;
+        siteUrl: string | null;
+        title: string | null;
+    },
+    now: Date,
+    userId: string
+): Promise<{ importedCount: number }> {
+    const parsed = await parseFeed(feed.feedUrl);
+
+    const items: Array<{
+        caption: string | null;
+        externalId: string;
+        kind: "bookmark";
+        postedAt: Date | null;
+        scrapedAt: Date;
+        sourceMetadata: Prisma.InputJsonObject;
+        url: string;
+    }> = [];
+
+    for (const item of parsed.items) {
+        const guid = item.guid ?? item.link;
+        if (!guid) {
+            continue;
+        }
+
+        items.push({
+            caption: item.title ?? null,
+            externalId: guid,
+            kind: ITEM_KIND_BOOKMARK,
+            postedAt: item.isoDate ? new Date(item.isoDate) : null,
+            scrapedAt: now,
+            sourceMetadata: {
+                author: item.creator ?? null,
+                categories: item.categories ?? [],
+            } satisfies Prisma.InputJsonObject,
+            url: item.link ?? "",
+        });
+    }
+
+    if (items.length > 0) {
+        const result = await upsertLibraryItemImports({
+            items,
+            source: LibraryItemSource.rss_feed,
+            userId,
+        });
+
+        await updateFeedAfterFetch({ feed, now, parsed });
+
+        log.info("Feed fetched and imported", {
+            feedId: feed.id,
+            importedCount: result.upsertedCount,
+        });
+
+        return { importedCount: result.upsertedCount };
+    }
+
+    await updateFeedAfterFetch({ feed, now, parsed });
+    return { importedCount: 0 };
 }
 
 export interface RssFeedRefreshResult {
@@ -123,67 +198,14 @@ export async function refreshFeedsForUser(args: {
             }
 
             try {
-                const parsed = await parseFeed(feed.feedUrl);
-
-                const items: Array<{
-                    caption: string | null;
-                    externalId: string;
-                    kind: "bookmark";
-                    postedAt: Date | null;
-                    scrapedAt: Date;
-                    sourceMetadata: Prisma.InputJsonObject;
-                    url: string;
-                }> = [];
-
-                for (const item of parsed.items) {
-                    const guid = item.guid ?? item.link;
-                    if (!guid) {
-                        continue;
-                    }
-
-                    items.push({
-                        caption: item.title ?? null,
-                        externalId: guid,
-                        kind: ITEM_KIND_BOOKMARK,
-                        postedAt: item.isoDate ? new Date(item.isoDate) : null,
-                        scrapedAt: args.now,
-                        sourceMetadata: {
-                            author: item.creator ?? null,
-                            categories: item.categories ?? [],
-                        } satisfies Prisma.InputJsonObject,
-                        url: item.link ?? "",
-                    });
-                }
-
-                if (items.length === 0) {
-                    await updateFeedAfterFetch({
-                        feed,
-                        now: args.now,
-                        parsed,
-                    });
-                    return { feedId: feed.id, kind: "refreshed" };
-                }
-
-                const result = await upsertLibraryItemImports({
-                    items,
-                    source: LibraryItemSource.rss_feed,
-                    userId: args.userId,
-                });
-
-                await updateFeedAfterFetch({
+                const { importedCount } = await fetchAndImportFeed(
                     feed,
-                    now: args.now,
-                    parsed,
-                });
-
-                log.info("Feed refreshed", {
-                    feedId: feed.id,
-                    importedCount: result.upsertedCount,
-                });
-
+                    args.now,
+                    args.userId
+                );
                 return {
                     feedId: feed.id,
-                    importedCount: result.upsertedCount,
+                    importedCount,
                     kind: "refreshed",
                 };
             } catch (error) {
