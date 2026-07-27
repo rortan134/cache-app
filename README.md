@@ -8,7 +8,7 @@
 <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
 <a href="https://twitter.com/gsmmtt" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/twitter/follow/gsmmtt" alt="Twitter Follow"></a>
 
-Unify your bookmarks across platforms into a single actionable library.
+**Unify your bookmarks across platforms into a single actionable library.** Cache is the AI bookmark manager for busy people. Collect, organize, and rediscover everything you've saved across platforms.
 
 **[cachd.app](https://cachd.app)** · [Issues](https://github.com/rortan134/cache-app/issues)
 
