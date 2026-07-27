@@ -8,13 +8,13 @@
 <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
 <a href="https://twitter.com/gsmmtt" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/twitter/follow/gsmmtt" alt="Twitter Follow"></a>
 
-[![Cache App Preview](app/opengraph-image.png)](https://www.cachd.app)
-
 Unify your bookmarks across platforms into a single actionable library.
 
 **[cachd.app](https://cachd.app)** · [Issues](https://github.com/rortan134/cache-app/issues)
 
-## Why Cache
+[![Cache App Preview](app/opengraph-image.png)](https://www.cachd.app)
+
+## Why
 
 Bookmarking is broken. When you hit "save" on a tweet, a video, or a post, you are making a deliberate decision that *this is worth remembering*. But that intent is immediately lost. It vanishes into a list you never revisit, scattered across a dozen platforms with no connection to your actual workflow or goals. The feeds are designed to keep you scrolling, not to help you resurface what you need. Existing tools treat the "save" action as an afterthought, a dead end rather than a starting point.
 
@@ -33,7 +33,7 @@ Cache exists because that signal is too valuable to waste. It treats the act of 
 - **Collaboration** — Share a live view of any collection with anyone, even if they don't use Cache.
 - **Browser extension** — Capture and sync saved content from anywhere on the web.
 - **Export & integrate** — Pipe results into other tools you already use.
-- **Simple and low maintenance** — Cache is designed to be simple, low-maintenance, and always portable.
+- **Simple and low maintenance** — Cache is designed to be simple, low-maintenance, and portable.
 
 ---
 
