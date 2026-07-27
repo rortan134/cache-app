@@ -143,6 +143,7 @@
       "t": "p"
     }
   ],
+  "1cad061f7ee2beb4": "Eliminar todo ahora",
   "1d1c7a1398fc122d": "mensual",
   "1d829f40405b2c18": "Biblioteca",
   "1dd80c4ec03a228f": [
@@ -207,11 +208,29 @@
       "t": "li"
     }
   ],
+  "230a6fc79f364a03": [
+    {
+      "c": "Casos de uso",
+      "i": 1,
+      "t": "span"
+    },
+    {
+      "i": 2,
+      "t": "br"
+    },
+    {
+      "c": "Trabajo, vida y todo lo demás.",
+      "i": 3,
+      "t": "span"
+    },
+    " Cache es para…"
+  ],
   "24027d4e6ab343d5": "Gestiona automatizaciones sencillas que organizan y resumen tu contenido guardado.",
   "251aca485fefb2c6": "Empieza a escribir o pega un enlace para añadirlo...",
   "25f457f910ba96b7": "Recomendado",
   "26fe9d3e34588477": "Cerrar sesión",
   "27d7979205fe23f9": "¿Eliminar tu cuenta?",
+  "2943dcfa6cfe22c9": "Conoce Cache: {completedTaskCount} de {totalTasks} elementos de la lista completados",
   "29f3fb668dc727d6": "Todas las colecciones",
   "2c5c798252f91fdc": "Añadir",
   "2cbe5f9a9b5c7604": {
@@ -253,6 +272,7 @@
     },
     "Pon orden en el caos — desde solo 8 $/mes."
   ],
+  "3fe9728594a7340c": "Quitar filtros",
   "400a7d9516cfbfd6": "Gestor de marcadores | {appName}",
   "408574e37e8d91ee": "pronto",
   "43c4658708e52e85": "Eliminar cuenta",
@@ -461,6 +481,15 @@
   "7472afb4558f12e9": "Última visita",
   "74eb6f880badacc6": "Esta colección está vacía.",
   "75d4d73501e837d5": "Hazte Pro",
+  "7600a27b3a3b3849": [
+    "Eliminar permanentemente los ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " elementos de Eliminados recientemente. Esta acción no se puede deshacer."
+  ],
   "7721d8d00edabeda": "Cerrando sesión…",
   "7778504b2e559b68": "El gestor de marcadores con IA para gente ocupada. Consulta, gestiona y organiza tus marcadores en todas tus plataformas.",
   "7a8ec4ce7cf50dc7": "Eliminados recientemente",
@@ -470,6 +499,7 @@
   "818f874d6398e37d": "Colecciones",
   "81ae67bbef7a15d0": "De código abierto. Realmente tuyo",
   "841cad15ee2276fc": "Recursos",
+  "855fc8d0a319071f": "Completa esta lista",
   "86311df6a7e1f583": "Los elementos guardados de tus cuentas conectadas y de las importaciones de la extensión aparecen a continuación por origen.",
   "87254fc32f854b77": "No se pudo cambiar de cuenta.",
   "87b2d18453bcefde": {
@@ -536,24 +566,13 @@
     "i": 1,
     "t": "span"
   },
-  "9868880f7ab7bc33": [
-    {
-      "c": "Casos de uso",
-      "i": 1,
-      "t": "span"
-    },
-    {
-      "i": 2,
-      "t": "br"
-    },
-    "Cache es ideal para…"
-  ],
   "98f22f896e28d856": "Crea una para resumir u organizar el contenido guardado según una programación.",
   "996e972b969048e9": "Acuerdo de Tratamiento de Datos",
   "99e4c3ba36537129": "Cancelar",
   "9fd82b2890ce2961": "Ocultar sugerencias",
   "9fda70fa98e942b4": "Todas las colecciones que has creado en tu espacio de trabajo.",
   "a06f2446c9ee9132": "Referencias, citas, fragmentos. Una base documental con buscador para tu material de trabajo.",
+  "a0dceb2ba7bdebac": "No hay colecciones que coincidan con esta vista.",
   "a1266e82c6a1f68f": "Mostrar sugerencias",
   "a190980699ae2ce2": "Términos del servicio de {appName}: normas de uso del servicio, las cuentas y el uso aceptable.",
   "a3bf9c945c7318bb": "Automatizaciones",
@@ -696,6 +715,7 @@
       "v": "v"
     }
   ],
+  "deb397e0176082b2": "¿Eliminar todos los elementos para siempre?",
   "e09a36ef3ffd9115": "Sin guardar",
   "e1897047828fc955": "Documentación, incidencias, código, tutoriales. Encuentra ese enlace concreto al instante.",
   "e3fb410a95d4f393": [
@@ -713,9 +733,11 @@
   "e6bf33cf97345f68": "¿Eliminar para siempre?",
   "e6c1109fa39e2f8d": "Eliminar definitivamente",
   "e9582dee1da6d8e4": "Sugerido",
+  "ea84eb135ce31d0d": "Descubre Cache",
   "ece5e10bd5b5769d": "Guardando...",
   "ee89eff1a7866351": "Unifica tus marcadores en todas las plataformas",
   "ef6e24a1af2bdcd8": "Deseleccionar",
+  "f01e24975e99850b": "Eliminar todo",
   "f044e94922dd62f5": "¿Listo para empezar?",
   "f3c979f1e51251d0": "Términos del Servicio",
   "f92af3bd913028bf": [
