@@ -4496,7 +4496,7 @@ function CardMenu({
                     <ChevronDown className="ml-auto inline-block size-4" />
                 </CollapsibleTrigger>
                 <CollapsiblePanel className="px-2.5 text-[11px] text-muted-foreground">
-                    {isNote || !canPreview ? null : (
+                    {isNote ? null : (
                         <span className="block max-w-48 truncate py-0.5 text-muted-foreground underline">
                             {href}
                         </span>

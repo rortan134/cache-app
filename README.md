@@ -5,7 +5,6 @@
 <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
 <a href="https://github.com/rortan134/cache-app/releases"><img src="https://img.shields.io/github/v/release/rortan134/cache-app" alt="Release"></a>
 <a href="./CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct"></a>
-<a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
 <a href="https://twitter.com/gsmmtt" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/twitter/follow/gsmmtt" alt="Twitter Follow"></a>
 
 **Unify your bookmarks across platforms into a single actionable library.** Cache is the AI bookmark manager for busy people. Collect, organize, and rediscover everything you've saved across platforms.
@@ -14,7 +13,7 @@
 
 [![Cache App Preview](app/opengraph-image.png)](https://www.cachd.app)
 
-## Why
+## Why Cache
 
 Bookmarking is broken. When you hit "save" on a tweet, a video, or a post, you are making a deliberate decision that *this is worth remembering*. But that intent is immediately lost. It vanishes into a list you never revisit, scattered across a dozen platforms with no connection to your actual workflow or goals. The feeds are designed to keep you scrolling, not to help you resurface what you need. Existing tools treat the "save" action as an afterthought, a dead end rather than a starting point.
 
@@ -43,16 +42,17 @@ Cache exists because that signal is too valuable to waste. It treats the act of 
 
 <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Open-cachd.app-3B3B3B?labelColor=1A1A1A" alt="Open cachd.app"></a>
 
-### Self-hosting (Work in progress)
+### Self hosting
 
 You can self-host Cache for total control over your data and design. Cache has zero telemetry by default.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) v1.3.14+
+- [Bun](https://bun.sh/) v1.3.14
 - [Node.js](https://nodejs.org/) 24.x
 - PostgreSQL 12+ (local or remote)
 - A Google Gemini API key (for AI features)
+- Docker (optional)
 
 ### Local Development
 
@@ -81,12 +81,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 See the [environment variables reference](.env.example) for the full list.
 
----
-
 ## Tech Stack
 
 <details>
 <summary>Next.js · Bun · PostgreSQL · Prisma ORM · Better Auth · Tailwind — and more</summary>
+
+<a href="https://www.typescriptlang.org"><img src="https://shields.io/badge/TypeScript-3178C6?logo=TypeScript&logoColor=FFF&style=flat-square" alt="TypeScript"></a>
+<a href="https://prisma.io"><img width="122" height="20" src="http://made-with.prisma.io/indigo.svg" alt="Made with Prisma" /></a>
+<a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/tailwindcss-0F172A?&logo=tailwindcss" alt="Tailwind CSS"></a>
 
 | Category                  | Technology                                                                                                      |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------- |

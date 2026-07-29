@@ -109,7 +109,11 @@ export function UserMenuTrigger(
     props: React.ComponentProps<typeof MenuTrigger>
 ) {
     return (
-        <MenuTrigger {...props} openOnHover>
+        <MenuTrigger
+            {...props}
+            aria-label={props["aria-label"] ?? "Open account menu"}
+            openOnHover
+        >
             <WithUserSessionOnly loadingRender={<UserMenuTriggerSkeleton />}>
                 {(user) => (
                     <span className="flex min-w-0 items-center gap-2">
