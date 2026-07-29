@@ -47,3 +47,38 @@ export function detectDesktopPlatform(
 
     return null;
 }
+
+let pakeDesktopAppResult: boolean | undefined;
+
+/**
+ * Checks whether the current page is running inside the Pake-packaged
+ * desktop app (Tauri v1/v2 webview).  Returns `false` for all regular
+ * browsers and SSR.
+ *
+ * Detection relies on Tauri globals that do not exist in standard
+ * browser environments:
+ *   - `window.__TAURI__`           (Tauri v1)
+ *   - `window.__TAURI_INTERNALS__` (Tauri v2)
+ *
+ * The result is cached after the first call because the runtime
+ * environment does not change during a session.
+ */
+export function isDesktopApp(): boolean {
+    if (pakeDesktopAppResult !== undefined) {
+        return pakeDesktopAppResult;
+    }
+
+    if (typeof window === "undefined") {
+        pakeDesktopAppResult = false;
+        return false;
+    }
+
+    const hasTauriGlobal =
+        (window as unknown as Record<string, unknown>).__TAURI__ !==
+            undefined ||
+        (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !==
+            undefined;
+
+    pakeDesktopAppResult = hasTauriGlobal;
+    return hasTauriGlobal;
+}

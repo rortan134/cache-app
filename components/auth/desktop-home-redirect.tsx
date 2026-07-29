@@ -1,6 +1,6 @@
 "use client";
 
-import { useDesktopPlatform } from "@/lib/desktop/use-desktop-platform";
+import { useDesktopApp } from "@/lib/desktop/use-desktop-platform";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -9,18 +9,18 @@ export function DesktopHomeRedirect({
 }: {
     children: React.ReactNode;
 }) {
-    const { isDesktop } = useDesktopPlatform();
+    const { isDesktopApp, loaded } = useDesktopApp();
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
-        if (isDesktop) {
+        if (isDesktopApp) {
             const locale = pathname.split("/")[1] || "en";
             router.replace(`/${locale}/signin`);
         }
-    }, [isDesktop, pathname, router]);
+    }, [isDesktopApp, pathname, router]);
 
-    if (isDesktop) {
+    if (!loaded || isDesktopApp) {
         return null;
     }
 
