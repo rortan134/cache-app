@@ -22,19 +22,16 @@ export function useDesktopPlatform(): {
 
 export function useDesktopApp(): {
     isDesktopApp: boolean;
-    loaded: boolean;
     platform: DesktopPlatform | null;
 } {
     const [result, setResult] = useState<{
         isDesktopApp: boolean;
-        loaded: boolean;
         platform: DesktopPlatform | null;
-    }>({ isDesktopApp: false, loaded: false, platform: null });
+    }>({ isDesktopApp: false, platform: null });
 
     useEffect(() => {
         setResult({
             isDesktopApp: isDesktopApp(),
-            loaded: true,
             platform: detectDesktopPlatform(),
         });
     }, []);

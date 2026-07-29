@@ -9,7 +9,7 @@ export function DesktopHomeRedirect({
 }: {
     children: React.ReactNode;
 }) {
-    const { isDesktopApp, loaded } = useDesktopApp();
+    const { isDesktopApp } = useDesktopApp();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -20,7 +20,7 @@ export function DesktopHomeRedirect({
         }
     }, [isDesktopApp, pathname, router]);
 
-    if (!loaded || isDesktopApp) {
+    if (isDesktopApp) {
         return null;
     }
 
