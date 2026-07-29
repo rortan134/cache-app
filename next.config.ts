@@ -38,8 +38,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
     cacheComponents: true,
     experimental: {
-        optimizeCss: true,
-        preloadEntriesOnStart: false,
+        useOffline: true,
         useTypeScriptCli: true,
     },
     async headers() {
@@ -113,7 +112,6 @@ const nextConfig: NextConfig = {
     output:
         process.env.NEXT_BUILD_STANDALONE === "1" ? "standalone" : undefined,
     partialPrefetching: true,
-    poweredByHeader: false,
     reactCompiler: true,
     async redirects() {
         return [
