@@ -5,15 +5,12 @@
 
         // Linting & Formatting
         "biomejs.biome",
+        "editorconfig.editorconfig",
 
         // Database & ORM
         "Prisma.prisma",
 
         // Styling
-        "bradlc.vscode-tailwindcss",
-
-        // Misc
-        "editorconfig.editorconfig",
-        "yoavbls.pretty-ts-errors"
+        "bradlc.vscode-tailwindcss"
     ]
 }

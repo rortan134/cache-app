@@ -110,6 +110,8 @@ const nextConfig: NextConfig = {
          */
         qualities: [75, 90],
     },
+    output:
+        process.env.NEXT_BUILD_STANDALONE === "1" ? "standalone" : undefined,
     partialPrefetching: true,
     poweredByHeader: false,
     reactCompiler: true,
