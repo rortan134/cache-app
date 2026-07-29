@@ -76,7 +76,7 @@ const HOME_JSON_LD: Record<string, unknown> = {
             offers: {
                 "@type": "Offer",
                 price: "8",
-                priceCurrency: "EUR",
+                priceCurrency: "USD",
             },
             operatingSystem: "Any",
         },
@@ -129,7 +129,7 @@ export default async function Home() {
                             <T context="'Cache' is the product's name">
                                 <h1 className="font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
                                     <GradientWaveText
-                                        ariaLabel="Unify your bookmarks"
+                                        ariaLabel="Bookmark Intelligence"
                                         className="pb-1.5"
                                     >
                                         Bookmark Intelligence

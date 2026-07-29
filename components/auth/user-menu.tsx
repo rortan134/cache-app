@@ -47,7 +47,7 @@ import {
 } from "@/lib/desktop/releases";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { LocaleSelector, T, Var } from "gt-next";
+import { LocaleSelector, T, useGT, Var } from "gt-next";
 import {
     ArrowUpRight,
     ChevronDown,
@@ -108,10 +108,12 @@ export function UserMenu(
 export function UserMenuTrigger(
     props: React.ComponentProps<typeof MenuTrigger>
 ) {
+    const gt = useGT();
+
     return (
         <MenuTrigger
             {...props}
-            aria-label={props["aria-label"] ?? "Open account menu"}
+            aria-label={props["aria-label"] ?? gt("Open account menu")}
             openOnHover
         >
             <WithUserSessionOnly loadingRender={<UserMenuTriggerSkeleton />}>
