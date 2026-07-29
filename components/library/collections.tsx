@@ -935,6 +935,13 @@ function useCollectionSync(
 
     const syncPriority = useStableCallback(
         (id: string, priority: CollectionPriority) => {
+            const hoveredCollection = hoveredCollectionRef.current;
+            if (hoveredCollection?.id === id) {
+                hoveredCollectionRef.current = {
+                    ...hoveredCollection,
+                    priority,
+                };
+            }
             setCollections((current) =>
                 sortCollections(
                     updateById(current, id, (collection) => ({
@@ -1433,6 +1440,10 @@ function useCollectionHoverHotkeys(input: {
     hoveredCollectionRef: React.RefObject<LibraryCollectionSummary | null>;
     hoveredCollectionSourceRef: React.RefObject<CollectionListSource | null>;
     onCopyLinks: (collection: LibraryCollectionSummary) => void;
+    onUpdatePriority: (
+        collectionId: string,
+        priority: CollectionPriority
+    ) => void;
     requestDelete: (collection: LibraryCollectionSummary) => void;
     requestRename: (collection: LibraryCollectionSummary) => void;
     setPendingPriorityComboboxOpen: (value: string | null) => void;
@@ -1446,6 +1457,7 @@ function useCollectionHoverHotkeys(input: {
         hoveredCollectionRef,
         hoveredCollectionSourceRef,
         onCopyLinks,
+        onUpdatePriority,
         requestDelete,
         requestRename,
         setPendingPriorityComboboxOpen,
@@ -1507,6 +1519,21 @@ function useCollectionHoverHotkeys(input: {
     );
 
     useHotkeys(
+        "shift+mod+a",
+        (event) => {
+            const target = resolveHoveredCollection();
+            if (target) {
+                event.preventDefault();
+                onUpdatePriority(
+                    target.id,
+                    target.priority === "archive" ? "none" : "archive"
+                );
+            }
+        },
+        { description: "Archive or unarchive hovered collection" }
+    );
+
+    useHotkeys(
         "p",
         () => {
             const target = resolveHoveredCollection();
@@ -1564,6 +1591,7 @@ function useCollectionsController() {
         hoveredCollectionRef,
         hoveredCollectionSourceRef,
         onCopyLinks: rowActions.onCopyLinks,
+        onUpdatePriority: rowActions.onUpdatePriority,
         requestDelete: dialogs.requestDelete,
         requestRename: dialogs.requestRename,
         setPendingPriorityComboboxOpen:
@@ -3599,7 +3627,7 @@ interface CollectionsListItemMetadataProps {
  *
  * Renders children (typically a count or recency badge) that hides on hover,
  * replacing it with an ellipsis menu. Keyboard shortcuts (E, Delete/Backspace,
- * C, Option+F) are active while hovered.
+ * C, Option+F, Shift+Command+A) are active while hovered.
  */
 function CollectionsListItemMetadata({
     children,
@@ -3729,6 +3757,10 @@ function CollectionsListItemMetadata({
                                 />
                             )}
                             {isArchived ? "Unarchive" : "Archive"}
+                            <MenuShortcut>
+                                <ShiftKbd />
+                                <CmdKbd />A
+                            </MenuShortcut>
                         </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />
@@ -4250,7 +4282,8 @@ function CollectionsCreateDialog() {
                                             />
                                         </strong>{" "}
                                         can automatically assign collections to
-                                        entries that match these templates.
+                                        saved content that matches these
+                                        templates.
                                     </p>
                                 </div>
                             </ComboboxPopup>
