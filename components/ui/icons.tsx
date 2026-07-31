@@ -613,3 +613,28 @@ export function V0Icon({ className, ...props }: React.SVGProps<SVGSVGElement>) {
         </svg>
     );
 }
+
+export function MarkdownIcon({
+    className,
+    ...props
+}: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            {...props}
+            aria-hidden="true"
+            className={cn("inline-block size-4 shrink-0", className)}
+            fill="none"
+            focusable="false"
+            role="img"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+        >
+            <path d="M4 20h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+            <path d="M6 16V8l3 4 3-4v8" />
+            <path d="M15 16V8l2 2 2-2v8" />
+        </svg>
+    );
+}

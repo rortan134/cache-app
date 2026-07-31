@@ -30,7 +30,7 @@ export function SidebarNavigationItem({
 
     useHotkeys(shortcutKeys ?? "", handleShortcut, {
         description: `Navigate to ${props["aria-label"]}`,
-        enabled: Boolean(shortcutKeys),
+        enabled: !!shortcutKeys,
         preventDefault: true,
     });
 

@@ -1,4 +1,5 @@
 {
+    "$schema": "https://json.schemastore.org/tsconfig",
     "compilerOptions": {
         /* Base Options: */
         "target": "esnext",
@@ -34,7 +35,6 @@
         "strictPropertyInitialization": true,
         "allowSyntheticDefaultImports": true,
         "useUnknownInCatchVariables": true,
-
         "allowImportingTsExtensions": true,
 
         /* Bundled projects */

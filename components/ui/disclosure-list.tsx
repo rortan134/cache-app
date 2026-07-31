@@ -52,7 +52,7 @@ function DisclosureListHidden({ items }: DisclosureListHiddenProps) {
 
     return (
         <Collapsible onOpenChange={setIsOpen} open={isOpen}>
-            <CollapsibleTrigger className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs hover:text-foreground">
+            <CollapsibleTrigger className="flex w-full items-center p-1.5 text-muted-foreground text-xs hover:text-foreground">
                 {isOpen ? "Show less" : `Show ${items.length} more`}
             </CollapsibleTrigger>
             <CollapsiblePanel>{items}</CollapsiblePanel>

@@ -2411,7 +2411,7 @@ function CollectionsListContent({ children }: CollectionsListContentProps) {
     }
 
     return (
-        <DisclosureListVertical maxVisible={10}>
+        <DisclosureListVertical className="ml-1.25" maxVisible={10}>
             {collectionSummaries.map(children)}
         </DisclosureListVertical>
     );
@@ -2583,7 +2583,7 @@ function CollectionRecommendationItem({
                     closeDelay={0}
                     render={
                         <SidebarItem
-                            className="w-full min-w-0 flex-1 justify-start rounded-lg pr-8 pl-10.5 text-left hover:bg-transparent"
+                            className="w-full min-w-0 flex-1 justify-start rounded-lg pr-8 pl-9.5 text-left hover:bg-transparent"
                             render={
                                 <button
                                     disabled={isCreating}
@@ -2594,7 +2594,7 @@ function CollectionRecommendationItem({
                         />
                     }
                 >
-                    <span className="absolute top-1/2 left-2.5 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border-none bg-muted text-muted-foreground sm:size-6">
+                    <span className="absolute top-1/2 left-1.25 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border-none bg-muted text-muted-foreground sm:size-6">
                         <PlusIcon
                             aria-hidden
                             className="size-4 sm:size-3.5"
@@ -2646,12 +2646,12 @@ function CollectionsListRecommendations() {
 
     return (
         <Collapsible
-            className="flex flex-col gap-1 pt-0.5"
+            className="ml-1.25 flex flex-col gap-1 pt-0.5"
             onOpenChange={setIsRecommendationsOpen}
             open={isRecommendationsOpen}
         >
             <CollapsibleTrigger
-                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs hover:text-foreground"
+                className="flex w-full items-center p-1.5 text-muted-foreground text-xs hover:text-foreground"
                 title={
                     isRecommendationsOpen
                         ? "Hide suggested collections"
@@ -3187,7 +3187,7 @@ function CollectionsListItemTrigger({
                 onPointerLeave={handlePointerLeave}
                 render={
                     <SidebarItem
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left before:bg-(--collection-background) hover:bg-transparent focus-visible:ring-(--accent-color)"
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-8.5 text-left before:bg-(--collection-background) hover:bg-transparent focus-visible:ring-(--accent-color)"
                         render={<Button variant="ghost" />}
                     />
                 }
@@ -3383,7 +3383,7 @@ function CollectionsListItemPriorityCombobox() {
                 render={
                     <Button
                         aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--accent-color)"
+                        className="absolute top-1/2 left-1.25 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--accent-color)"
                         size="icon-xs"
                         title="Organize collections by relevance level"
                         variant="ghost"
@@ -3659,7 +3659,7 @@ function CollectionsListItemMetadata({
     const updatedAt = dayjs(collection.updatedAt);
 
     return (
-        <div className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center">
+        <div className="absolute top-1/2 right-0 flex size-9 -translate-y-1/2 items-center justify-center">
             <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums focus-visible:opacity-0 group-focus-within:opacity-0 pointer-fine:group-hover:opacity-0">
                 {children}
             </span>
@@ -3668,7 +3668,7 @@ function CollectionsListItemMetadata({
                     render={
                         <Button
                             aria-label={`Collection actions for ${collection.name}`}
-                            className="absolute opacity-100 pointer-fine:opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100 group-focus:opacity-100 data-popup-open:bg-muted data-popup-open:opacity-100"
+                            className="absolute text-(--accent-color) pointer-fine:opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100 group-focus:opacity-100 data-popup-open:bg-muted data-popup-open:opacity-100"
                             size="icon-xs"
                             title={`Collection actions for ${collection.name}`}
                             variant="ghost"
@@ -3677,7 +3677,7 @@ function CollectionsListItemMetadata({
                 >
                     <EllipsisIcon
                         aria-hidden
-                        className="inline-block size-3.5 shrink-0"
+                        className="inline-block size-4"
                         focusable="false"
                     />
                 </MenuTrigger>

@@ -165,8 +165,8 @@ export function UserMenuHeader() {
     return (
         <WithUserSessionOnly>
             {(user) => (
-                <div className="w-full min-w-0 flex-1 pb-2">
-                    <UserMenuAccountSwitcherSubMenu className="h-11 gap-5 rounded-xl">
+                <div className="w-full min-w-0 flex-1 pb-1">
+                    <UserMenuAccountSwitcherSubMenu className="gap-5 rounded-xl">
                         <div className="min-w-0">
                             <span className="block truncate font-medium text-sm">
                                 {user.name ?? <T>Cache account</T>}
@@ -176,7 +176,7 @@ export function UserMenuHeader() {
                             </span>
                         </div>
                     </UserMenuAccountSwitcherSubMenu>
-                    <div className="mx-2 mt-2 flex items-center gap-2">
+                    <div className="flex items-center px-2 py-1">
                         <SubscriptionStatusBadge />
                     </div>
                 </div>
