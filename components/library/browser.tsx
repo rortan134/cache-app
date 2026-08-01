@@ -3631,9 +3631,11 @@ function useSectionCollapseState({
         (hasActiveFilters || groupBy !== "none");
 
     const sectionKeySignature = groups.map((section) => section.key).join("\0");
-    const prevSectionKeySignatureRef = React.useRef(sectionKeySignature);
-    if (sectionKeySignature !== prevSectionKeySignatureRef.current) {
-        prevSectionKeySignatureRef.current = sectionKeySignature;
+    const [prevSectionKeySignature, setPrevSectionKeySignature] =
+        React.useState(sectionKeySignature);
+
+    if (sectionKeySignature !== prevSectionKeySignature) {
+        setPrevSectionKeySignature(sectionKeySignature);
         const validKeys = new Set(groups.map((section) => section.key));
         setCollapsedSectionKeys((current) => {
             const next = current.filter((key) => validKeys.has(key));
@@ -3641,16 +3643,17 @@ function useSectionCollapseState({
         });
     }
 
-    const prevEnableSectionCollapseRef = React.useRef(enableSectionCollapse);
-    if (
-        prevEnableSectionCollapseRef.current !== enableSectionCollapse &&
-        !enableSectionCollapse
-    ) {
-        setCollapsedSectionKeys((current) =>
-            current.length === 0 ? current : []
-        );
+    const [prevEnableSectionCollapse, setPrevEnableSectionCollapse] =
+        React.useState(enableSectionCollapse);
+
+    if (prevEnableSectionCollapse !== enableSectionCollapse) {
+        setPrevEnableSectionCollapse(enableSectionCollapse);
+        if (!enableSectionCollapse) {
+            setCollapsedSectionKeys((current) =>
+                current.length === 0 ? current : []
+            );
+        }
     }
-    prevEnableSectionCollapseRef.current = enableSectionCollapse;
 
     const toggleSection = useStableCallback((key: string) => {
         setCollapsedSectionKeys((current) =>
@@ -5547,7 +5550,6 @@ export function BrowserRoot({
     });
     const unreachableProbeVersionRef = React.useRef(0);
     const itemsRef = React.useRef(items);
-    itemsRef.current = items;
     const [paletteSection, setPaletteSection] =
         React.useState<PaletteSection>("search");
     const [commandAttachments, setCommandAttachments] = React.useState<
@@ -5582,7 +5584,6 @@ export function BrowserRoot({
     const inputRef = React.useRef<HTMLInputElement>(null);
     const commandAttachmentsRef = React.useRef<LibraryCommandAttachment[]>([]);
     const askCacheRequestVersionRef = React.useRef(0);
-    commandAttachmentsRef.current = commandAttachments;
 
     const createResultsNameInputId = React.useId();
     const createResultsDescriptionId = React.useId();
@@ -5605,7 +5606,12 @@ export function BrowserRoot({
     const pendingDeleteItemIdRef = React.useRef<string | null>(
         pendingDeleteItem?.id ?? null
     );
-    pendingDeleteItemIdRef.current = pendingDeleteItem?.id ?? null;
+
+    React.useEffect(() => {
+        itemsRef.current = items;
+        commandAttachmentsRef.current = commandAttachments;
+        pendingDeleteItemIdRef.current = pendingDeleteItem?.id ?? null;
+    });
 
     const [isSavingNote, startSavingNoteTransition] = React.useTransition();
     const [isSavingPastedUrl, startSavingPastedUrlTransition] =
@@ -5985,11 +5991,8 @@ export function BrowserRoot({
                     prompt,
                     status: "error",
                 });
-            } finally {
-                if (askCacheRequestVersionRef.current === requestVersion) {
-                    setPaletteSection("ai-response");
-                    setIsCommandOpen(true);
-                }
+                setPaletteSection("ai-response");
+                setIsCommandOpen(true);
             }
         }
     );
@@ -6316,11 +6319,13 @@ export function BrowserRoot({
 
     const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(true);
 
-    const prevSuggestionCountRef = React.useRef(0);
-    if (suggestions.length > 0 && prevSuggestionCountRef.current === 0) {
-        setIsSuggestionsOpen(true);
+    const [prevSuggestionCount, setPrevSuggestionCount] = React.useState(0);
+    if (prevSuggestionCount !== suggestions.length) {
+        if (suggestions.length > 0 && prevSuggestionCount === 0) {
+            setIsSuggestionsOpen(true);
+        }
+        setPrevSuggestionCount(suggestions.length);
     }
-    prevSuggestionCountRef.current = suggestions.length;
 
     const focusPaletteInput = useStableCallback((select = false) => {
         setIsCommandOpen(true);
@@ -6619,9 +6624,12 @@ export function BrowserRoot({
         startCreateResultsCollectionTransition(async () => {
             let result: CollectionCreateFromItemsResult;
 
+            // Hoisted: the React Compiler does not support logical
+            // expressions (value blocks) inside try/catch statements.
+            const description = createResultsDescriptionDraft || undefined;
             try {
                 result = await onCreateCollectionFromResults({
-                    description: createResultsDescriptionDraft || undefined,
+                    description,
                     itemIds: resultCollectionItemIds,
                     name: createResultsNameDraft,
                 });
