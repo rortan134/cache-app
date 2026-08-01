@@ -2566,11 +2566,12 @@ const BrowserMasonryCell = ({
     return children(data, index);
 };
 
+const getBrowserMasonryItemKey = (item: LibraryItemWithCollections) => item.id;
+
 function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
     const { columnCount } = useBrowserResultsContext();
     const { state: sidebarState } = useSidebar();
-    // ! this works, sometimes, to recalculate column count on sidebar toggle
     const sidebarStateDeferred = useDebouncedValue(sidebarState, 300);
 
     if (collapsed || items.length === 0) {
@@ -2583,6 +2584,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
                 columnCount={columnCount}
                 columnGutter={16}
                 itemAs="article"
+                itemKey={getBrowserMasonryItemKey}
                 itemStyle={{ contain: "layout style" }}
                 items={items}
                 key={`${sidebarStateDeferred}-${items.length}`}

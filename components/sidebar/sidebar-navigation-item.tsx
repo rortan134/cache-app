@@ -59,7 +59,7 @@ export function SidebarNavigationItem({
                         </div>
                         {shortcutKeys ? (
                             <Kbd
-                                className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
+                                className="ml-auto bg-transparent opacity-0 transition-none! group-hover:opacity-50"
                                 data-sidebar-label=""
                             >
                                 <CmdKbd />
