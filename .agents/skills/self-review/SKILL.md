@@ -22,7 +22,7 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 
 3. **Identify and re-check the goal.** Compare the diff against the originating source goal or spec that was passed to you (user request, issue, path, PRD, plan). Flag anything missing, partial, wrong, or out of scope.
 
-4. **Read the quality standards.** Read these docs and review your work against each point:
+4. **Read the quality standards.** Read these docs and review the work against each point:
    - `AGENTS.md`
 
 5. **Smell baseline (Fowler).** On top of the repo standards, walk the diff against this fixed set of code smells from Fowler's _Refactoring_ (ch.3). Two rules bind it:
@@ -52,6 +52,12 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 8. **Fight entropy.** Look at the code you touched and the code around it. Did you leave it better than you found it? Did you introduce complexity that isn't justified? Did you take a shortcut that a future reader will curse? If something nearby is already broken or messy and your change made it worse or left it as-is when a small improvement was obvious, fix it.
 
 9. **Look for refactoring opportunities.** Actively ask yourself: what can be refactored in or around the code you touched to make it easier to maintain long term? Duplicated logic that should be extracted and reused, unclear abstractions that should be simplified, tangled responsibilities that should be separated. Don't just preserve the status quo — improve it.
+    - **Runtime errors**: Potential exceptions, null pointer issues, out-of-bounds access
+    - **Performance**: Unbounded O(n²) operations, N+1 queries, unnecessary allocations
+    - **Side effects**: Unintended behavioral changes affecting other components
+    - **Backwards compatibility**: Breaking API changes without migration path
+    - **ORM queries**: Complex Django ORM with unexpected query performance
+    - **Security vulnerabilities**: Injection, XSS, access control gaps, secrets exposure
 
 10. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged.
 
