@@ -21,7 +21,10 @@ type NoteSerializedElementNode = SerializedElementNode<SerializedLexicalNode>;
 type NoteSerializedRootNode = NoteSerializedEditorState["root"];
 
 const NOTE_ALLOWED_TAGS = new Set([
+    "a",
+    "blockquote",
     "br",
+    "code",
     "div",
     "em",
     "h1",
@@ -31,12 +34,16 @@ const NOTE_ALLOWED_TAGS = new Set([
     "h5",
     "h6",
     "i",
+    "li",
     "mark",
+    "ol",
     "p",
+    "pre",
     "s",
     "strike",
     "strong",
     "u",
+    "ul",
 ]);
 const NOTE_TAG_ALIASES: Record<string, string> = {
     b: "strong",
@@ -44,14 +51,21 @@ const NOTE_TAG_ALIASES: Record<string, string> = {
     i: "em",
     strike: "s",
 };
-const NOTE_BLOCK_END_TAGS = /<\/(div|h[1-6]|p)>/gi;
+const NOTE_BLOCK_END_TAGS = /<\/(blockquote|div|h[1-6]|li|ol|p|pre|ul)>/gi;
 const NOTE_BREAK_TAGS = /<br\s*\/?>/gi;
-const NOTE_TAGS = /<(\/?)([a-z0-9]+)(?:\s[^>]*)?>/gi;
+const NOTE_TAGS = /<(\/?)([a-z0-9]+)((?:\s[^>]*)?)>/gi;
 const NOTE_STRIP_TAGS = /<[^>]+>/g;
 const NOTE_SCRIPT_STYLE_BLOCKS =
     /<\s*(script|style)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi;
 const NOTE_COMMENTS = /<!--[\s\S]*?-->/g;
 const NOTE_HEADING_TAG = /^h[1-6]$/;
+const NOTE_SAFE_URL_PROTOCOLS = /^(https?:\/\/|mailto:|#)/i;
+
+const NOTE_ALLOWED_ATTRS: Record<string, Set<string>> = {
+    a: new Set(["href"]),
+    code: new Set(["class"]),
+    pre: new Set(["class"]),
+};
 
 export function escapeNoteHtmlText(value: string): string {
     return value
@@ -211,7 +225,7 @@ export function sanitizeNoteHtml(input: string): string {
 
     const sanitized = withoutUnsafeBlocks.replaceAll(
         NOTE_TAGS,
-        (_match, closingSlash: string, tagName: string) => {
+        (_match, closingSlash: string, tagName: string, attrs: string) => {
             const normalizedTagName = tagName.toLowerCase();
             if (!NOTE_ALLOWED_TAGS.has(normalizedTagName)) {
                 return "";
@@ -224,8 +238,38 @@ export function sanitizeNoteHtml(input: string): string {
                 return "<br>";
             }
 
-            return closingSlash
-                ? `</${resolvedTagName}>`
+            if (closingSlash) {
+                return `</${resolvedTagName}>`;
+            }
+
+            const allowed = NOTE_ALLOWED_ATTRS[resolvedTagName];
+            if (!allowed) {
+                return `<${resolvedTagName}>`;
+            }
+
+            const safeAttrs: string[] = [];
+            const attrRe = /(\S+)\s*=\s*"([^"]*?)"/g;
+            let attrMatch: RegExpExecArray | null = attrRe.exec(attrs);
+            while (attrMatch !== null) {
+                const attrName = attrMatch[1];
+                const attrValue = attrMatch[2];
+                if (attrName !== undefined && attrValue !== undefined) {
+                    const normalizedName = attrName.toLowerCase();
+                    if (
+                        allowed.has(normalizedName) &&
+                        (normalizedName !== "href" ||
+                            NOTE_SAFE_URL_PROTOCOLS.test(attrValue))
+                    ) {
+                        safeAttrs.push(
+                            `${normalizedName}="${attrValue.replaceAll('"', "&quot;")}"`
+                        );
+                    }
+                }
+                attrMatch = attrRe.exec(attrs);
+            }
+
+            return safeAttrs.length > 0
+                ? `<${resolvedTagName} ${safeAttrs.join(" ")}>`
                 : `<${resolvedTagName}>`;
         }
     );

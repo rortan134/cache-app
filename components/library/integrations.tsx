@@ -1,5 +1,9 @@
 "use client";
 
+import {
+    MarkdownImportDialog,
+    openMarkdownImportDialog,
+} from "@/components/library/markdown-import-dialog";
 import { RssManageDialog, openRssManageDialog } from "@/components/library/rss";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -153,6 +157,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                 </DisclosureListVertical>
                 <IntegrationsListPrivacyDisclaimer />
                 <RssManageDialog />
+                <MarkdownImportDialog />
             </IntegrationsListPanel>
         </IntegrationsList>
     );
@@ -197,6 +202,8 @@ function resolveActionLabel(args: {
             return "Sync";
         case "copy":
             return "Copy prompt";
+        case "import":
+            return "Import";
         default:
             ((_: never) => _)(role);
             return "Open";
@@ -221,7 +228,7 @@ function buildCapabilityMissingError({
     integrationId,
     message,
 }: {
-    capability: "connect" | "copy" | "open" | "sync";
+    capability: "connect" | "copy" | "import" | "open" | "sync";
     integrationId: IntegrationId;
     message: string;
 }): IntegrationUserError {
@@ -340,6 +347,12 @@ function useIntegrationAction({
                 role === "connect"
             ) {
                 openRssManageDialog();
+                setPendingRole(null);
+                return;
+            }
+
+            if (integration.id === "markdown" && role === "import") {
+                openMarkdownImportDialog();
                 setPendingRole(null);
                 return;
             }

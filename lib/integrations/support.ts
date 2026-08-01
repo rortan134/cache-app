@@ -2,6 +2,7 @@ import {
     ChromeIcon,
     GithubIcon,
     InstagramIcon,
+    MarkdownIcon,
     NotionIcon,
     PhotosIcon,
     PinterestIcon,
@@ -25,6 +26,7 @@ export type IntegrationId =
     | "github"
     | "google-photos"
     | "instagram"
+    | "markdown"
     | "mcp"
     | "notion"
     | "pinterest"
@@ -33,7 +35,12 @@ export type IntegrationId =
     | "x"
     | "youtube";
 
-export type IntegrationActionRole = "connect" | "copy" | "open" | "sync";
+export type IntegrationActionRole =
+    | "connect"
+    | "copy"
+    | "import"
+    | "open"
+    | "sync";
 
 export type IntegrationConnectionSignal =
     | {
@@ -569,6 +576,33 @@ export const INTEGRATIONS: readonly SupportedIntegration[] = [
         Icon: Bot,
         id: "mcp",
         label: "MCP",
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                label: "Import",
+                role: "import",
+                visibleWhen: "always",
+            },
+        ],
+        behaviors: {},
+        category: "developer",
+        description: "Markdown files on your computer",
+        hint: "Import Markdown files from Obsidian, Bear, Apple Notes exports, or hand-authored folders on your computer.",
+        Icon: MarkdownIcon,
+        id: "markdown",
+        label: "Markdown",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "library-item-source",
+                    source: LibraryItemSource.markdown_import,
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.markdown_import],
+            syncable: false,
+        },
     },
 ] as const;
 

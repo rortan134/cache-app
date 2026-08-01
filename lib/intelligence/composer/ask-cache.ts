@@ -22,6 +22,7 @@ export const ASK_CACHE_SOURCE_FILTER_VALUES = [
     LibraryItemSource.github_starred_repositories,
     LibraryItemSource.google_photos,
     LibraryItemSource.instagram,
+    LibraryItemSource.markdown_import,
     LibraryItemSource.other,
     LibraryItemSource.pinterest,
     LibraryItemSource.rss_feed,

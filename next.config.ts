@@ -38,6 +38,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
     cacheComponents: true,
     experimental: {
+        serverActions: {
+            // Markdown import batches up to 5 MB; the default 1 MB would
+            // 413-reject every nontrivial batch before the action runs.
+            bodySizeLimit: "8mb",
+        },
         useOffline: true,
         useTypeScriptCli: true,
     },

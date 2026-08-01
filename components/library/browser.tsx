@@ -955,6 +955,7 @@ const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.github_starred_repositories,
     LibraryItemSource.google_photos,
     LibraryItemSource.instagram,
+    LibraryItemSource.markdown_import,
     LibraryItemSource.pinterest,
     LibraryItemSource.rss_feed,
     LibraryItemSource.tiktok,
@@ -966,6 +967,7 @@ const SOURCE_LABEL_BY_VALUE: Partial<Record<string, string>> = {
     [LibraryItemSource.cache_note]: "Notes",
     [LibraryItemSource.chrome_bookmarks]: "Chrome",
     [LibraryItemSource.extension_clip]: "Web",
+    [LibraryItemSource.markdown_import]: "Markdown",
     [LibraryItemSource.github_starred_repositories]: "GitHub",
     [LibraryItemSource.google_photos]: "Google Photos",
     [LibraryItemSource.instagram]: "Instagram",
@@ -1033,8 +1035,12 @@ const PALETTE_SOURCE_OPTIONS = [
 ] satisfies readonly { label: string; value: LibraryItemSource | "all" }[];
 
 const PALETTE_SOURCE_FILTER_OPTIONS = PALETTE_SOURCE_OPTIONS.filter(
-    (option): option is { label: string; value: LibraryItemSource } =>
-        option.value !== "all"
+    (
+        option
+    ): option is {
+        label: string;
+        value: Exclude<(typeof PALETTE_SOURCE_OPTIONS)[number]["value"], "all">;
+    } => option.value !== "all"
 );
 
 interface BrowserGroup {
