@@ -827,7 +827,14 @@ export function Collections() {
                             </CollectionsListItem>
                         )}
                     </CollectionsListContent>
-                    <CollectionsListRecommendations />
+                    <CollectionsListRecommendations>
+                        {(template) => (
+                            <CollectionRecommendationItem
+                                key={template.value}
+                                template={template}
+                            />
+                        )}
+                    </CollectionsListRecommendations>
                 </CollapsiblePanel>
             </CollectionsList>
             <CollectionsListStatus />
@@ -2170,6 +2177,13 @@ interface CollectionsListFavoritesCarouselContentProps {
     ) => React.ReactNode;
 }
 
+interface CollectionsListRecommendationsProps {
+    children: (
+        template: CollectionTemplateOption,
+        index: number
+    ) => React.ReactNode;
+}
+
 interface CollectionsListGroupTriggerProps
     extends React.ComponentProps<typeof CollapsibleTrigger> {
     count: number;
@@ -2634,7 +2648,9 @@ function CollectionRecommendationItem({
     );
 }
 
-function CollectionsListRecommendations() {
+function CollectionsListRecommendations({
+    children,
+}: CollectionsListRecommendationsProps) {
     const { collectionSummaries } = useWorkspaceContext();
     const { isRecommendationsOpen, setIsRecommendationsOpen } =
         useCollectionsListStateStore();
@@ -2665,14 +2681,7 @@ function CollectionsListRecommendations() {
                 )}
             </CollapsibleTrigger>
             <CollapsiblePanel>
-                <div className="flex flex-col gap-1">
-                    {items.map((template) => (
-                        <CollectionRecommendationItem
-                            key={template.value}
-                            template={template}
-                        />
-                    ))}
-                </div>
+                <div className="flex flex-col gap-1">{items.map(children)}</div>
             </CollapsiblePanel>
         </Collapsible>
     );
