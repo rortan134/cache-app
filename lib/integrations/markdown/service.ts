@@ -64,6 +64,7 @@ export interface UnsupportedConstructReport {
     htmlCount: number;
     imageCount: number;
     tableCount: number;
+    taskListCount: number;
 }
 
 export interface ImportedNoteProvenance {
@@ -169,6 +170,7 @@ export function markdownToNoteHtml(markdown: string): {
         htmlCount: 0,
         imageCount: 0,
         tableCount: 0,
+        taskListCount: 0,
     };
 
     const ast = MARKDOWN_PROCESSOR.parse(markdown) as Root;
@@ -293,6 +295,14 @@ function renderMdastToHtml(
         const inner = node.children
             .map((child) => renderMdastToHtml(child, unsupported))
             .join("");
+        if (node.checked === true) {
+            unsupported.taskListCount += 1;
+            return `<li>☒ ${inner}</li>`;
+        }
+        if (node.checked === false) {
+            unsupported.taskListCount += 1;
+            return `<li>☐ ${inner}</li>`;
+        }
         return `<li>${inner}</li>`;
     }
 
@@ -368,7 +378,11 @@ export async function upsertImportedNote(args: {
     relativePath: string;
     notePayload: NormalizedNotePayload;
     provenance: ImportedNoteProvenance;
-}): Promise<{ isNew: boolean; item: LibraryItemWithCollections }> {
+}): Promise<{
+    isNew: boolean;
+    item: LibraryItemWithCollections;
+    priorFolderPath: string | null;
+}> {
     const { importId, userId, relativePath, notePayload, provenance } = args;
 
     const data = {
@@ -387,6 +401,7 @@ export async function upsertImportedNote(args: {
 
     let id: string;
     let isNew: boolean;
+    let priorFolderPath: string | null = null;
     try {
         const created = await prisma.libraryItem.create({
             data: {
@@ -410,6 +425,17 @@ export async function upsertImportedNote(args: {
             )
         ) {
             throw error;
+        }
+        const existing = await prisma.libraryItem.findUnique({
+            select: { sourceMetadata: true },
+            where: { userId_source_browserProfileId_externalId: identity },
+        });
+        if (existing?.sourceMetadata) {
+            const metadata =
+                existing.sourceMetadata as unknown as ImportedNoteProvenance;
+            if (typeof metadata.folderPath === "string") {
+                priorFolderPath = metadata.folderPath;
+            }
         }
         const updated = await prisma.libraryItem.update({
             data: { ...data, deletedAt: null },
@@ -437,23 +463,36 @@ export async function upsertImportedNote(args: {
         });
     }
 
-    return { isNew, item };
+    return { isNew, item, priorFolderPath };
 }
 
 export async function assignNoteToFolderCollection(args: {
     itemId: string;
     folderPath: string;
+    priorFolderPath: string | null;
     userId: string;
 }): Promise<void> {
-    const { itemId, folderPath, userId } = args;
+    const { itemId, folderPath, priorFolderPath, userId } = args;
     if (!folderPath) {
         return;
     }
     const collectionName = folderPathToCollectionName(folderPath);
     const collectionId = await ensureCollection(userId, collectionName);
+
+    const priorCollectionName = priorFolderPath
+        ? folderPathToCollectionName(priorFolderPath)
+        : null;
+    let priorCollectionId: string | null = null;
+    if (priorCollectionName && priorCollectionName !== collectionName) {
+        priorCollectionId = await ensureCollection(userId, priorCollectionName);
+    }
+
     await prisma.libraryItem.update({
         data: {
             collections: {
+                ...(priorCollectionId
+                    ? { disconnect: { id: priorCollectionId } }
+                    : {}),
                 connect: { id: collectionId },
             },
         },
@@ -480,6 +519,7 @@ export async function importMarkdownFiles(args: {
             htmlCount: 0,
             imageCount: 0,
             tableCount: 0,
+            taskListCount: 0,
         },
         updatedCount: 0,
     };
@@ -515,6 +555,7 @@ export async function importMarkdownFiles(args: {
             result.unsupportedReport.imageCount += unsupported.imageCount;
             result.unsupportedReport.tableCount += unsupported.tableCount;
             result.unsupportedReport.htmlCount += unsupported.htmlCount;
+            result.unsupportedReport.taskListCount += unsupported.taskListCount;
 
             const notePayload = normalizeNotePayload({ contentHtml: html });
 
@@ -525,11 +566,18 @@ export async function importMarkdownFiles(args: {
                 originalPath: file.relativePath,
             };
 
-            const { isNew, item } = await upsertImportedNote({
+            const { isNew, item, priorFolderPath } = await upsertImportedNote({
                 importId,
                 notePayload,
                 provenance,
                 relativePath: pathResult.normalized,
+                userId,
+            });
+
+            await assignNoteToFolderCollection({
+                folderPath,
+                itemId: item.id,
+                priorFolderPath,
                 userId,
             });
 
@@ -541,12 +589,6 @@ export async function importMarkdownFiles(args: {
             } else {
                 result.updatedCount += 1;
             }
-
-            await assignNoteToFolderCollection({
-                folderPath,
-                itemId: item.id,
-                userId,
-            });
         } catch (error) {
             log.error("Failed to import markdown file", {
                 error,

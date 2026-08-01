@@ -31,13 +31,13 @@ import {
     addLibraryItem,
     toMcpLibraryItem,
 } from "@/lib/integrations/mcp/service";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol";
 import type {
     CallToolResult,
     ServerNotification,
     ServerRequest,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/sdk/types";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import * as z from "zod";
 

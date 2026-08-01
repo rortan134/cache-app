@@ -238,6 +238,7 @@ export function MarkdownImportDialog() {
                 htmlCount: 0,
                 imageCount: 0,
                 tableCount: 0,
+                taskListCount: 0,
             },
             updatedCount: 0,
         };
@@ -271,6 +272,8 @@ export function MarkdownImportDialog() {
                         data.unsupportedReport.tableCount;
                     aggregatedResult.unsupportedReport.htmlCount +=
                         data.unsupportedReport.htmlCount;
+                    aggregatedResult.unsupportedReport.taskListCount +=
+                        data.unsupportedReport.taskListCount;
                     collectionsFromImport = data.collections;
                 } else {
                     for (const file of batch) {
@@ -482,6 +485,13 @@ export function MarkdownImportDialog() {
                     {result.unsupportedReport.htmlCount} raw HTML block
                     {result.unsupportedReport.htmlCount === 1 ? "" : "s"}{" "}
                     skipped
+                </p>
+            )}
+            {result.unsupportedReport.taskListCount > 0 && (
+                <p className="text-muted-foreground">
+                    {result.unsupportedReport.taskListCount} task-list item
+                    {result.unsupportedReport.taskListCount === 1 ? "" : "s"}{" "}
+                    rendered as text markers
                 </p>
             )}
             {result.skipped.length > 0 && (
