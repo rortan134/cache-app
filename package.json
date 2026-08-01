@@ -106,7 +106,7 @@
         "@types/culori": "4.0.1",
         "@types/mdast": "4.0.4",
         "@types/mime-types": "3.0.1",
-        "@types/node": "25.9.3",
+        "@types/node": "26.1.2",
         "@types/react": "19.2.18",
         "@types/react-dom": "19.2.4",
         "babel-plugin-react-compiler": "1.0.0",
