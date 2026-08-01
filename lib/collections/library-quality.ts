@@ -12,6 +12,12 @@ export const LINK_PROBE_SKIP_SOURCES = new Set<LibraryItemSource>([
 /** Max item ids per reachability probe request (client + server). */
 export const LINK_REACHABILITY_BATCH_MAX = 25;
 
+/** Consecutive probe failures (thrown errors or failed results) before giving up. */
+export const LINK_PROBE_MAX_RETRIES = 5;
+
+/** Base delay before retrying a failed probe; doubles per consecutive failure. */
+export const LINK_PROBE_RETRY_BACKOFF_BASE_MS = 3000;
+
 export interface LibraryQualityItem {
     id: string;
     kind: string;

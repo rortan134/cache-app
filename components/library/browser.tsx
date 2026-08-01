@@ -135,11 +135,14 @@ import {
     type LibraryItemDeleteResult,
     type LibraryItemsCollectionsUpdateResult,
     type LibraryItemsDeleteResult,
+    type LibraryItemsReachabilityProbeResult,
 } from "@/lib/collections/items";
 import {
     collectDuplicateBookmarkItemIds,
     isLinkProbeCandidate,
     itemCanonicalGroupKey,
+    LINK_PROBE_MAX_RETRIES,
+    LINK_PROBE_RETRY_BACKOFF_BASE_MS,
     LINK_REACHABILITY_BATCH_MAX,
     needsLinkReachabilityProbe,
 } from "@/lib/collections/library-quality";
@@ -5539,6 +5542,7 @@ export function BrowserRoot({
     const [unreachableProbe, setUnreachableProbe] = React.useState({
         checked: 0,
         isActive: false,
+        probeFailed: false,
         total: 0,
     });
     const unreachableProbeVersionRef = React.useRef(0);
@@ -5676,7 +5680,12 @@ export function BrowserRoot({
     React.useEffect(() => {
         if (!unreachableFilterEnabled) {
             unreachableProbeVersionRef.current += 1;
-            setUnreachableProbe({ checked: 0, isActive: false, total: 0 });
+            setUnreachableProbe({
+                checked: 0,
+                isActive: false,
+                probeFailed: false,
+                total: 0,
+            });
             return;
         }
 
@@ -5693,6 +5702,8 @@ export function BrowserRoot({
         const probedItemIds = new Set<string>();
 
         const run = async () => {
+            let consecutiveFailures = 0;
+
             while (unreachableProbeVersionRef.current === version) {
                 const currentItems = itemsRef.current;
                 const probeableItems = currentItems.filter((item) =>
@@ -5710,6 +5721,7 @@ export function BrowserRoot({
                     setUnreachableProbe({
                         checked: totalProbeable,
                         isActive: false,
+                        probeFailed: false,
                         total: totalProbeable,
                     });
                     // Library may still be hydrating; keep waiting while empty.
@@ -5723,63 +5735,96 @@ export function BrowserRoot({
                 setUnreachableProbe({
                     checked,
                     isActive: true,
+                    probeFailed: false,
                     total: totalProbeable,
                 });
 
                 const batch = candidates.slice(0, LINK_REACHABILITY_BATCH_MAX);
+                let result: LibraryItemsReachabilityProbeResult;
                 try {
-                    const result = await probeLibraryItemsReachabilityAction({
+                    result = await probeLibraryItemsReachabilityAction({
                         itemIds: batch.map((item) => item.id),
                     });
-                    if (unreachableProbeVersionRef.current !== version) {
-                        return;
-                    }
-
-                    if (result.status !== ACTION_STATUS.SUCCESS) {
-                        log.error("Link reachability probe failed", {
-                            message: result.message,
-                        });
-                        await sleep(3000);
-                        continue;
-                    }
-
-                    if (result.rateLimited) {
-                        setUnreachableProbe({
-                            checked,
-                            isActive: true,
-                            total: totalProbeable,
-                        });
-                        await sleep(Math.max(1000, result.retryAfterMs));
-                        continue;
-                    }
-
-                    for (const entry of result.results) {
-                        probedItemIds.add(entry.itemId);
-                    }
-
-                    const resultById = new Map(
-                        result.results.map((entry) => [entry.itemId, entry])
-                    );
-                    onItemsChange((previous) =>
-                        previous.map((item) => {
-                            const entry = resultById.get(item.id);
-                            if (!entry) {
-                                return item;
-                            }
-                            return {
-                                ...item,
-                                linkCheckedAt: new Date(entry.checkedAt),
-                                linkReachability: entry.status,
-                            };
-                        })
-                    );
                 } catch (error) {
                     if (unreachableProbeVersionRef.current !== version) {
                         return;
                     }
                     log.error("Link reachability probe threw", error);
-                    await sleep(3000);
+                    consecutiveFailures += 1;
+                    if (consecutiveFailures > LINK_PROBE_MAX_RETRIES) {
+                        setUnreachableProbe({
+                            checked,
+                            isActive: false,
+                            probeFailed: true,
+                            total: totalProbeable,
+                        });
+                        return;
+                    }
+                    await sleep(
+                        LINK_PROBE_RETRY_BACKOFF_BASE_MS *
+                            2 ** (consecutiveFailures - 1)
+                    );
+                    continue;
                 }
+
+                if (unreachableProbeVersionRef.current !== version) {
+                    return;
+                }
+
+                if (result.status !== ACTION_STATUS.SUCCESS) {
+                    log.error("Link reachability probe failed", {
+                        message: result.message,
+                    });
+                    consecutiveFailures += 1;
+                    if (consecutiveFailures > LINK_PROBE_MAX_RETRIES) {
+                        setUnreachableProbe({
+                            checked,
+                            isActive: false,
+                            probeFailed: true,
+                            total: totalProbeable,
+                        });
+                        return;
+                    }
+                    await sleep(
+                        LINK_PROBE_RETRY_BACKOFF_BASE_MS *
+                            2 ** (consecutiveFailures - 1)
+                    );
+                    continue;
+                }
+
+                if (result.rateLimited) {
+                    setUnreachableProbe({
+                        checked,
+                        isActive: true,
+                        probeFailed: false,
+                        total: totalProbeable,
+                    });
+                    await sleep(Math.max(1000, result.retryAfterMs));
+                    continue;
+                }
+
+                consecutiveFailures = 0;
+
+                for (const entry of result.results) {
+                    probedItemIds.add(entry.itemId);
+                }
+
+                const resultById = new Map(
+                    result.results.map((entry) => [entry.itemId, entry])
+                );
+                onItemsChange((previous) =>
+                    previous.map((item) => {
+                        const entry = resultById.get(item.id);
+                        if (!entry) {
+                            return item;
+                        }
+                        return {
+                            ...item,
+                            linkCheckedAt: new Date(entry.checkedAt),
+                            linkReachability: entry.status,
+                        };
+                    })
+                );
             }
         };
 
@@ -6204,11 +6249,19 @@ export function BrowserRoot({
                 ? `${items.length} item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
                 : `${filteredItems.length} result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
     }
-    if (unreachableFilterEnabled && unreachableProbe.total > 0) {
+    if (
+        unreachableFilterEnabled &&
+        (unreachableProbe.total > 0 || unreachableProbe.probeFailed)
+    ) {
         const remaining = unreachableProbe.total - unreachableProbe.checked;
-        let progressLabel = unreachableProbe.isActive
-            ? `Checking links ${unreachableProbe.checked}/${unreachableProbe.total}`
-            : `Checked ${unreachableProbe.checked} link${unreachableProbe.checked === 1 ? "" : "s"}`;
+        let progressLabel: string;
+        if (unreachableProbe.probeFailed) {
+            progressLabel = "Couldn't check links right now";
+        } else if (unreachableProbe.isActive) {
+            progressLabel = `Checking links ${unreachableProbe.checked}/${unreachableProbe.total}`;
+        } else {
+            progressLabel = `Checked ${unreachableProbe.checked} link${unreachableProbe.checked === 1 ? "" : "s"}`;
+        }
         if (unreachableProbe.isActive && remaining > 0) {
             // Server budget is 100 probes/minute; give a coarse ETA.
             const minutesLeft = Math.max(1, Math.ceil(remaining / 100));
