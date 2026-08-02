@@ -15,5 +15,6 @@ echo "Starting server..."
 # server.js (the contents of .next/standalone are copied to /app). Run it
 # under Bun — the generated Prisma client uses .ts import specifiers that
 # only Bun resolves at runtime. HOSTNAME and PORT are set via ENV in the
-# Dockerfile.
-bun server.js
+# Dockerfile. `exec` replaces the shell so the server becomes PID 1 and
+# receives container stop signals directly.
+exec bun server.js
