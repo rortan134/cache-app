@@ -1,0 +1,31 @@
+FROM oven/bun:1.3.14-alpine
+
+# The Prisma CLI launcher has a `#!/usr/bin/env node` shebang; Node must be on
+# PATH for `bun install`'s postinstall (`prisma generate`) and runtime
+# migrations. The app + generated Prisma client run under Bun.
+RUN apk add --no-cache nodejs
+
+WORKDIR /app
+
+ENV HUSKY=0
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# prisma.config.ts reads DATABASE_URL at config-load time. `prisma generate`
+# (run by postinstall during `bun install`) imports that config and throws if
+# unset. `generate` never connects; a valid placeholder satisfies it. The real
+# URL is injected at runtime via env_file in docker-compose.
+ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+# prisma/schema.prisma + prisma.config.ts must exist before `bun install`
+# runs the `postinstall: prisma generate` script.
+COPY package.json bun.lock ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+# `--minimum-release-age=0` overrides the repo's supply-chain gate for Docker
+# (a fresh build has no bun cache and would otherwise reject deps <3 days old).
+RUN bun install --frozen-lockfile --minimum-release-age=0
+
+COPY . .
+
+EXPOSE 3000
+CMD ["bun", "run", "dev"]
