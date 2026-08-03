@@ -35,7 +35,7 @@ export function Group({
     const defaultProps = {
         className: cn(
             groupVariants({ orientation }),
-            "first:[&>*:first-child]:rounded-s-full last:[&>*:last-child]:rounded-e-full",
+            "[&>*:first-child]:rounded-s-full [&>*:last-child]:rounded-e-full",
             className
         ),
         "data-orientation": orientation,
