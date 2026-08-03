@@ -121,40 +121,44 @@ interface IntegrationsListItemActionButtonProps {
     action: IntegrationActionViewModel;
 }
 
+interface IntegrationsListContentProps {
+    children: (
+        integration: SupportedIntegration,
+        index: number
+    ) => React.ReactNode;
+}
+
 export const { useStore: useIntegrationsListStore } = createStore({
     isIntegrationsListOpen: storage(true),
 });
 
 export function Integrations({ connectedIntegrations }: IntegrationsProps) {
     return (
-        <IntegrationsList
-            className="group/collapsible"
-            data-sidebar-collapsible=""
-        >
+        <IntegrationsList data-sidebar-collapsible="">
             <IntegrationsListTrigger
                 connectedCount={connectedIntegrations.size}
             >
                 <T>Integrations</T>
             </IntegrationsListTrigger>
             <IntegrationsListPanel>
-                <DisclosureListVertical maxVisible={6}>
-                    {INTEGRATIONS.map(({ description, Icon, id, label }) => (
+                <IntegrationsListContent>
+                    {(integration) => (
                         <IntegrationsListItem
                             className="group"
-                            description={description}
+                            description={integration.description}
                             direction={
-                                getIntegration(id).source
-                                    ? "source"
-                                    : "destination"
+                                integration.source ? "source" : "destination"
                             }
-                            Icon={Icon}
-                            integrationId={id}
-                            isConnected={connectedIntegrations.has(id)}
-                            key={id}
-                            label={label}
+                            Icon={integration.Icon}
+                            integrationId={integration.id}
+                            isConnected={connectedIntegrations.has(
+                                integration.id
+                            )}
+                            key={integration.id}
+                            label={integration.label}
                         />
-                    ))}
-                </DisclosureListVertical>
+                    )}
+                </IntegrationsListContent>
                 <IntegrationsListPrivacyDisclaimer />
                 <RssManageDialog />
                 <MarkdownImportDialog />
@@ -440,7 +444,7 @@ function IntegrationsList({
     return (
         <Collapsible
             {...props}
-            className={cn("relative", className)}
+            className={cn("group/collapsible relative", className)}
             onOpenChange={setIsIntegrationsListOpen}
             open={isIntegrationsListOpen}
         />
@@ -522,6 +526,14 @@ function IntegrationsListPanel(
     props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
+}
+
+function IntegrationsListContent({ children }: IntegrationsListContentProps) {
+    return (
+        <DisclosureListVertical className="*:last:ml-1.25" maxVisible={6}>
+            {INTEGRATIONS.map(children)}
+        </DisclosureListVertical>
+    );
 }
 
 function IntegrationsListPrivacyDisclaimer() {

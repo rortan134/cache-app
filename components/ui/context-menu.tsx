@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/common/cn";
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
+import { ChevronRightIcon } from "lucide-react";
 
 export const ContextMenu: typeof ContextMenuPrimitive.Root =
     ContextMenuPrimitive.Root;
@@ -18,6 +19,7 @@ export function ContextMenuTrigger(props: ContextMenuPrimitive.Trigger.Props) {
 export function ContextMenuPopup({
     className,
     sideOffset = 0,
+    side = "bottom",
     align = "start",
     alignOffset,
     anchor,
@@ -27,6 +29,7 @@ export function ContextMenuPopup({
     ...props
 }: ContextMenuPrimitive.Popup.Props & {
     sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
+    side?: ContextMenuPrimitive.Positioner.Props["side"];
     align?: ContextMenuPrimitive.Positioner.Props["align"];
     alignOffset?: ContextMenuPrimitive.Positioner.Props["alignOffset"];
     anchor?: ContextMenuPrimitive.Positioner.Props["anchor"];
@@ -42,6 +45,7 @@ export function ContextMenuPopup({
                 className="z-50"
                 data-slot="context-menu-positioner"
                 positionMethod={positionMethod}
+                side={side}
                 sideOffset={sideOffset}
             >
                 <ContextMenuPrimitive.Popup
@@ -86,6 +90,100 @@ export function ContextMenuSeparator({
             {...props}
             className={cn("my-1 h-px bg-border/50", className)}
             data-slot="context-menu-separator"
+        />
+    );
+}
+
+export function ContextMenuGroup(props: ContextMenuPrimitive.Group.Props) {
+    return (
+        <ContextMenuPrimitive.Group {...props} data-slot="context-menu-group" />
+    );
+}
+
+export function ContextMenuGroupLabel({
+    className,
+    hasInset,
+    ...props
+}: ContextMenuPrimitive.GroupLabel.Props & {
+    hasInset?: boolean;
+}) {
+    return (
+        <ContextMenuPrimitive.GroupLabel
+            {...props}
+            className={cn(
+                "px-2 py-1.5 font-medium text-muted-foreground text-xs data-inset:ps-9 sm:data-inset:ps-8",
+                className
+            )}
+            data-inset={hasInset}
+            data-slot="context-menu-group-label"
+        />
+    );
+}
+
+export function ContextMenuSub(props: ContextMenuPrimitive.SubmenuRoot.Props) {
+    return (
+        <ContextMenuPrimitive.SubmenuRoot
+            {...props}
+            data-slot="context-menu-sub"
+        />
+    );
+}
+
+export function ContextMenuSubTrigger({
+    children,
+    className,
+    ...props
+}: ContextMenuPrimitive.SubmenuTrigger.Props) {
+    return (
+        <ContextMenuPrimitive.SubmenuTrigger
+            {...props}
+            className={cn(
+                "group/trigger flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
+                className
+            )}
+            data-slot="context-menu-sub-trigger"
+        >
+            {children}
+            <ChevronRightIcon
+                aria-hidden
+                className="ms-auto -me-0.5 size-4 opacity-80 group-data-popup-open/trigger:opacity-30"
+                focusable="false"
+            />
+        </ContextMenuPrimitive.SubmenuTrigger>
+    );
+}
+
+export function ContextMenuSubPopup({
+    className,
+    sideOffset = 0,
+    alignOffset,
+    align = "start",
+    anchor,
+    positionMethod,
+    portalProps,
+    ...props
+}: ContextMenuPrimitive.Popup.Props & {
+    align?: ContextMenuPrimitive.Positioner.Props["align"];
+    sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
+    alignOffset?: ContextMenuPrimitive.Positioner.Props["alignOffset"];
+    anchor?: ContextMenuPrimitive.Positioner.Props["anchor"];
+    positionMethod?: ContextMenuPrimitive.Positioner.Props["positionMethod"];
+    portalProps?: ContextMenuPrimitive.Portal.Props;
+}) {
+    const defaultAlignOffset = align === "center" ? undefined : -5;
+
+    return (
+        <ContextMenuPopup
+            {...props}
+            align={align}
+            alignOffset={alignOffset ?? defaultAlignOffset}
+            anchor={anchor}
+            className={className}
+            data-slot="context-menu-sub-popup"
+            portalProps={portalProps}
+            positionMethod={positionMethod}
+            side="inline-end"
+            sideOffset={sideOffset}
         />
     );
 }

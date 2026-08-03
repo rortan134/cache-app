@@ -13,9 +13,14 @@ import {
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import {
+    ClaudeIcon,
     ChromeIcon,
+    GeminiIcon,
     GithubIcon,
+    GrokIcon,
     ModelContextProtocolIcon,
+    OpenAIIcon,
+    PerplexityIcon,
     TikTokIcon,
 } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
@@ -85,6 +90,41 @@ const HOME_JSON_LD: Record<string, unknown> = {
 
 const HERO_IMAGE_SIZES = "(max-width: 1024px) 100vw, 1024px";
 const SECTION_IMAGE_SIZES = "(max-width: 768px) 100vw, 512px";
+const ASK_CACHE_QUERY = "What does Cache (the app) do?";
+const ASK_CACHE_CHATGPT_URL = `https://chatgpt.com/?${new URLSearchParams({
+    q: ASK_CACHE_QUERY,
+})}`;
+const ASK_CACHE_CLAUDE_URL = `https://claude.ai/new?${new URLSearchParams({
+    q: ASK_CACHE_QUERY,
+})}`;
+const ASK_CACHE_PERPLEXITY_URL = `https://www.perplexity.ai/search?${new URLSearchParams(
+    {
+        q: ASK_CACHE_QUERY,
+    }
+)}`;
+const ASK_CACHE_GEMINI_URL = `https://gemini.google.com/app?${new URLSearchParams(
+    {
+        q: ASK_CACHE_QUERY,
+    }
+)}`;
+const ASK_CACHE_GROK_URL = `https://grok.com/?${new URLSearchParams({
+    q: ASK_CACHE_QUERY,
+})}`;
+const ASK_CACHE_PROVIDERS = [
+    { Icon: OpenAIIcon, label: "ChatGPT", url: ASK_CACHE_CHATGPT_URL },
+    { Icon: ClaudeIcon, label: "Claude", url: ASK_CACHE_CLAUDE_URL },
+    {
+        Icon: PerplexityIcon,
+        label: "Perplexity",
+        url: ASK_CACHE_PERPLEXITY_URL,
+    },
+    { Icon: GeminiIcon, label: "Gemini", url: ASK_CACHE_GEMINI_URL },
+    { Icon: GrokIcon, label: "Grok", url: ASK_CACHE_GROK_URL },
+] satisfies ReadonlyArray<{
+    Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    label: string;
+    url: string;
+}>;
 
 export async function generateMetadata({
     params,
@@ -807,6 +847,32 @@ export default async function Home() {
                                 </T>
                             </div>
                         </section>
+                        <div className="flex flex-col items-center gap-4 pb-10 md:flex-row md:gap-4 md:pb-0">
+                            <p className="select-none font-normal font-sans text-base text-muted-foreground">
+                                <T>Ask about Cache on</T>
+                            </p>
+                            <div className="flex items-center gap-2">
+                                {ASK_CACHE_PROVIDERS.map(
+                                    ({ Icon, label, url }) => (
+                                        <Button
+                                            aria-label={`Ask about Cache on ${label}`}
+                                            key={label}
+                                            render={
+                                                <a
+                                                    href={url}
+                                                    rel="noopener noreferrer"
+                                                    target="_blank"
+                                                />
+                                            }
+                                            size="icon-lg"
+                                            variant="secondary"
+                                        >
+                                            <Icon className="size-5 sm:size-4" />
+                                        </Button>
+                                    )
+                                )}
+                            </div>
+                        </div>
                         <Footer />
                     </div>
                 </article>
