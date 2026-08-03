@@ -41,7 +41,9 @@ export function negotiateContentType(
                 bestMatch === null ||
                 entry.specificity > bestMatch.specificity ||
                 (entry.specificity === bestMatch.specificity &&
-                    entry.position < bestMatch.position)
+                    (entry.quality > bestMatch.quality ||
+                        (entry.quality === bestMatch.quality &&
+                            entry.position < bestMatch.position)))
             ) {
                 bestMatch = entry;
             }

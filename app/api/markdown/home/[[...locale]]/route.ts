@@ -1,5 +1,15 @@
 import { BASE_URL } from "@/lib/common/constants";
-import type { SupportedLocale } from "@/lib/common/constants";
+import {
+    DEFAULT_LOCALE,
+    SUPPORTED_LOCALES,
+    type SupportedLocale,
+} from "@/lib/common/constants";
+import { z } from "zod";
+
+const LOCALE_PARAMS_SCHEMA = z
+    .array(z.enum(SUPPORTED_LOCALES))
+    .max(1)
+    .optional();
 
 const HOME_MARKDOWN = {
     "en-US": `# Cache
@@ -80,11 +90,16 @@ export async function GET(
     _request: Request,
     { params }: { params: Promise<{ locale?: string[] }> }
 ): Promise<Response> {
-    const { locale } = await params;
-    const markdown =
-        locale?.[0] === "es-ES"
-            ? HOME_MARKDOWN["es-ES"]
-            : HOME_MARKDOWN["en-US"];
+    const parsedLocale = LOCALE_PARAMS_SCHEMA.safeParse((await params).locale);
+    if (!parsedLocale.success) {
+        return new Response("Not Found\n", {
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+            status: 404,
+        });
+    }
+
+    const locale = parsedLocale.data?.[0] ?? DEFAULT_LOCALE;
+    const markdown = HOME_MARKDOWN[locale];
 
     return new Response(markdown, {
         headers: {

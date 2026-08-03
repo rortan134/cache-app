@@ -25,6 +25,22 @@ describe("negotiateContentType", () => {
         ).toBe("text/html");
     });
 
+    test("matches media types case-insensitively", () => {
+        expect(
+            negotiateContentType("TEXT/MARKDOWN", SUPPORTED_TYPES, "text/html")
+        ).toBe("text/markdown");
+    });
+
+    test("uses the highest quality for duplicate media ranges", () => {
+        expect(
+            negotiateContentType(
+                "text/html;q=0.2, text/html;q=0.9, text/markdown;q=0.5",
+                SUPPORTED_TYPES,
+                "text/html"
+            )
+        ).toBe("text/html");
+    });
+
     test("respects a specific zero-quality rejection over a wildcard", () => {
         expect(
             negotiateContentType(

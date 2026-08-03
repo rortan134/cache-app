@@ -158,7 +158,7 @@ export async function generateMetadata({
         alternates: {
             ...metadata.alternates,
             types: {
-                "text/markdown": `${BASE_URL}/llms.txt`,
+                "text/markdown": `${BASE_URL}/api/markdown/home/${locale}`,
             },
         },
     };
