@@ -93,9 +93,9 @@ function resolveDocumentRepresentation(
 }
 
 function createNotAcceptableResponse(isSitemap: boolean): Response {
-    const availableTypes = isSitemap
-        ? "application/xml, text/xml, text/markdown"
-        : "text/html, text/markdown";
+    const availableTypes = (
+        isSitemap ? SITEMAP_MEDIA_TYPES : HOMEPAGE_MEDIA_TYPES
+    ).join(", ");
 
     return new Response(`Not Acceptable\n\nAvailable: ${availableTypes}\n`, {
         headers: {
