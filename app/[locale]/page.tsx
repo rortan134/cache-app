@@ -90,7 +90,8 @@ const HOME_JSON_LD: Record<string, unknown> = {
 
 const HERO_IMAGE_SIZES = "(max-width: 1024px) 100vw, 1024px";
 const SECTION_IMAGE_SIZES = "(max-width: 768px) 100vw, 512px";
-const ASK_CACHE_QUERY = "What does Cache (the app) do?";
+const ASK_CACHE_QUERY =
+    "What does Cache, the app at https://www.cachd.app, do?";
 const ASK_CACHE_CHATGPT_URL = `https://chatgpt.com/?${new URLSearchParams({
     q: ASK_CACHE_QUERY,
 })}`;
