@@ -1,9 +1,11 @@
-import { BASE_URL } from "@/lib/common/constants";
 import {
+    BASE_URL,
     DEFAULT_LOCALE,
+    MIME_TYPES,
     SUPPORTED_LOCALES,
     type SupportedLocale,
 } from "@/lib/common/constants";
+import { MARKETING_CACHE_CONTROL_HEADER } from "@/lib/marketing/constants";
 import { z } from "zod";
 
 const LOCALE_PARAMS_SCHEMA = z
@@ -93,7 +95,9 @@ export async function GET(
     const parsedLocale = LOCALE_PARAMS_SCHEMA.safeParse((await params).locale);
     if (!parsedLocale.success) {
         return new Response("Not Found\n", {
-            headers: { "Content-Type": "text/plain; charset=utf-8" },
+            headers: {
+                "Content-Type": `${MIME_TYPES.text}; charset=utf-8`,
+            },
             status: 404,
         });
     }
@@ -103,9 +107,8 @@ export async function GET(
 
     return new Response(markdown, {
         headers: {
-            "Cache-Control":
-                "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
-            "Content-Type": "text/markdown; charset=utf-8",
+            "Cache-Control": MARKETING_CACHE_CONTROL_HEADER,
+            "Content-Type": `${MIME_TYPES.markdown}; charset=utf-8`,
             Vary: "Accept",
         },
     });

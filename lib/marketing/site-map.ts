@@ -1,5 +1,4 @@
-import { BASE_URL } from "@/lib/common/constants";
-import { normalizeURL } from "@/lib/common/url";
+import { getLocalizedUrl } from "@/lib/marketing/url";
 
 export interface PublicStaticRoute {
     description: string;
@@ -13,6 +12,11 @@ export interface PublicSitemapEntry {
     changeFrequency: "weekly";
     lastModified: Date;
     priority: number;
+    url: string;
+}
+
+export interface PublicSitemapRoute extends PublicStaticRoute {
+    alternates: Readonly<Record<string, string>>;
     url: string;
 }
 
@@ -62,13 +66,20 @@ export const PUBLIC_STATIC_ROUTES = [
     },
 ] satisfies readonly PublicStaticRoute[];
 
-export function getLocalizedUrl(
-    locale: string,
-    path: PublicStaticRoute["path"]
-): string {
-    return normalizeURL(
-        path === "/" ? `${BASE_URL}/${locale}` : `${BASE_URL}/${locale}${path}`
-    );
+export function buildPublicSitemapRoutes(
+    defaultLocale: string,
+    locales: readonly string[]
+): PublicSitemapRoute[] {
+    return PUBLIC_STATIC_ROUTES.map((route) => ({
+        ...route,
+        alternates: Object.fromEntries(
+            locales.map((locale) => [
+                locale,
+                getLocalizedUrl(locale, route.path),
+            ])
+        ),
+        url: getLocalizedUrl(defaultLocale, route.path),
+    }));
 }
 
 export function buildPublicSitemapEntries(
@@ -77,18 +88,15 @@ export function buildPublicSitemapEntries(
 ): PublicSitemapEntry[] {
     const lastModified = new Date();
 
-    return PUBLIC_STATIC_ROUTES.map((entry) => ({
-        alternates: Object.fromEntries(
-            locales.map((locale) => [
-                locale,
-                getLocalizedUrl(locale, entry.path),
-            ])
-        ),
-        changeFrequency: "weekly" as const,
-        lastModified,
-        priority: entry.priority,
-        url: getLocalizedUrl(defaultLocale, entry.path),
-    }));
+    return buildPublicSitemapRoutes(defaultLocale, locales).map(
+        ({ alternates, priority, url }) => ({
+            alternates,
+            changeFrequency: "weekly" as const,
+            lastModified,
+            priority,
+            url,
+        })
+    );
 }
 
 export function renderSitemapXml(

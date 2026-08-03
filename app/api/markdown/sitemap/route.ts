@@ -1,9 +1,7 @@
+import { MIME_TYPES } from "@/lib/common/constants";
+import { MARKETING_CACHE_CONTROL_HEADER } from "@/lib/marketing/constants";
+import { buildPublicSitemapRoutes } from "@/lib/marketing/site-map";
 import { getDefaultLocale, getLocales } from "gt-next";
-
-import {
-    getLocalizedUrl,
-    PUBLIC_STATIC_ROUTES,
-} from "@/lib/marketing/site-map";
 
 const MARKDOWN_SITEMAP_HEADER = `# Cache sitemap
 
@@ -12,32 +10,37 @@ Public pages and agent resources for Cache. The canonical page URLs below return
 ## Public pages
 `;
 
+const MARKDOWN_SITEMAP = buildMarkdownSitemap(getDefaultLocale(), getLocales());
+
 export function GET(): Response {
-    const defaultLocale = getDefaultLocale();
-    const locales = getLocales();
-    const pages = PUBLIC_STATIC_ROUTES.map((route) => {
-        const defaultUrl = getLocalizedUrl(defaultLocale, route.path);
-        const alternateLocales = locales
-            .filter((locale) => locale !== defaultLocale)
-            .map(
-                (locale) =>
-                    `  - [${route.title} (${locale})](${getLocalizedUrl(locale, route.path)})`
-            );
-
-        return [
-            `- [${route.title}](${defaultUrl}) — ${route.description}`,
-            ...alternateLocales,
-        ].join("\n");
-    }).join("\n");
-
-    const sitemap = `${MARKDOWN_SITEMAP_HEADER}\n${pages}\n\n## Agent resources\n\n- [Full agent context](/llms.txt)\n- [MCP server endpoint](/mcp)\n`;
-
-    return new Response(sitemap, {
+    return new Response(MARKDOWN_SITEMAP, {
         headers: {
-            "Cache-Control":
-                "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
-            "Content-Type": "text/markdown; charset=utf-8",
+            "Cache-Control": MARKETING_CACHE_CONTROL_HEADER,
+            "Content-Type": `${MIME_TYPES.markdown}; charset=utf-8`,
             Vary: "Accept",
         },
     });
+}
+
+function buildMarkdownSitemap(
+    defaultLocale: string,
+    locales: readonly string[]
+): string {
+    const pages = buildPublicSitemapRoutes(defaultLocale, locales)
+        .map((route) => {
+            const alternateLocales = Object.entries(route.alternates)
+                .filter(([locale]) => locale !== defaultLocale)
+                .map(
+                    ([locale, url]) =>
+                        `  - [${route.title} (${locale})](${url})`
+                );
+
+            return [
+                `- [${route.title}](${route.url}) — ${route.description}`,
+                ...alternateLocales,
+            ].join("\n");
+        })
+        .join("\n");
+
+    return `${MARKDOWN_SITEMAP_HEADER}\n${pages}\n\n## Agent resources\n\n- [Full agent context](/llms.txt)\n- [MCP server endpoint](/mcp)\n`;
 }

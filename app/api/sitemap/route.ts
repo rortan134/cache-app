@@ -1,3 +1,5 @@
+import { MIME_TYPES } from "@/lib/common/constants";
+import { MARKETING_CACHE_CONTROL_HEADER } from "@/lib/marketing/constants";
 import {
     buildPublicSitemapEntries,
     renderSitemapXml,
@@ -11,9 +13,8 @@ export function GET(): Response {
 
     return new Response(sitemap, {
         headers: {
-            "Cache-Control":
-                "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
-            "Content-Type": "text/xml; charset=utf-8",
+            "Cache-Control": MARKETING_CACHE_CONTROL_HEADER,
+            "Content-Type": `${MIME_TYPES.textXml}; charset=utf-8`,
             Vary: "Accept",
         },
     });

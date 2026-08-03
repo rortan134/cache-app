@@ -1,13 +1,18 @@
 import { appendVaryAccept, negotiateContentType } from "@/lib/common/accept";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@/lib/common/constants";
+import {
+    DEFAULT_LOCALE,
+    MIME_TYPES,
+    SUPPORTED_LOCALES,
+    type SupportedLocale,
+} from "@/lib/common/constants";
 import { createNextMiddleware } from "gt-next/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const HTML_MEDIA_TYPE = "text/html";
-const MARKDOWN_MEDIA_TYPE = "text/markdown";
-const XML_MEDIA_TYPE = "application/xml";
-const TEXT_XML_MEDIA_TYPE = "text/xml";
+const HTML_MEDIA_TYPE = MIME_TYPES.html;
+const MARKDOWN_MEDIA_TYPE = MIME_TYPES.markdown;
+const XML_MEDIA_TYPE = MIME_TYPES.xml;
+const TEXT_XML_MEDIA_TYPE = MIME_TYPES.textXml;
 const MARKDOWN_ROUTE = "/api/markdown";
 const TEXT_XML_SITEMAP_ROUTE = "/api/sitemap";
 const HOMEPAGE_MEDIA_TYPES = [HTML_MEDIA_TYPE, MARKDOWN_MEDIA_TYPE] as const;
@@ -20,7 +25,8 @@ const gtMiddleware = createNextMiddleware();
 
 export default async function proxy(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
-    const isHomepage = isHomepagePath(pathname);
+    const homepageLocale = getHomepageLocale(pathname);
+    const isHomepage = homepageLocale !== null;
     const isSitemap = pathname === "/sitemap.xml";
     // RSC navigations use a private representation and must reach the page
     // renderer instead of being treated as document negotiation.
@@ -32,7 +38,11 @@ export default async function proxy(request: NextRequest) {
             .includes("text/x-component");
 
     if ((isHomepage || isSitemap) && !isRscRequest) {
-        const response = resolveDocumentRepresentation(request, isSitemap);
+        const response = resolveDocumentRepresentation(
+            request,
+            isSitemap,
+            homepageLocale
+        );
         if (response) {
             return response;
         }
@@ -48,7 +58,8 @@ export default async function proxy(request: NextRequest) {
 
 function resolveDocumentRepresentation(
     request: NextRequest,
-    isSitemap: boolean
+    isSitemap: boolean,
+    homepageLocale: SupportedLocale | null
 ): Response | null {
     const defaultMediaType = isSitemap ? XML_MEDIA_TYPE : HTML_MEDIA_TYPE;
     const preferredType = negotiateContentType(
@@ -65,9 +76,7 @@ function resolveDocumentRepresentation(
         const url = request.nextUrl.clone();
         url.pathname = isSitemap
             ? `${MARKDOWN_ROUTE}/sitemap`
-            : `${MARKDOWN_ROUTE}/home/${getHomepageLocale(
-                  request.nextUrl.pathname
-              )}`;
+            : `${MARKDOWN_ROUTE}/home/${homepageLocale ?? DEFAULT_LOCALE}`;
 
         const response = NextResponse.rewrite(url);
         appendVaryAccept(response.headers);
@@ -106,24 +115,17 @@ function createNotAcceptableResponse(isSitemap: boolean): Response {
     });
 }
 
-function isHomepagePath(pathname: string): boolean {
+function getHomepageLocale(pathname: string): SupportedLocale | null {
     const normalizedPathname = normalizeHomepagePathname(pathname);
     if (normalizedPathname === "/") {
-        return true;
+        return DEFAULT_LOCALE;
     }
 
     const locale = normalizedPathname.slice(1);
-    return SUPPORTED_LOCALES.some(
-        (supportedLocale) => locale === supportedLocale
-    );
-}
-
-function getHomepageLocale(pathname: string): string {
-    const locale = normalizeHomepagePathname(pathname).slice(1);
     return (
         SUPPORTED_LOCALES.find(
             (supportedLocale) => locale === supportedLocale
-        ) ?? DEFAULT_LOCALE
+        ) ?? null
     );
 }
 

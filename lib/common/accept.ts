@@ -10,11 +10,11 @@ interface AcceptEntry {
  * Specific Accept ranges take precedence over wildcards for each candidate,
  * even when the wildcard has a higher quality value.
  */
-export function negotiateContentType(
+export function negotiateContentType<const T extends readonly string[]>(
     acceptHeader: string | null,
-    supportedTypes: readonly string[],
-    defaultType: string
-): string | null {
+    supportedTypes: T,
+    defaultType: T[number]
+): T[number] | null {
     if (!acceptHeader) {
         return defaultType;
     }
@@ -26,7 +26,7 @@ export function negotiateContentType(
 
     let bestPosition = Number.POSITIVE_INFINITY;
     let bestQuality = -1;
-    let bestType: string | null = null;
+    let bestType: T[number] | null = null;
 
     for (const supportedType of supportedTypes) {
         const normalizedSupportedType = supportedType.toLowerCase();
