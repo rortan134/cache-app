@@ -1,12 +1,12 @@
 "use client";
 
-import { useIntegrationsListStore } from "@/components/library/integrations";
 import {
     replaceCollectionShareState,
     shareCollectionPubliclySafely,
-    useWorkspaceContext,
+    useCollectionsContext,
     type CollectionShareState,
-} from "@/components/library/workspace";
+} from "@/components/library/collections";
+import { useIntegrationsListStore } from "@/components/library/integrations";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -224,7 +224,7 @@ export function OnboardingMenu({
     onOpenCommand,
 }: OnboardingMenuProps) {
     const { collections, items, setCollections, setItems } =
-        useWorkspaceContext();
+        useCollectionsContext();
     const { setOpen: setSidebarOpen } = useSidebar();
 
     const { setIsIntegrationsListOpen } = useIntegrationsListStore();

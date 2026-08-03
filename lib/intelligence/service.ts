@@ -6,12 +6,15 @@ import { ApiError } from "@google/genai";
 import { cacheLife } from "next/cache";
 import {
     generateExpandedSectionDescription,
+    generateCollectionDescription as generateCollectionDescriptionText,
     generateSectionDescription,
 } from ".";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
     buildExpandedSummaryPrompt,
+    buildCollectionDescriptionPrompt,
     buildOverviewPrompt,
+    COLLECTION_DESCRIPTION_TITLE_MAX_LENGTH,
     normalizeExpandedSummary,
     normalizeSummary,
     SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
@@ -37,6 +40,16 @@ export interface GenerateCollectionSummaryResult {
     summary: string;
 }
 
+export interface GenerateCollectionDescriptionInput {
+    collectionTitle: string;
+    request: ArcjetNextRequest;
+    userId: string;
+}
+
+export interface GenerateCollectionDescriptionResult {
+    description: string;
+}
+
 /**
  * Generates a short overview for a collection section.
  *
@@ -56,7 +69,6 @@ export async function generateCollectionSummary(
 
     if (expanded) {
         const summary = await executeGeneration({
-            buildPrompt: buildExpandedSummaryPrompt,
             debugLogLabel: "expanded section description",
             errorLogLabel: "expanded library section description",
             feature: "section_description_expanded",
@@ -66,10 +78,16 @@ export async function generateCollectionSummary(
                     userId,
                 }),
             input,
+            logContext: {
+                itemCount: items.length,
+                sectionTitle,
+                truncatedItemCount: truncatedRequest.items.length,
+            },
             normalize: normalizeExpandedSummary,
+            operation: "generateCollectionSummary",
+            prompt: buildExpandedSummaryPrompt(truncatedRequest),
             spanName: "generate-expanded-section-description",
             tokenLimit: SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
-            truncatedRequest,
             warnLogLabel: "Expanded section description",
         });
 
@@ -79,7 +97,6 @@ export async function generateCollectionSummary(
     }
 
     const summary = await executeGeneration({
-        buildPrompt: buildOverviewPrompt,
         debugLogLabel: "section description",
         errorLogLabel: "library section description",
         feature: "section_description",
@@ -89,10 +106,16 @@ export async function generateCollectionSummary(
                 userId,
             }),
         input,
+        logContext: {
+            itemCount: items.length,
+            sectionTitle,
+            truncatedItemCount: truncatedRequest.items.length,
+        },
         normalize: normalizeSummary,
+        operation: "generateCollectionSummary",
+        prompt: buildOverviewPrompt(truncatedRequest),
         spanName: "generate-section-description",
         tokenLimit: OUTPUT_TOKEN_LIMIT,
-        truncatedRequest,
         warnLogLabel: "Section description",
     });
 
@@ -101,21 +124,59 @@ export async function generateCollectionSummary(
     };
 }
 
+export async function generateCollectionDescription(
+    input: GenerateCollectionDescriptionInput
+): Promise<GenerateCollectionDescriptionResult> {
+    const collectionTitle = input.collectionTitle
+        .trim()
+        .slice(0, COLLECTION_DESCRIPTION_TITLE_MAX_LENGTH);
+    if (collectionTitle.length === 0) {
+        return { description: "" };
+    }
+
+    const description = await executeGeneration({
+        debugLogLabel: "collection description",
+        errorLogLabel: "collection description",
+        feature: "collection_description",
+        generate: (args) =>
+            generateCachedCollectionDescription({
+                prompt: args.prompt,
+                userId: input.userId,
+            }),
+        input,
+        logContext: { collectionTitle },
+        normalize: normalizeSummary,
+        operation: "generateCollectionDescription",
+        prompt: buildCollectionDescriptionPrompt({ title: collectionTitle }),
+        spanName: "generate-collection-description",
+        tokenLimit: OUTPUT_TOKEN_LIMIT,
+        warnLogLabel: "Collection description",
+    });
+
+    return {
+        description: description ?? "",
+    };
+}
+
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
 
 interface GenerationConfig<T> {
-    buildPrompt: (request: DescriptionRequest) => string;
     debugLogLabel: string;
     errorLogLabel: string;
     feature: string;
     generate: (args: { prompt: string }) => Promise<string | undefined>;
-    input: GenerateCollectionSummaryInput;
+    input: {
+        request: ArcjetNextRequest;
+        userId: string;
+    };
+    logContext: Record<string, unknown>;
     normalize: (raw: string | undefined) => T | null;
+    operation: string;
+    prompt: string;
     spanName: string;
     tokenLimit: number;
-    truncatedRequest: DescriptionRequest;
     warnLogLabel: string;
 }
 
@@ -143,6 +204,19 @@ async function generateCachedExpandedSectionDescription(args: {
     return result.rawSummary;
 }
 
+async function generateCachedCollectionDescription(args: {
+    prompt: string;
+    userId: string;
+}): Promise<string | undefined> {
+    "use cache";
+    cacheLife("minutes");
+
+    const result = await generateCollectionDescriptionText({
+        prompt: args.prompt,
+    });
+    return result.rawDescription;
+}
+
 /**
  * Executes a single protected generation pipeline.
  *
@@ -153,34 +227,30 @@ async function executeGeneration<T>(
     config: GenerationConfig<T>
 ): Promise<T | null> {
     const {
-        buildPrompt,
         debugLogLabel,
         errorLogLabel,
         feature,
         generate,
         input,
+        logContext,
         normalize,
+        operation,
+        prompt,
         spanName,
         tokenLimit,
-        truncatedRequest,
         warnLogLabel,
     } = config;
-    const { items, request, sectionTitle, userId } = input;
-
-    const prompt = buildPrompt(truncatedRequest);
+    const { request, userId } = input;
     const requestedTokens = estimateGenAiTokens(prompt, tokenLimit);
 
     log.debug(`Generating ${debugLogLabel}`, {
         estimatedTokens: requestedTokens,
-        itemCount: items.length,
-        sectionTitle,
-        truncatedItemCount: truncatedRequest.items.length,
+        ...logContext,
         userId,
     });
 
     const span = log.time(spanName, {
-        itemCount: items.length,
-        sectionTitle,
+        ...logContext,
         userId,
     });
 
@@ -197,9 +267,8 @@ async function executeGeneration<T>(
 
         if (!normalized) {
             log.warn(`${warnLogLabel} normalization rejected model output`, {
-                itemCount: items.length,
+                ...logContext,
                 raw: generatedContent,
-                sectionTitle,
                 userId,
             });
         }
@@ -220,8 +289,7 @@ async function executeGeneration<T>(
 
         log.warn(`Failed to generate ${errorLogLabel}`, {
             error: message,
-            itemCount: items.length,
-            sectionTitle,
+            ...logContext,
             status,
             userId,
         });
@@ -229,7 +297,7 @@ async function executeGeneration<T>(
         throw new GenAiGenerationError(
             {
                 message,
-                operation: "generateCollectionSummary",
+                operation,
                 status,
             },
             { cause: error }

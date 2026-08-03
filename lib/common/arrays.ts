@@ -32,6 +32,18 @@ export function unique<T>(values: readonly T[]): T[] {
     return Array.from(new Set(values));
 }
 
+export function countBy<T, K extends PropertyKey>(
+    items: readonly T[],
+    getKey: (item: T) => K
+): Partial<Record<K, number>> {
+    const counts: Partial<Record<K, number>> = Object.create(null);
+    for (const item of items) {
+        const key = getKey(item);
+        counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+}
+
 export async function mapConcurrent<T, R>(
     items: readonly T[],
     fn: (item: T) => Promise<R>,

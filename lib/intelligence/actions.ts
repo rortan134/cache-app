@@ -18,10 +18,15 @@ import { runAskCacheAgent } from "./composer/service";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
     SECTION_DESCRIPTION_FALLBACK_TEXT,
+    CollectionDescriptionRequestSchema,
     SectionDescriptionRequestSchema,
+    type CollectionDescriptionRequest,
     type DescriptionRequest,
 } from "./overview";
-import { generateCollectionSummary } from "./service";
+import {
+    generateCollectionDescription,
+    generateCollectionSummary,
+} from "./service";
 
 const log = createLogger("intelligence:actions");
 
@@ -39,6 +44,21 @@ export type SectionDescriptionResult =
               | "QUOTA_EXCEEDED"
               | "UNAUTHORIZED";
           summary?: string;
+      };
+
+export type CollectionDescriptionResult =
+    | {
+          description: string;
+          status: "SUCCESS";
+      }
+    | {
+          message: string;
+          status:
+              | "ERROR"
+              | "FORBIDDEN"
+              | "INVALID"
+              | "QUOTA_EXCEEDED"
+              | "UNAUTHORIZED";
       };
 
 export async function getSectionDescription(
@@ -99,6 +119,72 @@ export async function getSectionDescription(
             message: "We couldn't generate this overview right now.",
             status: "ERROR",
             summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
+        };
+    }
+}
+
+export async function getCollectionDescription(
+    input: CollectionDescriptionRequest
+): Promise<CollectionDescriptionResult> {
+    const parsed = CollectionDescriptionRequestSchema.safeParse(input);
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                "Enter a valid collection title."
+            ),
+            status: "INVALID",
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to generate a collection description."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const result = await generateCollectionDescription({
+            collectionTitle: parsed.data.title,
+            request: await getArcjetRequest(),
+            userId: auth.userId,
+        });
+
+        if (result.description.length === 0) {
+            return {
+                message:
+                    "We couldn't generate a collection description right now.",
+                status: "ERROR",
+            };
+        }
+
+        return {
+            description: result.description,
+            status: "SUCCESS",
+        };
+    } catch (error) {
+        if (GenAiProtectionError.isInstance(error)) {
+            return {
+                message: error.data.message,
+                status:
+                    error.data.reason === "quota_exceeded"
+                        ? "QUOTA_EXCEEDED"
+                        : "FORBIDDEN",
+            };
+        }
+
+        if (GenAiGenerationError.isInstance(error)) {
+            return {
+                message: error.data.message,
+                status: "ERROR",
+            };
+        }
+
+        log.error("Failed to generate collection description", error);
+        return {
+            message: "We couldn't generate a collection description right now.",
+            status: "ERROR",
         };
     }
 }

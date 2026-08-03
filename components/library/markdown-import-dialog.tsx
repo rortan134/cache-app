@@ -16,7 +16,7 @@ import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { useWorkspaceContext } from "@/components/library/workspace";
+import { useCollectionsContext } from "@/components/library/collections";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createMarkdownImport,
@@ -83,7 +83,7 @@ export function MarkdownImportDialog() {
     const [skippedFiles, setSkippedFiles] = React.useState<SkippedFilePath[]>(
         []
     );
-    const { setItems, setCollections } = useWorkspaceContext();
+    const { setItems, setCollections } = useCollectionsContext();
     const router = useRouter();
     const importSessionIdRef = React.useRef(0);
 

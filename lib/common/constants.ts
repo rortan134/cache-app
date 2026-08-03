@@ -72,6 +72,12 @@ export const IMAGE_MIME_TYPES = {
     webp: "image/webp",
 } as const;
 
+export const VIDEO_MIME_TYPES = {
+    mov: "video/quicktime",
+    mp4: "video/mp4",
+    webm: "video/webm",
+} as const;
+
 export const STRING_MIME_TYPES = {
     csv: "text/csv",
     html: "text/html",
@@ -87,6 +93,8 @@ export const MIME_TYPES = {
     binary: "application/octet-stream",
     // image
     ...IMAGE_MIME_TYPES,
+    // video
+    ...VIDEO_MIME_TYPES,
 } as const;
 
 export const EXPORT_IMAGE_TYPES = {

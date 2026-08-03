@@ -1,10 +1,13 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { CollectionsGrid } from "@/components/library/collections";
+import { CollectionCard } from "@/components/library/collections";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getServerSession } from "@/lib/auth/session";
-import { listCollectionsWithPreviews } from "@/lib/collections/service";
+import {
+    listCollectionsWithPreviews,
+    type CollectionPreview,
+} from "@/lib/collections/service";
 import { T } from "gt-next";
 import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
@@ -69,6 +72,19 @@ function CollectionsPageHeader() {
     );
 }
 
+interface CollectionsGridProps {
+    children: (collection: CollectionPreview, index: number) => React.ReactNode;
+    collections: CollectionPreview[];
+}
+
+function CollectionsGrid({ children, collections }: CollectionsGridProps) {
+    return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {collections.map(children)}
+        </div>
+    );
+}
+
 async function CollectionsPageBody() {
     await connection();
 
@@ -100,7 +116,14 @@ async function CollectionsPageBody() {
     return (
         <FadeIn className="flex flex-col gap-8">
             <CollectionsPageHeader />
-            <CollectionsGrid collections={collections} />
+            <CollectionsGrid collections={collections}>
+                {(collection) => (
+                    <CollectionCard
+                        collection={collection}
+                        key={collection.id}
+                    />
+                )}
+            </CollectionsGrid>
         </FadeIn>
     );
 }
