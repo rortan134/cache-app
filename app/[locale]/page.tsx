@@ -638,6 +638,10 @@ export default async function Home() {
                                         and AI agents do the rest
                                     </span>
                                 </h2>
+                                <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
+                                    Summarize, research, compare, or draft with
+                                    the relevant bookmarks already in context.
+                                </p>
                             </T>
                             <div className="relative mx-auto h-[300px] w-full max-w-[640px] sm:h-[360px] sm:max-w-[700px] md:h-[420px]">
                                 <div
