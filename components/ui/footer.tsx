@@ -16,9 +16,9 @@ export function Footer() {
                                     rel="noopener noreferrer"
                                     target="_blank"
                                 >
-                                    <T>
-                                        <p>Docs</p>
-                                    </T>
+                                    <p>
+                                        <T>Docs</T>
+                                    </p>
                                 </Link>
                                 <Link
                                     className="underline"
@@ -26,9 +26,9 @@ export function Footer() {
                                     rel="noopener noreferrer"
                                     target="_blank"
                                 >
-                                    <T>
-                                        <p>Terms of Service</p>
-                                    </T>
+                                    <p>
+                                        <T>Terms of Service</T>
+                                    </p>
                                 </Link>
                                 <Link
                                     className="underline"
@@ -36,9 +36,9 @@ export function Footer() {
                                     rel="noopener noreferrer"
                                     target="_blank"
                                 >
-                                    <T>
-                                        <p>Privacy</p>
-                                    </T>
+                                    <p>
+                                        <T>Privacy</T>
+                                    </p>
                                 </Link>
                                 <Link
                                     className="underline"
@@ -46,9 +46,9 @@ export function Footer() {
                                     rel="noopener noreferrer"
                                     target="_blank"
                                 >
-                                    <T>
-                                        <p>Security</p>
-                                    </T>
+                                    <p>
+                                        <T>Security</T>
+                                    </p>
                                 </Link>
                                 <Link
                                     className="underline"
@@ -60,7 +60,10 @@ export function Footer() {
                                 </Link>
                             </div>
                             <p className="opacity-50">
-                                &copy; Cache App. All rights reserved.
+                                <T>
+                                    Copyright &copy; Cache App. All rights
+                                    reserved.
+                                </T>
                             </p>
                             <div className="flex items-center gap-1 opacity-50">
                                 <GDPRIcon />
