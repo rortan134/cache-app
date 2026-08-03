@@ -4437,7 +4437,7 @@ function MediaCardDataProvider({
     return (
         <MediaCardDataContext
             value={{
-                displayTitle: getLibraryItemTitle(data),
+                displayTitle: getLibraryItemPrimaryText(data),
                 isNote,
                 item: data,
                 previewImageUrl: itemPreviewImageUrl(data),
@@ -5110,7 +5110,8 @@ const MEDIA_CARD_ACTION_PLUGINS = [
     {
         contextMenu: MediaCardContextMenuDownloadAction,
         id: "download",
-        isAvailable: ({ isNote }) => !isNote,
+        isAvailable: ({ isNote, item }) =>
+            !isNote && COBALT_SOURCES.has(item.source),
         menu: MediaCardMenuDownloadAction,
         separatorBefore: true,
     },
