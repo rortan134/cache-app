@@ -658,11 +658,7 @@ function IntegrationsListItemPreviewTrigger({
 
     return (
         <PreviewCard onOpenChange={setIsHovered} open={isHovered}>
-            <PreviewCardTrigger
-                closeDelay={0}
-                onClick={handleClick}
-                render={render}
-            />
+            <PreviewCardTrigger onClick={handleClick} render={render} />
             <PreviewCardPopup
                 className="flex flex-col p-0"
                 positionMethod="fixed"

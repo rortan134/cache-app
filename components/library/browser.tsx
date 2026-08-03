@@ -6,14 +6,16 @@ import {
 } from "@/components/billing/paywall";
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
-    appendCollection,
-    CollectionsContext,
-    mergeCollectionSummaries,
+    buildCollectionItemIndexes,
+    CollectionsProvider,
+    LibraryItemsContext,
+    mergeImportedItems,
     NAME_COLLATOR,
-    RequestCreateRefContext,
+    reconcileCollectionTags,
+    replaceMultipleItemCollections,
     sortCollections,
-    useCollections,
-    type CollectionsContextValue,
+    useCollectionsContext,
+    type LibraryItemsContextValue,
 } from "@/components/library/collections";
 import {
     Composer,
@@ -169,7 +171,6 @@ import {
     itemPreviewImageUrl,
     itemPreviewVideoUrl,
     type LibraryCollectionSummary,
-    type LibraryCollectionTag,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { removeValue, toggleValue, updateById } from "@/lib/common/arrays";
@@ -1988,21 +1989,7 @@ interface BrowserContextValue {
     columnCount?: number;
     enableSectionCollapse: boolean;
     favoriteItemIdSet: ReadonlySet<string>;
-    /**
-     * Tracks the id of the grid card currently under the pointer so
-     * global hotkeys (e.g. `S` to open the collection picker, `⌥F` /
-     * `⌥E` / `⌘⌫` for card actions) can target the hovered card instead
-     * of requiring keyboard focus on the card, which is unreachable
-     * while the pointer is elsewhere. Mirrors the `hoveredCollectionRef`
-     * pattern used by the collections list. While a card's menu or
-     * context menu is open, the card keeps this id pinned so menu
-     * shortcut labels still work after the pointer moves into the popup.
-     */
     hoveredItemIdRef: React.RefObject<string | null>;
-    /**
-     * When non-null, a card menu/picker has claimed the hover target.
-     * Other cards must not overwrite `hoveredItemIdRef` until released.
-     */
     hoverPinnedItemIdRef: React.RefObject<string | null>;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItemWithCollections) => void;
@@ -2022,22 +2009,6 @@ interface BrowserContextValue {
         itemId: string,
         collectionIds: string[]
     ) => Promise<LibraryItemCollectionsUpdateResult>;
-    /**
-     * The id of the card whose collection picker is currently open, or
-     * `null` when no card picker is open. Driven externally so the
-     * global `S` hotkey can request the hovered card's picker to open
-     * without the card needing to handle the keydown itself (which only
-     * fires while the card has keyboard focus).
-     *
-     * This is the single source of truth for "which picker is open".
-     * The card collection picker receives `open = openPickerItemId === item.id`
-     * and reports closures back via `onOpenChange(false)`; treat that
-     * callback as best-effort close signaling. When the picker is
-     * closed by flipping `open` to `false` externally (e.g. another
-     * card's `S` press reassigns `openPickerItemId`), Base-UI does not
-     * dispatch `onOpenChange(false)` for the previously open card —
-     * which is fine because this state already reflects the new target.
-     */
     openPickerItemId: string | null;
     pendingDeleteItemId: string | null;
     setOpenPickerItemId: (id: string | null) => void;
@@ -2051,7 +2022,7 @@ const BrowserContext = React.createContext<BrowserContextValue | null>(null);
 function useBrowserContext(): BrowserContextValue {
     const context = React.use(BrowserContext);
     if (!context) {
-        throw new Error("Browser components must be used inside <Browser>.");
+        throw new Error("Browser components must be used inside BrowserRoot.");
     }
     return context;
 }
@@ -2077,13 +2048,6 @@ function useBrowserGroupContext(): BrowserGroupContextValue {
         );
     }
     return context;
-}
-
-function Browser({
-    children,
-    ...contextValue
-}: React.PropsWithChildren<BrowserContextValue>) {
-    return <BrowserContext value={contextValue}>{children}</BrowserContext>;
 }
 
 const BrowserEmptyCell = ({
@@ -3668,40 +3632,9 @@ interface LibraryProps {
     totalItemCount: number;
 }
 
-function replaceMultipleItemCollections(
-    items: LibraryItemWithCollections[],
-    itemCollections: Array<{
-        collections: LibraryCollectionTag[];
-        itemId: string;
-    }>
-): LibraryItemWithCollections[] {
-    if (itemCollections.length === 0) {
-        return items;
-    }
-
-    const collectionsByItemId = new Map(
-        itemCollections.map((entry) => [entry.itemId, entry.collections])
-    );
-
-    return items.map((item) => {
-        const nextCollections = collectionsByItemId.get(item.id);
-        return nextCollections
-            ? { ...item, collections: nextCollections }
-            : item;
-    });
-}
-
 function useLibraryItemActions(args: {
-    onDeleteSuccess?: (result: {
-        collectionSummaries: LibraryCollectionSummary[];
-    }) => void;
-    setVisibleItems: (
-        value:
-            | LibraryItemWithCollections[]
-            | ((
-                  current: LibraryItemWithCollections[]
-              ) => LibraryItemWithCollections[])
-    ) => void;
+    onDeleteSuccess?: (collectionSummaries: LibraryCollectionSummary[]) => void;
+    removeItems: (itemIds: string[]) => void;
 }) {
     const [pendingDeleteItem, setPendingDeleteItem] =
         React.useState<LibraryItemWithCollections | null>(null);
@@ -3753,10 +3686,8 @@ function useLibraryItemActions(args: {
             }
 
             if (result.status === ACTION_STATUS.DELETED) {
-                args.setVisibleItems((current) =>
-                    current.filter((item) => item.id !== result.itemId)
-                );
-                args.onDeleteSuccess?.(result);
+                args.removeItems([result.itemId]);
+                args.onDeleteSuccess?.(result.collectionSummaries);
             }
 
             if (pendingDeleteItem && pendingDeleteItem.id === targetItemId) {
@@ -3814,7 +3745,6 @@ interface CollectionComboboxPickerProps
         previousSharedCollectionIds: string[];
     }) => Promise<LibraryItemsCollectionsUpdateResult>;
     open?: boolean;
-    /** Temporary “just organized” affordance after Smart Collections assigns memberships. */
     showSmartCollectionsIndicator?: boolean;
 }
 
@@ -6008,20 +5938,19 @@ function CreateResultsCollectionDialog({
  * and the `S` collection-picker shortcut. Registered once at the browser
  * root so every card does not mount its own `useHotkeys` listeners.
  */
-function useCardHoverHotkeys(input: {
+function useCardHoverHotkeys({
+    hoveredItemIdRef,
+    itemsRef,
+    onDelete,
+    onItemFavoriteToggle,
+    pendingDeleteItemIdRef,
+}: {
     hoveredItemIdRef: React.RefObject<string | null>;
     itemsRef: React.RefObject<LibraryItemWithCollections[]>;
     onDelete: (item: LibraryItemWithCollections) => void;
     onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
     pendingDeleteItemIdRef: React.RefObject<string | null>;
 }) {
-    const {
-        hoveredItemIdRef,
-        itemsRef,
-        onDelete,
-        onItemFavoriteToggle,
-        pendingDeleteItemIdRef,
-    } = input;
     const quickLookTriggerId = React.useId();
 
     const resolveHoveredItem = useStableCallback(() => {
@@ -6111,25 +6040,72 @@ export function BrowserRoot({
     lockedItemCount,
     totalItemCount,
 }: React.PropsWithChildren<LibraryProps>) {
+    const [items, setItems] = React.useState(initialItems);
+
+    return (
+        <CollectionsProvider
+            initialCollections={initialCollections}
+            setItems={setItems}
+        >
+            <BrowserContent
+                connectedIntegrationCount={connectedIntegrationCount}
+                items={items}
+                lockedItemCount={lockedItemCount}
+                setItems={setItems}
+                totalItemCount={totalItemCount}
+            >
+                {children}
+            </BrowserContent>
+        </CollectionsProvider>
+    );
+}
+
+function BrowserContent({
+    children,
+    connectedIntegrationCount,
+    items,
+    lockedItemCount,
+    setItems,
+    totalItemCount,
+}: React.PropsWithChildren<
+    Omit<LibraryProps, "initialCollections" | "initialItems"> & {
+        items: LibraryItemWithCollections[];
+        setItems: React.Dispatch<
+            React.SetStateAction<LibraryItemWithCollections[]>
+        >;
+    }
+>) {
     const { hasAccess } = useSubscriptionAccess();
     const isExtensionInstalled = useIsExtensionInstalled();
     const paletteCaretTimeout = useTimeout();
     const paletteFocusOutTimeout = useTimeout();
 
-    const [items, setItems] =
-        React.useState<LibraryItemWithCollections[]>(initialItems);
-    const workspace = useCollections({ initialCollections, items });
     const {
-        collectionPreviewThumbnailUrlsById,
         collectionSummaries: collections,
         collections: allCollections,
-        favoriteItemIdSet,
+        mergeCollectionSummaries,
         onClearCollectionFilters,
         onSelectCollection: onRemoveCollectionFilter,
         requestCreate,
         selectedCollectionIds,
-        setCollections,
-    } = workspace;
+        syncCollectionCreated,
+    } = useCollectionsContext();
+    const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
+        buildCollectionItemIndexes(items);
+    const favoriteItems = items
+        .filter(
+            (
+                item
+            ): item is LibraryItemWithCollections & { favoritedAt: Date } =>
+                item.favoritedAt !== null
+        )
+        .toSorted(
+            (left, right) =>
+                right.favoritedAt.getTime() - left.favoritedAt.getTime()
+        );
+    const favoriteItemIdSet = new Set(favoriteItems.map((item) => item.id));
+    const allCollectionsRef = React.useRef(allCollections);
+    allCollectionsRef.current = allCollections;
 
     const collectionUpdateRequestTokenByItemIdRef = React.useRef(
         new Map<string, symbol>()
@@ -6194,12 +6170,7 @@ export function BrowserRoot({
             }
 
             if (result.status === "UPDATED") {
-                setCollections((current) =>
-                    mergeCollectionSummaries(
-                        current,
-                        result.collectionSummaries
-                    )
-                );
+                mergeCollectionSummaries(result.collectionSummaries);
                 setItems((current) =>
                     updateById(current, itemId, (item) => ({
                         ...item,
@@ -6210,7 +6181,10 @@ export function BrowserRoot({
                 setItems((current) =>
                     updateById(current, itemId, (item) => ({
                         ...item,
-                        collections: previousCollections,
+                        collections: reconcileCollectionTags(
+                            allCollectionsRef.current,
+                            previousCollections
+                        ),
                     }))
                 );
             }
@@ -6239,6 +6213,12 @@ export function BrowserRoot({
                 input.previousSharedCollectionIds
             );
             const requestToken = Symbol("bulk-collection-update");
+            for (const { itemId } of previousItemCollections) {
+                collectionUpdateRequestTokenByItemIdRef.current.set(
+                    itemId,
+                    requestToken
+                );
+            }
             const optimisticItemCollections = previousItemCollections.map(
                 ({ collections: itemCollections, itemId }) => {
                     const optimisticCollections = sortCollections([
@@ -6293,12 +6273,7 @@ export function BrowserRoot({
             const currentItemIdSet = new Set(currentItemIds);
             if (result.status === "UPDATED") {
                 if (currentItemIds.length === requestedItemIds.size) {
-                    setCollections((current) =>
-                        mergeCollectionSummaries(
-                            current,
-                            result.collectionSummaries
-                        )
-                    );
+                    mergeCollectionSummaries(result.collectionSummaries);
                 }
                 setItems((current) =>
                     replaceMultipleItemCollections(
@@ -6312,9 +6287,22 @@ export function BrowserRoot({
                 setItems((current) =>
                     replaceMultipleItemCollections(
                         current,
-                        previousItemCollections.filter(({ itemId }) =>
-                            currentItemIdSet.has(itemId)
-                        )
+                        previousItemCollections
+                            .filter(({ itemId }) =>
+                                currentItemIdSet.has(itemId)
+                            )
+                            .map(
+                                ({
+                                    collections: previousCollections,
+                                    itemId,
+                                }) => ({
+                                    collections: reconcileCollectionTags(
+                                        allCollectionsRef.current,
+                                        previousCollections
+                                    ),
+                                    itemId,
+                                })
+                            )
                     )
                 );
             }
@@ -6324,14 +6312,6 @@ export function BrowserRoot({
             }
 
             return result;
-        }
-    );
-
-    const handleDeleteItemSuccess = useStableCallback(
-        (result: { collectionSummaries: LibraryCollectionSummary[] }) => {
-            setCollections((current) =>
-                mergeCollectionSummaries(current, result.collectionSummaries)
-            );
         }
     );
 
@@ -6345,7 +6325,18 @@ export function BrowserRoot({
                 requestToken
             );
 
-            const previousFavoritedAt = item.favoritedAt;
+            const currentItem = items.find((entry) => entry.id === item.id);
+            if (!currentItem) {
+                itemFavoriteToggleRequestTokenByItemIdRef.current.delete(
+                    item.id
+                );
+                return {
+                    message: "We couldn't update this favorite right now.",
+                    status: "ERROR",
+                };
+            }
+
+            const previousFavoritedAt = currentItem.favoritedAt;
             const optimisticFavoritedAt = previousFavoritedAt
                 ? null
                 : new Date();
@@ -6414,16 +6405,10 @@ export function BrowserRoot({
                 return result;
             }
 
-            setCollections((current) =>
-                mergeCollectionSummaries(current, [result.collection])
-            );
-            setItems((current) =>
-                appendCollection(
-                    current,
-                    result.assignedItemIds,
-                    result.collection
-                )
-            );
+            syncCollectionCreated({
+                assignedItemIds: result.assignedItemIds,
+                collection: result.collection,
+            });
 
             return result;
         }
@@ -6513,8 +6498,11 @@ export function BrowserRoot({
         isDeletePending,
         pendingDeleteItem,
     } = useLibraryItemActions({
-        onDeleteSuccess: handleDeleteItemSuccess,
-        setVisibleItems: setItems,
+        onDeleteSuccess: mergeCollectionSummaries,
+        removeItems: (itemIds) =>
+            setItems((current) =>
+                current.filter((item) => !itemIds.includes(item.id))
+            ),
     });
     const pendingDeleteItemIdRef = React.useRef<string | null>(
         pendingDeleteItem?.id ?? null
@@ -6534,15 +6522,6 @@ export function BrowserRoot({
         startCreateResultsCollectionTransition,
     ] = React.useTransition();
 
-    /**
-     * Auto-records any newly-added search term into the persistent
-     * `useSearchHistory` store. Observing `searchTerms` here (rather than
-     * calling `recordSearchTerm` at every commit site) keeps the recording
-     * concern in one place and captures terms added by both the inline
-     * palette actions and Ask Cache patches. The ref is seeded with `[]`
-     * rather than `searchTerms` so a non-empty initial state (e.g. future
-     * URL hydration) is still recorded on the first run.
-     */
     const prevSearchTermsRef = React.useRef<string[]>([]);
     React.useEffect(() => {
         const prev = prevSearchTermsRef.current;
@@ -6756,7 +6735,7 @@ export function BrowserRoot({
             // it cannot keep probing or calling setItems after teardown.
             unreachableProbeVersionRef.current += 1;
         };
-    }, [unreachableFilterEnabled]);
+    }, [setItems, unreachableFilterEnabled]);
 
     const domainOptions = buildDomainPaletteOptions(items);
 
@@ -7071,11 +7050,9 @@ export function BrowserRoot({
                 setItems((current) =>
                     current.filter((item) => !deletedIdSet.has(item.id))
                 );
-                handleDeleteItemSuccess({
-                    collectionSummaries: Array.from(
-                        collectionSummariesById.values()
-                    ),
-                });
+                mergeCollectionSummaries(
+                    Array.from(collectionSummariesById.values())
+                );
             }
 
             setIsRemoveDuplicatesDialogOpen(false);
@@ -7813,21 +7790,63 @@ export function BrowserRoot({
 
     const handleCloseNoteDrawer = useStableCallback(() => setActiveNote(null));
 
-    const collectionsContextValue: CollectionsContextValue = {
-        ...workspace,
+    const mergeImportedLibraryItems = useStableCallback(
+        (importedItems: LibraryItemWithCollections[]) => {
+            setItems((current) => mergeImportedItems(current, importedItems));
+        }
+    );
+
+    const libraryItemsContextValue: LibraryItemsContextValue = {
+        collectionPreviewThumbnailUrlsById,
+        favoriteItemIdSet,
+        favoriteItems,
         items,
-        onCreateCollectionFromResults: handleCreateCollectionFromResults,
-        onDeleteItemSuccess: handleDeleteItemSuccess,
+        itemsByCollectionId,
+        mergeImportedItems: mergeImportedLibraryItems,
+        onCopyLink: handleCopyLink,
+        onDelete: handleRequestDelete,
+        onFindSimilar: handleFindSimilar,
         onOpenFavoriteItem: handleOpenFavoriteItem,
+        onOpenInNewTab: handleOpenInNewTab,
+        onOpenNote: handleOpenNote,
         onToggleItemFavorite: handleToggleItemFavorite,
         onUpdateItemCollections: handleUpdateItemCollections,
-        onUpdateItemsCollections: handleUpdateItemsCollections,
-        setItems,
+        pendingDeleteItemId: pendingDeleteItem?.id ?? null,
+    };
+
+    const browserContextValue: BrowserContextValue = {
+        clearLibraryPalette,
+        collapsedSectionKeys: collapsedSectionKeySet,
+        collections,
+        columnCount: resolvedColumnCount,
+        enableSectionCollapse,
+        favoriteItemIdSet,
+        hoveredItemIdRef,
+        hoverPinnedItemIdRef,
+        onCollapseAllSections: collapseAllSections,
+        onCopyLink: handleCopyLink,
+        onCreateCollectionFromResults: handleOpenCreateResultsDialog,
+        onDelete: handleRequestDelete,
+        onExpandAllSections: expandAllSections,
+        onExportSectionResults: handleExportSectionResults,
+        onFindSimilar: handleFindSimilar,
+        onItemFavoriteToggle: handleToggleItemFavorite,
+        onOpenInNewTab: handleOpenInNewTab,
+        onOpenNote: handleOpenNote,
+        onToggleSection: toggleSection,
+        onUpdateItemCollections: handleUpdateItemCollections,
+        openPickerItemId,
+        pendingDeleteItemId: pendingDeleteItem?.id ?? null,
+        setOpenPickerItemId,
+        shouldShowEmptyLibraryPeek,
+        shouldShowNoFilteredResults,
+        shouldShowUnreachableProbePending:
+            isUnreachableProbePending && filteredItems.length === 0,
     };
 
     return (
-        <CollectionsContext value={collectionsContextValue}>
-            <RequestCreateRefContext value={workspace.requestCreateRef}>
+        <LibraryItemsContext value={libraryItemsContextValue}>
+            <BrowserContext value={browserContextValue}>
                 {children}
                 <div
                     className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
@@ -7897,77 +7916,40 @@ export function BrowserRoot({
                         )}
                     </ComposerSuggestionsList>
                     {isPreviewOnly ? <InlinePaywallBanner /> : null}
-                    <Browser
-                        clearLibraryPalette={clearLibraryPalette}
-                        collapsedSectionKeys={collapsedSectionKeySet}
-                        collections={collections}
-                        columnCount={resolvedColumnCount}
-                        enableSectionCollapse={enableSectionCollapse}
-                        favoriteItemIdSet={favoriteItemIdSet}
-                        hoveredItemIdRef={hoveredItemIdRef}
-                        hoverPinnedItemIdRef={hoverPinnedItemIdRef}
-                        onCollapseAllSections={collapseAllSections}
-                        onCopyLink={handleCopyLink}
-                        onCreateCollectionFromResults={
-                            handleOpenCreateResultsDialog
-                        }
-                        onDelete={handleRequestDelete}
-                        onExpandAllSections={expandAllSections}
-                        onExportSectionResults={handleExportSectionResults}
-                        onFindSimilar={handleFindSimilar}
-                        onItemFavoriteToggle={handleItemFavoriteToggle}
-                        onOpenInNewTab={handleOpenInNewTab}
-                        onOpenNote={handleOpenNote}
-                        onToggleSection={toggleSection}
-                        onUpdateItemCollections={handleUpdateItemCollections}
-                        openPickerItemId={openPickerItemId}
-                        pendingDeleteItemId={pendingDeleteItem?.id ?? null}
-                        setOpenPickerItemId={setOpenPickerItemId}
-                        shouldShowEmptyLibraryPeek={shouldShowEmptyLibraryPeek}
-                        shouldShowNoFilteredResults={
-                            shouldShowNoFilteredResults
-                        }
-                        shouldShowUnreachableProbePending={
-                            isUnreachableProbePending &&
-                            filteredItems.length === 0
-                        }
-                    >
-                        <BrowserEmpty />
-                        <BrowserEmptyWithFilters />
-                        <BrowserUnreachableProbePending />
-                        <BrowserGroupList groups={groups}>
-                            {(section) => (
-                                <BrowserGroup>
-                                    {enableSectionCollapse ? (
-                                        <>
-                                            <BrowserGroupHeader />
-                                            {section.title ? null : (
-                                                <BrowserGroupAIOverview>
-                                                    <BrowserGroupAIOverviewContent />
-                                                </BrowserGroupAIOverview>
-                                            )}
-                                            <BrowserGroupEmpty>
-                                                No items were found in this
-                                                section.
-                                            </BrowserGroupEmpty>
-                                        </>
-                                    ) : null}
-                                    <BrowserMasonry>
-                                        {(data) => (
-                                            <MediaCardDataProvider data={data}>
-                                                <MediaCardInteractionProvider>
-                                                    <MediaCardContextMenuSurface>
-                                                        <MediaCardOpenTarget />
-                                                        <MediaCardActions />
-                                                    </MediaCardContextMenuSurface>
-                                                </MediaCardInteractionProvider>
-                                            </MediaCardDataProvider>
+                    <BrowserEmpty />
+                    <BrowserEmptyWithFilters />
+                    <BrowserUnreachableProbePending />
+                    <BrowserGroupList groups={groups}>
+                        {(section) => (
+                            <BrowserGroup>
+                                {enableSectionCollapse ? (
+                                    <>
+                                        <BrowserGroupHeader />
+                                        {section.title ? null : (
+                                            <BrowserGroupAIOverview>
+                                                <BrowserGroupAIOverviewContent />
+                                            </BrowserGroupAIOverview>
                                         )}
-                                    </BrowserMasonry>
-                                </BrowserGroup>
-                            )}
-                        </BrowserGroupList>
-                    </Browser>
+                                        <BrowserGroupEmpty>
+                                            No items were found in this section.
+                                        </BrowserGroupEmpty>
+                                    </>
+                                ) : null}
+                                <BrowserMasonry>
+                                    {(data) => (
+                                        <MediaCardDataProvider data={data}>
+                                            <MediaCardInteractionProvider>
+                                                <MediaCardContextMenuSurface>
+                                                    <MediaCardOpenTarget />
+                                                    <MediaCardActions />
+                                                </MediaCardContextMenuSurface>
+                                            </MediaCardInteractionProvider>
+                                        </MediaCardDataProvider>
+                                    )}
+                                </BrowserMasonry>
+                            </BrowserGroup>
+                        )}
+                    </BrowserGroupList>
                     {shouldShowLockedPreview ? (
                         <div className="relative isolate flex flex-col gap-8">
                             <BlockPaywallBanner length={totalItemCount} />
@@ -8037,7 +8019,7 @@ export function BrowserRoot({
                         visibleResultItems={visibleResultItems}
                     />
                 </div>
-            </RequestCreateRefContext>
-        </CollectionsContext>
+            </BrowserContext>
+        </LibraryItemsContext>
     );
 }

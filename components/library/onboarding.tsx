@@ -1,10 +1,9 @@
 "use client";
 
 import {
-    replaceCollectionShareState,
+    useLibraryItemsContext,
     shareCollectionPubliclySafely,
     useCollectionsContext,
-    type CollectionShareState,
 } from "@/components/library/collections";
 import { useIntegrationsListStore } from "@/components/library/integrations";
 import { Button } from "@/components/ui/button";
@@ -193,38 +192,19 @@ function getShareCandidate(
     );
 }
 
-function replaceItemCollectionShareState(
-    items: LibraryItemWithCollections[],
-    next: CollectionShareState
-): LibraryItemWithCollections[] {
-    let isItemUpdated = false;
-
-    const nextItems = items.map((item) => {
-        const nextCollections = replaceCollectionShareState(
-            item.collections,
-            next
-        );
-
-        if (nextCollections === item.collections) {
-            return item;
-        }
-
-        isItemUpdated = true;
-
-        return { ...item, collections: nextCollections };
-    });
-
-    return isItemUpdated ? nextItems : items;
-}
-
 export function OnboardingMenu({
     connectedIntegrationCount,
     onCreateCollection,
     onCreateNote,
     onOpenCommand,
 }: OnboardingMenuProps) {
-    const { collections, items, setCollections, setItems } =
-        useCollectionsContext();
+    const {
+        claimCollectionAction,
+        collections,
+        isCollectionActionPending,
+        syncCollectionShare,
+    } = useCollectionsContext();
+    const { items } = useLibraryItemsContext();
     const { setOpen: setSidebarOpen } = useSidebar();
 
     const { setIsIntegrationsListOpen } = useIntegrationsListStore();
@@ -254,6 +234,10 @@ export function OnboardingMenu({
         string | null
     >(null);
     const [isSharePending, startShareTransition] = React.useTransition();
+    const isShareActionPending =
+        isSharePending ||
+        (pendingShareCollection !== null &&
+            isCollectionActionPending("share", pendingShareCollection.id));
 
     const [isPainPointDialogOpen, setIsPainPointDialogOpen] =
         React.useState(false);
@@ -270,10 +254,19 @@ export function OnboardingMenu({
         }
     );
 
-    const syncShareState = useStableCallback((next: CollectionShareState) => {
-        setCollections((current) => replaceCollectionShareState(current, next));
-        setItems((current) => replaceItemCollectionShareState(current, next));
-    });
+    React.useEffect(() => {
+        if (!pendingShareCollection) {
+            return;
+        }
+
+        const currentCollection = collections.find(
+            (collection) => collection.id === pendingShareCollection.id
+        );
+        if (currentCollection && isSharedCollection(currentCollection)) {
+            setPendingShareCollection(null);
+            setShareErrorMessage(null);
+        }
+    }, [collections, pendingShareCollection]);
 
     const handleOpenCommand = useStableCallback(() => {
         markClientTaskCompleted("command");
@@ -313,7 +306,7 @@ export function OnboardingMenu({
     });
 
     const handleShareDialogOpenChange = useStableCallback((open: boolean) => {
-        if (!(open || isSharePending)) {
+        if (!(open || isShareActionPending)) {
             setShareErrorMessage(null);
             setPendingShareCollection(null);
         }
@@ -325,21 +318,33 @@ export function OnboardingMenu({
             return;
         }
 
+        const releaseAction = claimCollectionAction("share", collection.id);
+        if (!releaseAction) {
+            setShareErrorMessage(
+                "Sharing this collection is already in progress."
+            );
+            return;
+        }
+
         setShareErrorMessage(null);
         startShareTransition(async () => {
-            const result = await shareCollectionPubliclySafely({
-                collectionId: collection.id,
-            });
+            try {
+                const result = await shareCollectionPubliclySafely({
+                    collectionId: collection.id,
+                });
 
-            if (result.status !== "SHARED") {
-                setShareErrorMessage(result.message);
-                return;
+                if (result.status !== "SHARED") {
+                    setShareErrorMessage(result.message);
+                    return;
+                }
+
+                syncCollectionShare(result.collection);
+                setPendingShareCollection(null);
+
+                await copyToClipboard(result.shareUrl);
+            } finally {
+                releaseAction();
             }
-
-            syncShareState(result.collection);
-            setPendingShareCollection(null);
-
-            await copyToClipboard(result.shareUrl);
         });
     });
 
@@ -509,13 +514,14 @@ export function OnboardingMenu({
                         ) : null}
                         <DialogFooter>
                             <DialogClose
-                                disabled={isSharePending}
+                                disabled={isShareActionPending}
                                 render={<Button size="sm" variant="ghost" />}
                             >
                                 Cancel
                             </DialogClose>
                             <Button
-                                isLoading={isSharePending}
+                                disabled={isShareActionPending}
+                                isLoading={isShareActionPending}
                                 onClick={handleConfirmShare}
                                 size="sm"
                             >

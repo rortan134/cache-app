@@ -12,11 +12,11 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import type {
-    LibraryCollectionSummary,
-    LibraryItemWithCollections,
-} from "@/lib/collections/utils";
-import { useCollectionsContext } from "@/components/library/collections";
+import type { LibraryCollectionSummary } from "@/lib/collections/utils";
+import {
+    useCollectionsContext,
+    useLibraryItemsContext,
+} from "@/components/library/collections";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createMarkdownImport,
@@ -83,7 +83,8 @@ export function MarkdownImportDialog() {
     const [skippedFiles, setSkippedFiles] = React.useState<SkippedFilePath[]>(
         []
     );
-    const { setItems, setCollections } = useCollectionsContext();
+    const { replaceCollections } = useCollectionsContext();
+    const { mergeImportedItems: mergeLibraryItems } = useLibraryItemsContext();
     const router = useRouter();
     const importSessionIdRef = React.useRef(0);
 
@@ -297,12 +298,10 @@ export function MarkdownImportDialog() {
         }
 
         if (aggregatedResult.items.length > 0) {
-            setItems((current) =>
-                mergeImportedItems(current, aggregatedResult.items)
-            );
+            mergeLibraryItems(aggregatedResult.items);
         }
         if (collectionsFromImport !== null) {
-            setCollections(collectionsFromImport);
+            replaceCollections(collectionsFromImport);
         }
         router.refresh();
 
@@ -714,19 +713,4 @@ function buildImportBatches(files: ImportFileEntry[]): ImportFileEntry[][] {
 
 function isPickerAbortError(error: unknown): boolean {
     return error instanceof Error && error.name === "AbortError";
-}
-
-function mergeImportedItems(
-    current: LibraryItemWithCollections[],
-    imported: LibraryItemWithCollections[]
-): LibraryItemWithCollections[] {
-    if (imported.length === 0) {
-        return current;
-    }
-    const importedById = new Map(imported.map((item) => [item.id, item]));
-    const currentIdSet = new Set(current.map((item) => item.id));
-    return [
-        ...imported.filter((item) => !currentIdSet.has(item.id)),
-        ...current.map((item) => importedById.get(item.id) ?? item),
-    ];
 }
