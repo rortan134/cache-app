@@ -1,9 +1,9 @@
 "use client";
 
 import {
-    useLibraryItemsContext,
     shareCollectionPubliclySafely,
     useCollectionsContext,
+    useLibraryItemsContext,
 } from "@/components/library/collections";
 import { useIntegrationsListStore } from "@/components/library/integrations";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { addUnique, unique } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { Toolbar } from "@base-ui/react";
@@ -127,7 +128,6 @@ const PAIN_POINT_OPTIONS = [
 
 type OnboardingTaskId = (typeof ONBOARDING_TASK_META)[number]["id"];
 type PainPointId = (typeof PAIN_POINT_OPTIONS)[number]["id"];
-type PainPointDialogStep = "survey" | "response";
 
 interface OnboardingTask {
     id: OnboardingTaskId;
@@ -137,8 +137,8 @@ interface OnboardingTask {
 }
 
 interface CompletedTaskInput {
-    clientCompletedTaskIds: OnboardingTaskId[];
     collections: LibraryCollectionSummary[];
+    completedOnboardingTaskIds: OnboardingTaskId[];
     connectedIntegrationCount: number;
     items: LibraryItemWithCollections[];
 }
@@ -149,7 +149,7 @@ const { useStore: useLibraryOnboardingStore } = createStore({
 });
 
 function getCompletedTaskIdSet({
-    clientCompletedTaskIds,
+    completedOnboardingTaskIds,
     collections,
     connectedIntegrationCount,
     items,
@@ -165,10 +165,10 @@ function getCompletedTaskIdSet({
     if (items.some((item) => item.kind === ITEM_KIND_NOTE)) {
         completed.add("note");
     }
-    if (clientCompletedTaskIds.includes("command")) {
+    if (completedOnboardingTaskIds.includes("command")) {
         completed.add("command");
     }
-    if (clientCompletedTaskIds.includes("pain-point-survey")) {
+    if (completedOnboardingTaskIds.includes("pain-point-survey")) {
         completed.add("pain-point-survey");
     }
     if (collections.some(isSharedCollection)) {
@@ -192,12 +192,21 @@ function getShareCandidate(
     );
 }
 
+interface OnboardingMenuProps {
+    connectedIntegrationCount: number;
+    onCreateCollection: () => void;
+    onCreateNote: () => void;
+    onOpenCommand: () => void;
+}
+
 export function OnboardingMenu({
     connectedIntegrationCount,
     onCreateCollection,
     onCreateNote,
     onOpenCommand,
 }: OnboardingMenuProps) {
+    const gt = useGT();
+
     const {
         claimCollectionAction,
         collections,
@@ -205,7 +214,8 @@ export function OnboardingMenu({
         syncCollectionShare,
     } = useCollectionsContext();
     const { items } = useLibraryItemsContext();
-    const { setOpen: setSidebarOpen } = useSidebar();
+    const { setOpen: setIsSidebarOpen } = useSidebar();
+    const { copyToClipboard } = useCopyToClipboard();
 
     const { setIsIntegrationsListOpen } = useIntegrationsListStore();
     const {
@@ -214,67 +224,44 @@ export function OnboardingMenu({
         setPainPointSurveySelections,
     } = useLibraryOnboardingStore();
 
-    const { copyToClipboard } = useCopyToClipboard();
-    const gt = useGT();
-
-    const completedTaskIdSet = getCompletedTaskIdSet({
-        clientCompletedTaskIds: completedOnboardingTaskIds,
-        collections,
-        connectedIntegrationCount,
-        items,
-    });
-
-    const completedTaskCount = completedTaskIdSet.size;
-    const isOnboardingCompleted = completedTaskCount === ONBOARDING_TASK_COUNT;
-    const progressValue = (completedTaskCount / ONBOARDING_TASK_COUNT) * 100;
-
     const [pendingShareCollection, setPendingShareCollection] =
         React.useState<LibraryCollectionSummary | null>(null);
     const [shareErrorMessage, setShareErrorMessage] = React.useState<
         string | null
     >(null);
     const [isSharePending, startShareTransition] = React.useTransition();
+
     const isShareActionPending =
         isSharePending ||
         (pendingShareCollection !== null &&
             isCollectionActionPending("share", pendingShareCollection.id));
 
-    const [isPainPointDialogOpen, setIsPainPointDialogOpen] =
-        React.useState(false);
-    const [painPointDialogStep, setPainPointDialogStep] =
-        React.useState<PainPointDialogStep>("survey");
-    const [painPointDialogSelections, setPainPointDialogSelections] =
-        React.useState<Set<PainPointId>>(() => new Set());
+    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [dialogSelections, setDialogSelections] = React.useState<
+        Set<PainPointId>
+    >(() => new Set());
 
-    const markClientTaskCompleted = useStableCallback(
-        (taskId: OnboardingTaskId) => {
-            setCompletedOnboardingTaskIds((current) =>
-                current.includes(taskId) ? current : [...current, taskId]
-            );
-        }
-    );
+    const completedTaskIdSet = getCompletedTaskIdSet({
+        collections,
+        completedOnboardingTaskIds,
+        connectedIntegrationCount,
+        items,
+    });
+    const completedTaskCount = completedTaskIdSet.size;
+    const isOnboardingCompleted = completedTaskCount === ONBOARDING_TASK_COUNT;
+    const progressValue = (completedTaskCount / ONBOARDING_TASK_COUNT) * 100;
 
-    React.useEffect(() => {
-        if (!pendingShareCollection) {
-            return;
-        }
-
-        const currentCollection = collections.find(
-            (collection) => collection.id === pendingShareCollection.id
-        );
-        if (currentCollection && isSharedCollection(currentCollection)) {
-            setPendingShareCollection(null);
-            setShareErrorMessage(null);
-        }
-    }, [collections, pendingShareCollection]);
+    const markTaskCompleted = useStableCallback((taskId: OnboardingTaskId) => {
+        setCompletedOnboardingTaskIds((current) => addUnique(current, taskId));
+    });
 
     const handleOpenCommand = useStableCallback(() => {
-        markClientTaskCompleted("command");
+        markTaskCompleted("command");
         onOpenCommand();
     });
 
     const handleOpenIntegrations = useStableCallback(() => {
-        setSidebarOpen(true);
+        setIsSidebarOpen(true);
         setIsIntegrationsListOpen(true);
     });
 
@@ -284,8 +271,9 @@ export function OnboardingMenu({
                 return;
             }
 
-            const shareUrl = buildPublicCollectionShareUrl(collection.shareId);
-            await copyToClipboard(shareUrl);
+            await copyToClipboard(
+                buildPublicCollectionShareUrl(collection.shareId)
+            );
         }
     );
 
@@ -357,24 +345,21 @@ export function OnboardingMenu({
         }
     );
 
-    const handleOpenPainPointDialog = useStableCallback(() => {
-        setPainPointDialogStep("survey");
-        setIsPainPointDialogOpen(true);
+    const handleOpenSurveyDialog = useStableCallback(() => {
+        setDialogSelections(new Set());
+        setIsDialogOpen(true);
     });
 
-    const handlePainPointDialogOpenChange = useStableCallback(
-        (open: boolean) => {
-            setIsPainPointDialogOpen(open);
-            if (!open) {
-                setPainPointDialogStep("survey");
-                setPainPointDialogSelections(new Set());
-            }
+    const handleSurveyDialogOpenChange = useStableCallback((open: boolean) => {
+        setIsDialogOpen(open);
+        if (!open) {
+            setDialogSelections(new Set());
         }
-    );
+    });
 
     const handleTogglePainPoint = useStableCallback(
         (painPointId: PainPointId, checked: boolean) => {
-            setPainPointDialogSelections((current) => {
+            setDialogSelections((current) => {
                 const next = new Set(current);
                 if (checked) {
                     next.add(painPointId);
@@ -386,34 +371,30 @@ export function OnboardingMenu({
         }
     );
 
-    const handleSubmitPainPointSurvey = useStableCallback(() => {
-        setPainPointSurveySelections((current) => {
-            const known = new Set(current);
-            const merged: PainPointId[] = [...current];
-            for (const id of painPointDialogSelections) {
-                if (!known.has(id)) {
-                    known.add(id);
-                    merged.push(id);
-                }
-            }
-            return merged;
-        });
-        markClientTaskCompleted("pain-point-survey");
+    const handleSubmitSurvey = useStableCallback(() => {
+        setPainPointSurveySelections((current) =>
+            unique([...current, ...dialogSelections])
+        );
 
-        if (painPointDialogSelections.size === 0) {
-            setIsPainPointDialogOpen(false);
-            setPainPointDialogSelections(new Set());
+        markTaskCompleted("pain-point-survey");
+
+        if (dialogSelections.size === 0) {
+            setIsDialogOpen(false);
+        }
+    });
+
+    React.useEffect(() => {
+        if (!pendingShareCollection) {
             return;
         }
-
-        setPainPointDialogStep("response");
-    });
-
-    const handleFinishPainPointResponse = useStableCallback(() => {
-        setIsPainPointDialogOpen(false);
-        setPainPointDialogStep("survey");
-        setPainPointDialogSelections(new Set());
-    });
+        const currentCollection = collections.find(
+            (collection) => collection.id === pendingShareCollection.id
+        );
+        if (currentCollection && isSharedCollection(currentCollection)) {
+            setPendingShareCollection(null);
+            setShareErrorMessage(null);
+        }
+    }, [collections, pendingShareCollection]);
 
     const taskHandlerMap: Record<OnboardingTaskId, () => void | Promise<void>> =
         {
@@ -421,17 +402,9 @@ export function OnboardingMenu({
             command: handleOpenCommand,
             integration: handleOpenIntegrations,
             note: onCreateNote,
-            "pain-point-survey": handleOpenPainPointDialog,
+            "pain-point-survey": handleOpenSurveyDialog,
             share: handleRequestShare,
         };
-
-    const tasks: OnboardingTask[] = isOnboardingCompleted
-        ? []
-        : ONBOARDING_TASK_META.map((meta) => ({
-              ...meta,
-              isCompleted: completedTaskIdSet.has(meta.id),
-              onSelect: taskHandlerMap[meta.id],
-          }));
 
     return (
         <>
@@ -475,8 +448,17 @@ export function OnboardingMenu({
                             <MenuGroupLabel>
                                 <T>Complete this checklist</T>
                             </MenuGroupLabel>
-                            {tasks.map((task) => (
-                                <OnboardingMenuItem key={task.id} task={task} />
+                            {ONBOARDING_TASK_META.map((meta) => (
+                                <OnboardingMenuItem
+                                    key={meta.id}
+                                    task={{
+                                        ...meta,
+                                        isCompleted: completedTaskIdSet.has(
+                                            meta.id
+                                        ),
+                                        onSelect: taskHandlerMap[meta.id],
+                                    }}
+                                />
                             ))}
                         </MenuGroup>
                     </MenuPopup>
@@ -531,24 +513,15 @@ export function OnboardingMenu({
                     </DialogPopup>
                 </Dialog>
             ) : null}
-            <PainPointSurveyDialog
+            <SurveyDialog
                 onCheckedChange={handleTogglePainPoint}
-                onFinishResponse={handleFinishPainPointResponse}
-                onOpenChange={handlePainPointDialogOpenChange}
-                onSubmit={handleSubmitPainPointSurvey}
-                open={isPainPointDialogOpen}
-                selections={painPointDialogSelections}
-                step={painPointDialogStep}
+                onOpenChange={handleSurveyDialogOpenChange}
+                onSubmit={handleSubmitSurvey}
+                open={isDialogOpen}
+                selections={dialogSelections}
             />
         </>
     );
-}
-
-interface OnboardingMenuProps {
-    connectedIntegrationCount: number;
-    onCreateCollection: () => void;
-    onCreateNote: () => void;
-    onOpenCommand: () => void;
 }
 
 type OnboardingShareErrorProps = React.ComponentProps<"p">;
@@ -557,10 +530,6 @@ function OnboardingShareError({
     className,
     ...props
 }: OnboardingShareErrorProps) {
-    if (!props.children) {
-        return null;
-    }
-
     return (
         <p
             {...props}
@@ -604,26 +573,22 @@ function OnboardingTaskStateIcon({ isCompleted }: { isCompleted: boolean }) {
     );
 }
 
-interface PainPointSurveyDialogProps {
+interface SurveyDialogProps {
     onCheckedChange: (painPointId: PainPointId, checked: boolean) => void;
-    onFinishResponse: () => void;
     onOpenChange: (open: boolean) => void;
     onSubmit: () => void;
     open: boolean;
     selections: Set<PainPointId>;
-    step: PainPointDialogStep;
 }
 
-function PainPointSurveyDialog({
+function SurveyDialog({
     onCheckedChange,
-    onFinishResponse,
     onOpenChange,
     onSubmit,
     open,
     selections,
-    step,
-}: PainPointSurveyDialogProps) {
-    const isResponseStep = step === "response";
+}: SurveyDialogProps) {
+    const isResponseStep = selections.size > 0;
     const selectedOptions = isResponseStep
         ? PAIN_POINT_OPTIONS.filter((option) => selections.has(option.id))
         : null;
@@ -655,9 +620,9 @@ function PainPointSurveyDialog({
                             ))}
                         </DialogPanel>
                         <DialogFooter>
-                            <Button onClick={onFinishResponse} size="sm">
+                            <DialogClose render={<Button size="sm" />}>
                                 Continue
-                            </Button>
+                            </DialogClose>
                         </DialogFooter>
                     </>
                 ) : (

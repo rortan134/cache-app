@@ -13,7 +13,7 @@ export const FOUNDING_DATE = new Date("2026-04-09T00:00:00.000Z");
 /** Shown after the page-specific title, e.g. "Settings | Cache App". */
 export const APP_NAME = "Cache App";
 
-export const SITE_DOMAIN = "www.cachd.app";
+export const SITE_DOMAIN = "cachd.app";
 
 export const CACHE_EXTENSION_ID = "fibhdcjlclheehonialdpealhemmoikn";
 export const CACHE_EXTENSION_DOWNLOAD_URL =

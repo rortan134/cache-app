@@ -91,7 +91,7 @@ Never show the empty state during the loading state. Loading indicators (skeleto
 
 ### File-Level Definition Order
 
-Make sure every component file follows the same vertical stack. Deviations are rare: a stateless pure helper may live above the component only when it is consumed by module-level stateless objects (step #4); helpers that close over component internals or any per-render value live below the types at the bottom (steps #9–#10).
+Make sure every component file follows the same vertical stack. Deviations are rare: a stateless pure helper may live above the component only when it is consumed by module-level stateless objects (step #4); helpers that close over component internals or any per-render value live below the types at the bottom (steps #8–#9).
 
 1. Imports
 2. Module-level constants (UPPER_SNAKE_CASE)

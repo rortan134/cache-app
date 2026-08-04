@@ -235,6 +235,8 @@ const DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
     "We couldn't turn off smart collections right now.";
 const ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
     "We couldn't turn on smart collections right now.";
+const SHARE_COLLECTION_ERROR_MESSAGE =
+    "We couldn't create a public link right now.";
 
 const COLLECTION_PREVIEW_THUMBNAIL_LIMIT = 5;
 
@@ -838,6 +840,7 @@ export function CollectionsProvider({
     >;
 }>) {
     const state = useInternalCollectionsState({ initialCollections });
+
     const [pendingCollectionActionKeys, setPendingCollectionActionKeys] =
         React.useState<Set<string>>(() => new Set());
     const collectionActionKeysRef = useRefWithInit(() => new Set<string>());
@@ -949,15 +952,6 @@ export function CollectionsProvider({
 
     return <CollectionsContext value={value}>{children}</CollectionsContext>;
 }
-
-const SHARE_COLLECTION_ERROR_MESSAGE =
-    "We couldn't create a public link right now.";
-
-export const shareCollectionPubliclySafely = tryAction(
-    shareCollectionPublicly,
-    SHARE_COLLECTION_ERROR_MESSAGE,
-    (input) => ({ collectionId: input.collectionId })
-);
 
 type CollectionsListStatusTone = "error" | "success";
 
@@ -1515,6 +1509,11 @@ const disableCollectionSharingSafely = tryAction(
 const sendCollectionToNotionSafely = tryAction(
     sendCollectionToNotion,
     SEND_TO_NOTION_ERROR_MESSAGE
+);
+export const shareCollectionPubliclySafely = tryAction(
+    shareCollectionPublicly,
+    SHARE_COLLECTION_ERROR_MESSAGE,
+    (input) => ({ collectionId: input.collectionId })
 );
 
 export function Collections() {

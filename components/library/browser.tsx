@@ -321,8 +321,6 @@ const COBALT_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.youtube_watch_later,
 ]);
 
-const MEDIA_DOWNLOAD_ERROR_MESSAGE =
-    "Couldn't download this media. Please try again.";
 const MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000;
 
 const CSV_HEADERS = [
@@ -4508,7 +4506,7 @@ function MediaCardInteractionProvider({ children }: React.PropsWithChildren) {
                     className="mt-1 px-1 text-destructive text-xs leading-tight"
                     role="alert"
                 >
-                    <T>{MEDIA_DOWNLOAD_ERROR_MESSAGE}</T>
+                    <T>Couldn't download this media. Please try again.</T>
                 </p>
             ) : null}
         </>
