@@ -87,6 +87,8 @@ export function MarkdownImportDialog() {
     const { mergeImportedItems: mergeLibraryItems } = useLibraryItemsContext();
     const router = useRouter();
     const importSessionIdRef = React.useRef(0);
+    const createSubmissionPendingRef = React.useRef(false);
+    const importSubmissionPendingRef = React.useRef(false);
 
     const loadImports = useStableCallback(() => {
         startLoading(async () => {
@@ -105,6 +107,8 @@ export function MarkdownImportDialog() {
 
     const resetDialog = useStableCallback(() => {
         importSessionIdRef.current += 1;
+        importSubmissionPendingRef.current = false;
+        createSubmissionPendingRef.current = false;
         setStep("choose");
         setSelectedImportId(null);
         setNewImportName("");
@@ -134,8 +138,12 @@ export function MarkdownImportDialog() {
             setErrorMessage("Enter a name for this import.");
             return;
         }
+        if (createSubmissionPendingRef.current) {
+            return;
+        }
 
         setErrorMessage(null);
+        createSubmissionPendingRef.current = true;
         startLoading(async () => {
             try {
                 const response = await createMarkdownImport({ name: trimmed });
@@ -156,6 +164,8 @@ export function MarkdownImportDialog() {
             } catch (err) {
                 log.error("Failed to create import", err);
                 setErrorMessage("We couldn't create this import.");
+            } finally {
+                createSubmissionPendingRef.current = false;
             }
         });
     });
@@ -223,91 +233,100 @@ export function MarkdownImportDialog() {
         if (!selectedImportId || files.length === 0) {
             return;
         }
-
-        const sessionId = importSessionIdRef.current + 1;
-        importSessionIdRef.current = sessionId;
-        setStep("importing");
-
-        const aggregatedResult: MarkdownImportResult = {
-            createdCount: 0,
-            errors: [],
-            failedCount: 0,
-            items: [],
-            skipped: [],
-            skippedCount: 0,
-            unsupportedReport: {
-                htmlCount: 0,
-                imageCount: 0,
-                tableCount: 0,
-                taskListCount: 0,
-            },
-            updatedCount: 0,
-        };
-
-        for (const skippedFile of skippedFiles) {
-            aggregatedResult.skippedCount += 1;
-            aggregatedResult.skipped.push(skippedFile);
+        if (importSubmissionPendingRef.current) {
+            return;
         }
 
-        let collectionsFromImport: LibraryCollectionSummary[] | null = null;
+        importSubmissionPendingRef.current = true;
 
-        for (const batch of buildImportBatches(files)) {
-            try {
-                const response = await importMarkdownBatch({
-                    files: batch,
-                    importId: selectedImportId,
-                });
+        try {
+            const sessionId = importSessionIdRef.current + 1;
+            importSessionIdRef.current = sessionId;
+            setStep("importing");
 
-                if (response.status === "SUCCESS") {
-                    const data = response.data;
-                    aggregatedResult.createdCount += data.createdCount;
-                    aggregatedResult.updatedCount += data.updatedCount;
-                    aggregatedResult.skippedCount += data.skippedCount;
-                    aggregatedResult.failedCount += data.failedCount;
-                    aggregatedResult.items.push(...data.items);
-                    aggregatedResult.skipped.push(...data.skipped);
-                    aggregatedResult.errors.push(...data.errors);
-                    aggregatedResult.unsupportedReport.imageCount +=
-                        data.unsupportedReport.imageCount;
-                    aggregatedResult.unsupportedReport.tableCount +=
-                        data.unsupportedReport.tableCount;
-                    aggregatedResult.unsupportedReport.htmlCount +=
-                        data.unsupportedReport.htmlCount;
-                    aggregatedResult.unsupportedReport.taskListCount +=
-                        data.unsupportedReport.taskListCount;
-                    collectionsFromImport = data.collections;
-                } else {
+            const aggregatedResult: MarkdownImportResult = {
+                createdCount: 0,
+                errors: [],
+                failedCount: 0,
+                items: [],
+                skipped: [],
+                skippedCount: 0,
+                unsupportedReport: {
+                    htmlCount: 0,
+                    imageCount: 0,
+                    tableCount: 0,
+                    taskListCount: 0,
+                },
+                updatedCount: 0,
+            };
+
+            for (const skippedFile of skippedFiles) {
+                aggregatedResult.skippedCount += 1;
+                aggregatedResult.skipped.push(skippedFile);
+            }
+
+            let collectionsFromImport: LibraryCollectionSummary[] | null = null;
+
+            for (const batch of buildImportBatches(files)) {
+                try {
+                    const response = await importMarkdownBatch({
+                        files: batch,
+                        importId: selectedImportId,
+                    });
+
+                    if (response.status === "SUCCESS") {
+                        const data = response.data;
+                        aggregatedResult.createdCount += data.createdCount;
+                        aggregatedResult.updatedCount += data.updatedCount;
+                        aggregatedResult.skippedCount += data.skippedCount;
+                        aggregatedResult.failedCount += data.failedCount;
+                        aggregatedResult.items.push(...data.items);
+                        aggregatedResult.skipped.push(...data.skipped);
+                        aggregatedResult.errors.push(...data.errors);
+                        aggregatedResult.unsupportedReport.imageCount +=
+                            data.unsupportedReport.imageCount;
+                        aggregatedResult.unsupportedReport.tableCount +=
+                            data.unsupportedReport.tableCount;
+                        aggregatedResult.unsupportedReport.htmlCount +=
+                            data.unsupportedReport.htmlCount;
+                        aggregatedResult.unsupportedReport.taskListCount +=
+                            data.unsupportedReport.taskListCount;
+                        collectionsFromImport = data.collections;
+                    } else {
+                        for (const file of batch) {
+                            aggregatedResult.failedCount += 1;
+                            aggregatedResult.errors.push({
+                                message: response.message,
+                                relativePath: file.relativePath,
+                            });
+                        }
+                    }
+                } catch (err) {
+                    log.error("Failed to import markdown batch", err);
                     for (const file of batch) {
                         aggregatedResult.failedCount += 1;
                         aggregatedResult.errors.push({
-                            message: response.message,
+                            message: BATCH_IMPORT_FAILURE_MESSAGE,
                             relativePath: file.relativePath,
                         });
                     }
                 }
-            } catch (err) {
-                log.error("Failed to import markdown batch", err);
-                for (const file of batch) {
-                    aggregatedResult.failedCount += 1;
-                    aggregatedResult.errors.push({
-                        message: BATCH_IMPORT_FAILURE_MESSAGE,
-                        relativePath: file.relativePath,
-                    });
-                }
             }
-        }
 
-        if (aggregatedResult.items.length > 0) {
-            mergeLibraryItems(aggregatedResult.items);
-        }
-        if (collectionsFromImport !== null) {
-            replaceCollections(collectionsFromImport);
-        }
-        router.refresh();
+            if (aggregatedResult.items.length > 0) {
+                mergeLibraryItems(aggregatedResult.items);
+            }
+            if (collectionsFromImport !== null) {
+                replaceCollections(collectionsFromImport);
+            }
+            router.refresh();
 
-        if (importSessionIdRef.current === sessionId) {
-            setResult(aggregatedResult);
-            setStep("done");
+            if (importSessionIdRef.current === sessionId) {
+                setResult(aggregatedResult);
+                setStep("done");
+            }
+        } finally {
+            importSubmissionPendingRef.current = false;
         }
     });
 

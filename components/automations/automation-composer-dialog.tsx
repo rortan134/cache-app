@@ -179,6 +179,7 @@ export function AutomationComposerDialog({
     const isOpenControlled = open !== undefined;
     const isOpen = isOpenControlled ? open : uncontrolledOpen;
     const [isPending, startTransition] = React.useTransition();
+    const submissionPendingRef = React.useRef(false);
     const [formState, setFormState] = React.useState<AutomationFormState>(() =>
         getInitialFormState(automation, collections)
     );
@@ -192,10 +193,12 @@ export function AutomationComposerDialog({
     const shouldRenderTrigger = trigger !== null;
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        if (!isOpenControlled) {
-            setUncontrolledOpen(nextOpen);
+        if (nextOpen || !submissionPendingRef.current) {
+            if (!isOpenControlled) {
+                setUncontrolledOpen(nextOpen);
+            }
+            onOpenChange?.(nextOpen);
         }
-        onOpenChange?.(nextOpen);
     });
 
     useIsoLayoutEffect(() => {
@@ -250,6 +253,10 @@ export function AutomationComposerDialog({
         (event: React.ChangeEvent<HTMLFormElement>) => {
             event.preventDefault();
 
+            if (submissionPendingRef.current) {
+                return;
+            }
+
             if (!(formState.title.trim() && formState.prompt.trim())) {
                 updateFormState({
                     errorMessage: "Title and instructions are required.",
@@ -257,77 +264,85 @@ export function AutomationComposerDialog({
                 return;
             }
 
+            submissionPendingRef.current = true;
+
             startTransition(async () => {
-                const isAllLibraryPayload =
-                    formState.collection.id === ALL_LIBRARY_COLLECTION_ID;
+                try {
+                    const isAllLibraryPayload =
+                        formState.collection.id === ALL_LIBRARY_COLLECTION_ID;
 
-                const payloadScope: AutomationPayloadScope = isAllLibraryPayload
-                    ? "all_library_items"
-                    : "collection";
+                    const payloadScope: AutomationPayloadScope =
+                        isAllLibraryPayload
+                            ? "all_library_items"
+                            : "collection";
 
-                const timezone =
-                    automation === undefined
-                        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-                        : automation.timezone;
+                    const timezone =
+                        automation === undefined
+                            ? Intl.DateTimeFormat().resolvedOptions().timeZone
+                            : automation.timezone;
 
-                const input = {
-                    collectionId: isAllLibraryPayload
-                        ? null
-                        : formState.collection.id,
-                    payloadScope,
-                    prompt: formState.prompt,
-                    schedule: {
-                        cadence: formState.cadence.value,
-                        monthDay:
-                            formState.cadence.value === "monthly"
-                                ? formState.monthDay
-                                : null,
-                        timeOfDayMinutes: parseTimeOfDayMinutes(
-                            formState.timeValue
-                        ),
-                        timezone,
-                        weekDay:
-                            formState.cadence.value === "weekly"
-                                ? formState.weekDay
-                                : null,
-                    },
-                    title: formState.title,
-                };
+                    const input = {
+                        collectionId: isAllLibraryPayload
+                            ? null
+                            : formState.collection.id,
+                        payloadScope,
+                        prompt: formState.prompt,
+                        schedule: {
+                            cadence: formState.cadence.value,
+                            monthDay:
+                                formState.cadence.value === "monthly"
+                                    ? formState.monthDay
+                                    : null,
+                            timeOfDayMinutes: parseTimeOfDayMinutes(
+                                formState.timeValue
+                            ),
+                            timezone,
+                            weekDay:
+                                formState.cadence.value === "weekly"
+                                    ? formState.weekDay
+                                    : null,
+                        },
+                        title: formState.title,
+                    };
 
-                const result = isEditing
-                    ? await updateAutomation({
-                          automation: input,
-                          automationId: automation.id,
-                      })
-                    : await createAutomation(input);
+                    const result = isEditing
+                        ? await updateAutomation({
+                              automation: input,
+                              automationId: automation.id,
+                          })
+                        : await createAutomation(input);
 
-                if (result.status !== "SUCCESS") {
-                    setFormState((currentState) => ({
-                        ...currentState,
-                        errorMessage: result.message,
-                    }));
-                    return;
-                }
-
-                if (isEditing && shouldResumeAfterSave) {
-                    const resumeResult = await resumeAutomation({
-                        automationId: automation.id,
-                        schedule: input.schedule,
-                    });
-
-                    if (resumeResult.status !== "SUCCESS") {
+                    if (result.status !== "SUCCESS") {
                         setFormState((currentState) => ({
                             ...currentState,
-                            errorMessage: resumeResult.message,
+                            errorMessage: result.message,
                         }));
-
                         return;
                     }
-                }
 
-                handleOpenChange(false);
-                setFormState(getInitialFormState(undefined, collections));
-                router.refresh();
+                    if (isEditing && shouldResumeAfterSave) {
+                        const resumeResult = await resumeAutomation({
+                            automationId: automation.id,
+                            schedule: input.schedule,
+                        });
+
+                        if (resumeResult.status !== "SUCCESS") {
+                            setFormState((currentState) => ({
+                                ...currentState,
+                                errorMessage: resumeResult.message,
+                            }));
+
+                            return;
+                        }
+                    }
+
+                    submissionPendingRef.current = false;
+                    handleOpenChange(false);
+                    setFormState(getInitialFormState(undefined, collections));
+                    router.refresh();
+                } finally {
+                    submissionPendingRef.current = false;
+                }
             });
         }
     );

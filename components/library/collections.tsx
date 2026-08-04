@@ -4351,179 +4351,6 @@ function CollectionsListItemMetadata({
     );
 }
 
-function CollectionsRenameDialog() {
-    const { collections } = useCollectionsContext();
-    const { pendingRenameId } = useCollectionsListState();
-    const pendingRename =
-        collections.find((collection) => collection.id === pendingRenameId) ??
-        null;
-    const { showSuccess } = useCollectionFeedbackWriter();
-    const { closePendingRename, syncName } = useCollectionsListActions();
-    const isOpen = pendingRename !== null;
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [, startRename] = React.useTransition();
-    const renameSubmissionPendingRef = React.useRef(false);
-
-    const [nameDraft, setNameDraft] = React.useState(
-        () => pendingRename?.name ?? ""
-    );
-    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-    const renameTargetRef = React.useRef<LibraryCollectionSummary | null>(null);
-
-    // Sync draft before paint so the input never flashes empty on open.
-    useIsoLayoutEffect(() => {
-        if (!pendingRename) {
-            renameTargetRef.current = null;
-            return;
-        }
-        if (renameTargetRef.current?.id === pendingRename.id) {
-            return;
-        }
-        renameTargetRef.current = pendingRename;
-        setNameDraft(pendingRename.name);
-        setErrorMessage(null);
-        setIsSubmitting(false);
-    }, [pendingRename]);
-
-    const inputId = React.useId();
-    const errorId = React.useId();
-
-    const handleNameDraftChange = useStableCallback((draft: string) => {
-        setNameDraft(draft);
-        if (errorMessage) {
-            setErrorMessage(null);
-        }
-    });
-
-    const handleNameChange = useStableCallback(
-        (event: React.ChangeEvent<HTMLInputElement>) =>
-            handleNameDraftChange(event.currentTarget.value)
-    );
-
-    const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        if (!(nextOpen || renameSubmissionPendingRef.current)) {
-            closePendingRename();
-        }
-    });
-
-    const handleSubmit = useStableCallback(() => {
-        if (isSubmitting || renameSubmissionPendingRef.current) {
-            return;
-        }
-
-        const target = renameTargetRef.current;
-        if (!target || target.id !== pendingRenameId) {
-            return;
-        }
-
-        const previousName = target.name;
-        const nextName = normalizeWhitespace(nameDraft);
-
-        if (nextName.length === 0) {
-            setErrorMessage(NAME_REQUIRED_MESSAGE);
-            return;
-        }
-
-        if (nextName === previousName) {
-            closePendingRename();
-            return;
-        }
-
-        syncName(target.id, nextName);
-        renameSubmissionPendingRef.current = true;
-        setIsSubmitting(true);
-
-        startRename(async () => {
-            try {
-                const result = await renameCollectionSafely({
-                    collectionId: target.id,
-                    name: nextName,
-                });
-
-                if (result.status === ACTION_STATUS.UPDATED) {
-                    syncName(result.collection.id, result.collection.name);
-                    closePendingRename();
-                    showSuccess(`${result.collection.name} renamed.`);
-                    return;
-                }
-
-                syncName(target.id, previousName);
-                setErrorMessage(result.message);
-            } finally {
-                renameSubmissionPendingRef.current = false;
-                setIsSubmitting(false);
-            }
-        });
-    });
-
-    const handleFormSubmit = useStableCallback(
-        (event: React.SubmitEvent<HTMLFormElement>) => {
-            event.preventDefault();
-            handleSubmit();
-        }
-    );
-
-    return (
-        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
-            <DialogPopup>
-                <form className="contents" onSubmit={handleFormSubmit}>
-                    <DialogHeader>
-                        <DialogTitle>Rename collection</DialogTitle>
-                        <DialogDescription>
-                            Update how this collection appears across your
-                            library.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogPanel>
-                        <div>
-                            <label
-                                className="sr-only font-medium text-sm"
-                                htmlFor={inputId}
-                            >
-                                Name
-                            </label>
-                            <Input
-                                aria-describedby={
-                                    errorMessage ? errorId : undefined
-                                }
-                                aria-invalid={errorMessage ? true : undefined}
-                                autoFocus
-                                id={inputId}
-                                maxLength={NAME_MAX_LENGTH}
-                                onChange={handleNameChange}
-                                placeholder="Collection name"
-                                required
-                                type="text"
-                                value={nameDraft}
-                            />
-                            {errorMessage ? (
-                                <DialogFieldError id={errorId}>
-                                    {errorMessage}
-                                </DialogFieldError>
-                            ) : null}
-                        </div>
-                    </DialogPanel>
-                    <DialogFooter>
-                        <DialogClose
-                            disabled={isSubmitting}
-                            render={<Button size="sm" variant="ghost" />}
-                        >
-                            Cancel
-                        </DialogClose>
-                        <Button
-                            isLoading={isSubmitting}
-                            size="sm"
-                            type="submit"
-                        >
-                            Save
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogPopup>
-        </Dialog>
-    );
-}
-
 function CollectionsCreateDialog() {
     const { createItemId, isCreateOpen } = useCollectionsListState();
     const { showSuccess } = useCollectionFeedbackWriter();
@@ -4531,10 +4358,9 @@ function CollectionsCreateDialog() {
         useCollectionsListActions();
     const { disabled, setEnabled } = useSmartCollectionsToggle();
     const { mutate: mutateRecommendations } = useCollectionRecommendations();
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isSubmitting, startCreate] = React.useTransition();
     const [isDescriptionTransitionPending, startDescription] =
         React.useTransition();
-    const [, startCreate] = React.useTransition();
 
     const [formState, setFormState] = React.useState(INITIAL_CREATE_FORM_STATE);
     const descriptionRequestVersionRef = React.useRef(0);
@@ -4548,7 +4374,6 @@ function CollectionsCreateDialog() {
         if (isCreateOpen) {
             descriptionRequestVersionRef.current += 1;
             setFormState(INITIAL_CREATE_FORM_STATE);
-            setIsSubmitting(false);
         }
     }, [isCreateOpen]);
 
@@ -4604,7 +4429,6 @@ function CollectionsCreateDialog() {
         }) => {
             if (
                 isDescriptionPending ||
-                isSubmitting ||
                 createSubmissionPendingRef.current ||
                 descriptionSubmissionPendingRef.current
             ) {
@@ -4613,7 +4437,6 @@ function CollectionsCreateDialog() {
             input.onStart?.();
 
             createSubmissionPendingRef.current = true;
-            setIsSubmitting(true);
 
             startCreate(async () => {
                 try {
@@ -4640,7 +4463,6 @@ function CollectionsCreateDialog() {
                     closeCreateDialog();
                 } finally {
                     createSubmissionPendingRef.current = false;
-                    setIsSubmitting(false);
                 }
             });
         }
@@ -4693,7 +4515,6 @@ function CollectionsCreateDialog() {
         if (
             title.length === 0 ||
             isDescriptionPending ||
-            isSubmitting ||
             createSubmissionPendingRef.current ||
             descriptionSubmissionPendingRef.current
         ) {
@@ -4985,6 +4806,175 @@ function CollectionsCreateDialog() {
     );
 }
 
+function CollectionsRenameDialog() {
+    const { collections } = useCollectionsContext();
+    const { pendingRenameId } = useCollectionsListState();
+    const pendingRename =
+        collections.find((collection) => collection.id === pendingRenameId) ??
+        null;
+    const { showSuccess } = useCollectionFeedbackWriter();
+    const { closePendingRename, syncName } = useCollectionsListActions();
+    const isOpen = pendingRename !== null;
+    const [isSubmitting, startRename] = React.useTransition();
+    const renameSubmissionPendingRef = React.useRef(false);
+
+    const [nameDraft, setNameDraft] = React.useState(
+        () => pendingRename?.name ?? ""
+    );
+    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+    const renameTargetRef = React.useRef<LibraryCollectionSummary | null>(null);
+
+    // Sync draft before paint so the input never flashes empty on open.
+    useIsoLayoutEffect(() => {
+        if (!pendingRename) {
+            renameTargetRef.current = null;
+            return;
+        }
+        if (renameTargetRef.current?.id === pendingRename.id) {
+            return;
+        }
+        renameTargetRef.current = pendingRename;
+        setNameDraft(pendingRename.name);
+        setErrorMessage(null);
+    }, [pendingRename]);
+
+    const inputId = React.useId();
+    const errorId = React.useId();
+
+    const handleNameDraftChange = useStableCallback((draft: string) => {
+        setNameDraft(draft);
+        if (errorMessage) {
+            setErrorMessage(null);
+        }
+    });
+
+    const handleNameChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) =>
+            handleNameDraftChange(event.currentTarget.value)
+    );
+
+    const handleOpenChange = useStableCallback((nextOpen: boolean) => {
+        if (!(nextOpen || renameSubmissionPendingRef.current)) {
+            closePendingRename();
+        }
+    });
+
+    const handleSubmit = useStableCallback(() => {
+        if (renameSubmissionPendingRef.current) {
+            return;
+        }
+
+        const target = renameTargetRef.current;
+        if (!target || target.id !== pendingRenameId) {
+            return;
+        }
+
+        const previousName = target.name;
+        const nextName = normalizeWhitespace(nameDraft);
+
+        if (nextName.length === 0) {
+            setErrorMessage(NAME_REQUIRED_MESSAGE);
+            return;
+        }
+
+        if (nextName === previousName) {
+            closePendingRename();
+            return;
+        }
+
+        syncName(target.id, nextName);
+        renameSubmissionPendingRef.current = true;
+
+        startRename(async () => {
+            try {
+                const result = await renameCollectionSafely({
+                    collectionId: target.id,
+                    name: nextName,
+                });
+
+                if (result.status === ACTION_STATUS.UPDATED) {
+                    syncName(result.collection.id, result.collection.name);
+                    closePendingRename();
+                    showSuccess(`${result.collection.name} renamed.`);
+                    return;
+                }
+
+                syncName(target.id, previousName);
+                setErrorMessage(result.message);
+            } finally {
+                renameSubmissionPendingRef.current = false;
+            }
+        });
+    });
+
+    const handleFormSubmit = useStableCallback(
+        (event: React.SubmitEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            handleSubmit();
+        }
+    );
+
+    return (
+        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
+            <DialogPopup>
+                <form className="contents" onSubmit={handleFormSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Rename collection</DialogTitle>
+                        <DialogDescription>
+                            Update how this collection appears across your
+                            library.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogPanel>
+                        <div>
+                            <label
+                                className="sr-only font-medium text-sm"
+                                htmlFor={inputId}
+                            >
+                                Name
+                            </label>
+                            <Input
+                                aria-describedby={
+                                    errorMessage ? errorId : undefined
+                                }
+                                aria-invalid={errorMessage ? true : undefined}
+                                autoFocus
+                                id={inputId}
+                                maxLength={NAME_MAX_LENGTH}
+                                onChange={handleNameChange}
+                                placeholder="Collection name"
+                                required
+                                type="text"
+                                value={nameDraft}
+                            />
+                            {errorMessage ? (
+                                <DialogFieldError id={errorId}>
+                                    {errorMessage}
+                                </DialogFieldError>
+                            ) : null}
+                        </div>
+                    </DialogPanel>
+                    <DialogFooter>
+                        <DialogClose
+                            disabled={isSubmitting}
+                            render={<Button size="sm" variant="ghost" />}
+                        >
+                            Cancel
+                        </DialogClose>
+                        <Button
+                            isLoading={isSubmitting}
+                            size="sm"
+                            type="submit"
+                        >
+                            Save
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogPopup>
+        </Dialog>
+    );
+}
+
 function CollectionsDeleteDialog() {
     const { collections } = useCollectionsContext();
     const { pendingDeleteId } = useCollectionsListState();
@@ -4994,31 +4984,38 @@ function CollectionsDeleteDialog() {
     const { showError, showSuccess } = useCollectionFeedbackWriter();
     const { closePendingDelete, syncDeleted } = useCollectionsListActions();
     const [isSubmitting, startDelete] = React.useTransition();
+    const deleteSubmissionPendingRef = React.useRef(false);
 
     const handleConfirm = useStableCallback(() => {
         const target = pendingDelete;
-        if (!target) {
+        if (!target || deleteSubmissionPendingRef.current) {
             return;
         }
 
+        deleteSubmissionPendingRef.current = true;
+
         startDelete(async () => {
-            const result = await deleteCollectionSafely({
-                collectionId: target.id,
-            });
+            try {
+                const result = await deleteCollectionSafely({
+                    collectionId: target.id,
+                });
 
-            if (result.status !== ACTION_STATUS.DELETED) {
-                showError(result.message);
-                return;
+                if (result.status !== ACTION_STATUS.DELETED) {
+                    showError(result.message);
+                    return;
+                }
+
+                syncDeleted(result.collection.id);
+                closePendingDelete();
+                showSuccess(`${result.collection.name} deleted.`);
+            } finally {
+                deleteSubmissionPendingRef.current = false;
             }
-
-            syncDeleted(result.collection.id);
-            closePendingDelete();
-            showSuccess(`${result.collection.name} deleted.`);
         });
     });
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        if (!(nextOpen || isSubmitting)) {
+        if (!(nextOpen || deleteSubmissionPendingRef.current)) {
             closePendingDelete();
         }
     });

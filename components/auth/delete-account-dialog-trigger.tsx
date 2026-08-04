@@ -32,45 +32,54 @@ export function DeleteAccountDialogTrigger(
     const [isOpen, setIsOpen] = React.useState(false);
     const [isPending, startTransition] = React.useTransition();
     const [errorMessage, setErrorMessage] = React.useState<null | string>(null);
+    const deleteSubmissionPendingRef = React.useRef(false);
 
     const handleConfirm = useStableCallback(() => {
-        if (isPending) {
+        if (deleteSubmissionPendingRef.current) {
             return;
         }
         setErrorMessage(null);
+        deleteSubmissionPendingRef.current = true;
+
         startTransition(async () => {
-            const result: DeleteAccountActionState =
-                await deleteAccountAction();
-
-            if (result.status === "error") {
-                setErrorMessage(result.message);
-                return;
-            }
-
             try {
-                const signOutResult = await authClient.signOut();
+                const result: DeleteAccountActionState =
+                    await deleteAccountAction();
 
-                if (signOutResult?.error) {
-                    log.error("signOut after account deletion failed", {
-                        code: signOutResult.error.code,
-                        status: signOutResult.error.status,
-                    });
+                if (result.status === "error") {
+                    setErrorMessage(result.message);
+                    return;
                 }
-            } catch (error) {
-                log.error(
-                    "signOut after account deletion failed (network)",
-                    error
-                );
-            }
 
-            router.push(result.redirect ?? "/logout");
+                try {
+                    const signOutResult = await authClient.signOut();
+
+                    if (signOutResult?.error) {
+                        log.error("signOut after account deletion failed", {
+                            code: signOutResult.error.code,
+                            status: signOutResult.error.status,
+                        });
+                    }
+                } catch (error) {
+                    log.error(
+                        "signOut after account deletion failed (network)",
+                        error
+                    );
+                }
+
+                router.push(result.redirect ?? "/logout");
+            } finally {
+                deleteSubmissionPendingRef.current = false;
+            }
         });
     });
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        setIsOpen(nextOpen);
-        if (!nextOpen) {
-            setErrorMessage(null);
+        if (nextOpen || !deleteSubmissionPendingRef.current) {
+            setIsOpen(nextOpen);
+            if (!nextOpen) {
+                setErrorMessage(null);
+            }
         }
     });
 
