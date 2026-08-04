@@ -5,6 +5,7 @@ import {
     Dialog,
     DialogClose,
     DialogDescription,
+    DialogFieldError,
     DialogFooter,
     DialogHeader,
     DialogPanel,
@@ -24,7 +25,6 @@ import {
     listMarkdownImports,
 } from "@/lib/integrations/markdown/actions";
 import type { MarkdownImportResult } from "@/lib/integrations/markdown/service";
-import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { FileText, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -582,17 +582,6 @@ export function MarkdownImportDialog() {
                 <DialogFooter>{renderFooter()}</DialogFooter>
             </DialogPopup>
         </Dialog>
-    );
-}
-
-function DialogFieldError({ className, ...props }: React.ComponentProps<"p">) {
-    return (
-        <p
-            {...props}
-            aria-atomic="true"
-            className={cn("pt-2 text-destructive text-xs", className)}
-            role="alert"
-        />
     );
 }
 

@@ -2529,37 +2529,38 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
     const { state: sidebarState } = useSidebar();
     const sidebarStateDeferred = useDebouncedValue(sidebarState, 400);
 
-    const renderMasonryItem = useStableCallback(
+    const renderMasonryItem = React.useCallback(
         ({
             data,
             index,
         }: MasonryRenderComponentProps<LibraryItemWithCollections>) =>
-            children(data, index)
+            children(data, index),
+        [children]
     );
+
+    const value: MediaCardEnvironment = {
+        collections,
+        favoriteItemIdSet,
+        hoveredItemIdRef,
+        hoverPinnedItemIdRef,
+        onCopyLink,
+        onDelete,
+        onFindSimilar,
+        onItemFavoriteToggle,
+        onOpenInNewTab,
+        onOpenNote,
+        onUpdateItemCollections,
+        openPickerItemId,
+        pendingDeleteItemId,
+        setOpenPickerItemId,
+    };
 
     if (collapsed || items.length === 0) {
         return null;
     }
 
     return (
-        <MediaCardEnvironmentProvider
-            value={{
-                collections,
-                favoriteItemIdSet,
-                hoveredItemIdRef,
-                hoverPinnedItemIdRef,
-                onCopyLink,
-                onDelete,
-                onFindSimilar,
-                onItemFavoriteToggle,
-                onOpenInNewTab,
-                onOpenNote,
-                onUpdateItemCollections,
-                openPickerItemId,
-                pendingDeleteItemId,
-                setOpenPickerItemId,
-            }}
-        >
+        <MediaCardEnvironmentContext value={value}>
             <Masonry
                 columnCount={columnCount}
                 columnGutter={16}
@@ -2574,12 +2575,20 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
                 scrollFps={16}
                 tabIndex={-1}
             />
-        </MediaCardEnvironmentProvider>
+        </MediaCardEnvironmentContext>
     );
 }
 
-function BrowserGroup({ children }: React.PropsWithChildren) {
-    return <section className="flex w-full flex-col gap-3">{children}</section>;
+function BrowserGroup({
+    className,
+    ...props
+}: React.ComponentProps<"section">) {
+    return (
+        <section
+            {...props}
+            className={cn("flex w-full flex-col gap-3", className)}
+        />
+    );
 }
 
 function CategoryThumbnail({ urls }: { urls: string[] }) {
@@ -2613,7 +2622,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
             draggable="false"
             fetchPriority="high"
             height={104}
-            loading="eager"
+            loading="lazy"
             onError={handleImageError}
             src={src}
             width={140}
@@ -3959,21 +3968,10 @@ function useMediaCardEnvironment(): MediaCardEnvironment {
     const environment = React.use(MediaCardEnvironmentContext);
     if (!environment) {
         throw new Error(
-            "MediaCard components must be used inside <MediaCardEnvironmentProvider>."
+            "MediaCard components must be used inside <MediaCardEnvironmentContext>."
         );
     }
     return environment;
-}
-
-function MediaCardEnvironmentProvider({
-    children,
-    value,
-}: React.PropsWithChildren<{ value: MediaCardEnvironment }>) {
-    return (
-        <MediaCardEnvironmentContext value={value}>
-            {children}
-        </MediaCardEnvironmentContext>
-    );
 }
 
 function MediaPreview({
@@ -4427,12 +4425,11 @@ function MediaCardDataProvider({
 }: React.PropsWithChildren<{
     data: LibraryItemWithCollections;
 }>) {
-    const isNote = data.kind === ITEM_KIND_NOTE;
     return (
         <MediaCardDataContext
             value={{
                 displayTitle: getLibraryItemPrimaryText(data),
-                isNote,
+                isNote: data.kind === ITEM_KIND_NOTE,
                 item: data,
                 previewImageUrl: itemPreviewImageUrl(data),
             }}
@@ -4517,13 +4514,13 @@ const MediaCardSurfaceContext =
     React.createContext<MediaCardSurfaceState | null>(null);
 
 function useMediaCardSurface(): MediaCardSurfaceState {
-    const surface = React.use(MediaCardSurfaceContext);
-    if (!surface) {
+    const context = React.use(MediaCardSurfaceContext);
+    if (!context) {
         throw new Error(
             "Media card surfaces must be used inside <MediaCardContextMenuSurface>."
         );
     }
-    return surface;
+    return context;
 }
 
 function PreviewColorBadge({ value }: { value: string }) {
@@ -4555,7 +4552,7 @@ function PreviewColorPalette({ src }: { src: string }) {
         keepPreviousData: true,
     });
 
-    if (!data) {
+    if (!data?.length) {
         return null;
     }
 
@@ -4570,6 +4567,7 @@ function PreviewColorPalette({ src }: { src: string }) {
 
 function MediaCardMenuDetails() {
     const { isNote, item, previewImageUrl } = useMediaCardData();
+
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
     const createdLabel = itemDateLabel(item.createdAt);
     const href = normalizeURL(item.url);
@@ -5229,6 +5227,7 @@ function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
 
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
     const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
+
     const isPickerOpen = openPickerItemId === item.id;
     const isHoverPinned = isMenuOpen || isContextMenuOpen || isPickerOpen;
     const isPointerOverCardRef = React.useRef(false);
@@ -5288,11 +5287,9 @@ function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
         >
             <ContextMenu onOpenChange={setIsContextMenuOpen}>
                 <ContextMenuTrigger
+                    className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
-                    render={
-                        <div className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!" />
-                    }
                 >
                     {children}
                 </ContextMenuTrigger>
@@ -5304,7 +5301,7 @@ function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
     );
 }
 
-function MediaCardPreview() {
+function MediaCardPreview(props: React.ComponentProps<"div">) {
     const { isNote, item, previewImageUrl } = useMediaCardData();
     const { isZoomed, onZoomChange } = useMediaCardInteraction();
     const { isLastVisited } = useLastVisited();
@@ -5314,6 +5311,7 @@ function MediaCardPreview() {
     return (
         // biome-ignore lint/a11y/useSemanticElements: ControlledZoom conflicts with anchor elements
         <div
+            {...props}
             aria-label={
                 isNote
                     ? item.noteContentText?.trim() || "Note"
@@ -5399,12 +5397,10 @@ function MediaCardOpenTarget() {
     );
 
     return (
-        <div
+        <MediaCardPreview
             onClick={handleOpenTargetClick}
             onKeyDown={handleOpenTargetKeyDown}
-        >
-            <MediaCardPreview />
-        </div>
+        />
     );
 }
 
@@ -6085,8 +6081,10 @@ function BrowserContent({
         selectedCollectionIds,
         syncCollectionCreated,
     } = useCollectionsContext();
+
     const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
         buildCollectionItemIndexes(items);
+
     const favoriteItems = items
         .filter(
             (

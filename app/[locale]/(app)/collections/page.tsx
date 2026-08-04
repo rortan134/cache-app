@@ -1,5 +1,5 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { CollectionCard } from "@/components/library/collections";
+import { CollectionsCard } from "@/components/library/collections";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -118,7 +118,7 @@ async function CollectionsPageBody() {
             <CollectionsPageHeader />
             <CollectionsGrid collections={collections}>
                 {(collection) => (
-                    <CollectionCard
+                    <CollectionsCard
                         collection={collection}
                         key={collection.id}
                     />
