@@ -2025,7 +2025,7 @@ function useCollectionPreviewPlayback({
         React.useState(thumbnailsKey);
     const [prevShouldLoad, setPrevShouldLoad] = React.useState(shouldLoad);
 
-    if (prevThumbnailsKey !== thumbnailsKey) {
+    if (!Object.is(prevThumbnailsKey, thumbnailsKey)) {
         setPrevThumbnailsKey(thumbnailsKey);
         const initialReady = getReadyPreviewSlides(thumbnails);
         const firstReady = initialReady[0];
@@ -2033,7 +2033,7 @@ function useCollectionPreviewPlayback({
         setActiveSrc(firstReady === undefined ? null : firstReady.src);
     }
 
-    if (prevShouldLoad !== shouldLoad) {
+    if (!Object.is(prevShouldLoad, shouldLoad)) {
         setPrevShouldLoad(shouldLoad);
         if (!shouldLoad) {
             const firstReady = readySlides[0];
@@ -2068,7 +2068,7 @@ function useCollectionPreviewPlayback({
     readySlidesRef.current = readySlides;
 
     const activeSlide = resolveActivePreviewSlide(readySlides, activeSrc);
-    if (activeSlide !== null && activeSlide.src !== activeSrc) {
+    if (activeSlide !== null && !Object.is(activeSlide.src, activeSrc)) {
         setActiveSrc(activeSlide.src);
     }
 
@@ -3731,7 +3731,7 @@ function CollectionsListItemPreviewStack({
     const fadeTimeout = useTimeout();
     const rootRef = React.useRef<HTMLDivElement>(null);
 
-    if (current.src !== activeSlide.src) {
+    if (!Object.is(current.src, activeSlide.src)) {
         setOutgoing(current);
         setCurrent(activeSlide);
         setIsFading(false);

@@ -2599,7 +2599,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
 
     // Reset the error cursor when the candidate list changes so a prior
     // load failure does not permanently hide a newly valid thumbnail.
-    if (urlsKey !== prevUrlsKey) {
+    if (!Object.is(urlsKey, prevUrlsKey)) {
         setPrevUrlsKey(urlsKey);
         setErrorCount(0);
     }
@@ -3582,7 +3582,7 @@ function useSectionCollapseState({
     const [prevSectionKeySignature, setPrevSectionKeySignature] =
         React.useState(sectionKeySignature);
 
-    if (sectionKeySignature !== prevSectionKeySignature) {
+    if (!Object.is(sectionKeySignature, prevSectionKeySignature)) {
         setPrevSectionKeySignature(sectionKeySignature);
         const validKeys = new Set(groups.map((section) => section.key));
         setCollapsedSectionKeys((current) => {
@@ -3594,7 +3594,7 @@ function useSectionCollapseState({
     const [prevEnableSectionCollapse, setPrevEnableSectionCollapse] =
         React.useState(enableSectionCollapse);
 
-    if (prevEnableSectionCollapse !== enableSectionCollapse) {
+    if (!Object.is(prevEnableSectionCollapse, enableSectionCollapse)) {
         setPrevEnableSectionCollapse(enableSectionCollapse);
         if (!enableSectionCollapse) {
             setCollapsedSectionKeys((current) =>
@@ -3996,7 +3996,7 @@ function MediaPreview({
         );
     const [prevSrc, setPrevSrc] = React.useState(src);
 
-    if (src !== prevSrc) {
+    if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setHasImageFailed(false);
         setDimensions(readCachedPreviewDimensions(src));
@@ -7203,7 +7203,7 @@ function BrowserContent({
     const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(true);
 
     const [prevSuggestionCount, setPrevSuggestionCount] = React.useState(0);
-    if (prevSuggestionCount !== suggestions.length) {
+    if (!Object.is(prevSuggestionCount, suggestions.length)) {
         if (suggestions.length > 0 && prevSuggestionCount === 0) {
             setIsSuggestionsOpen(true);
         }

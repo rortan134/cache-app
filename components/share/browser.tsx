@@ -92,7 +92,15 @@ export interface PublicShareGridItem {
     title: string;
 }
 
-function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
+interface PreviewMediaProps extends Omit<React.ComponentProps<"img">, "src"> {
+    src: string | null;
+}
+
+function PreviewMedia({
+    className,
+    src,
+    ...props
+}: PreviewMediaProps): React.ReactElement {
     const imgRef = React.useRef<HTMLImageElement | null>(null);
     const [didFail, setDidFail] = React.useState(false);
     const [dimensions, setDimensions] =
@@ -101,7 +109,7 @@ function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
         );
     const [prevSrc, setPrevSrc] = React.useState(src);
 
-    if (src !== prevSrc) {
+    if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setDidFail(false);
         setDimensions(readCachedPreviewDimensions(src));
@@ -166,14 +174,13 @@ function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
         >
             {canRenderImage ? (
                 <img
+                    {...props}
                     alt=""
-                    className="size-full object-cover"
+                    className={cn("size-full object-cover", className)}
                     decoding="async"
                     draggable="false"
                     fetchPriority="auto"
                     height={displayDimensions.h}
-                    // Remount on src change so aborted prior loads cannot
-                    // fire stale error/load events against the new URL.
                     key={src}
                     loading="lazy"
                     onError={handleError}
