@@ -152,7 +152,7 @@ import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { T, useLocale } from "gt-next";
+import { Plural, T, useLocale } from "gt-next";
 import {
     ArchiveIcon,
     ArchiveX,
@@ -440,6 +440,102 @@ type SummarySorter = Record<
     Exclude<CollectionSortField, "text-match">,
     (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
 >;
+
+interface CollectionsContextValue {
+    claimCollectionAction: (
+        action: CollectionAction,
+        collectionId: string
+    ) => (() => void) | null;
+    collectionSummaries: LibraryCollectionSummary[];
+    collections: LibraryCollectionSummary[];
+    createItemId: string | null;
+    isCollectionActionPending: (
+        action: CollectionAction,
+        collectionId: string
+    ) => boolean;
+    isCreateOpen: boolean;
+    mergeCollectionSummaries: (collections: LibraryCollectionSummary[]) => void;
+    onClearCollectionFilters: () => void;
+    onCloseCreate: () => void;
+    onSelectCollection: (collectionId: string) => void;
+    replaceCollections: (collections: LibraryCollectionSummary[]) => void;
+    requestCreate: (itemId?: string) => void;
+    selectedCollectionIdSet: ReadonlySet<string>;
+    selectedCollectionIds: string[];
+    syncCollectionCreated: (input: {
+        assignedItemIds: string[];
+        collection: LibraryCollectionSummary;
+    }) => void;
+    syncCollectionDeleted: (collectionId: string) => void;
+    syncCollectionName: (id: string, name: string) => void;
+    syncCollectionPriority: (id: string, priority: CollectionPriority) => void;
+    syncCollectionShare: (next: CollectionShareState) => void;
+}
+
+export interface LibraryItemsContextValue {
+    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
+    favoriteItemIdSet: ReadonlySet<string>;
+    favoriteItems: LibraryItemWithCollections[];
+    items: LibraryItemWithCollections[];
+    itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
+    mergeImportedItems: (items: LibraryItemWithCollections[]) => void;
+    onCopyLink: (item: LibraryItemWithCollections) => void;
+    onDelete: (item: LibraryItemWithCollections) => void;
+    onFindSimilar: (item: LibraryItemWithCollections) => void;
+    onOpenFavoriteItem: (item: LibraryItemWithCollections) => void;
+    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
+    onOpenNote: (item: LibraryItemWithCollections) => void;
+    onToggleItemFavorite: (
+        item: LibraryItemWithCollections
+    ) => Promise<LibraryItemFavoriteToggleResult>;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
+    pendingDeleteItemId: string | null;
+}
+
+interface CollectionsListItemContextValue {
+    collection: LibraryCollectionSummary;
+    isSelected: boolean;
+    source: CollectionListSource;
+}
+
+interface CollectionsListState {
+    createItemId: string | null;
+    hoveredCollectionIdRef: React.RefObject<string | null>;
+    hoveredCollectionSourceRef: React.RefObject<CollectionListSource | null>;
+    isCreateOpen: boolean;
+    pendingDeleteId: string | null;
+    pendingPriorityComboboxOpen: string | null;
+    pendingRenameId: string | null;
+}
+
+interface CollectionsListActions {
+    closeCreateDialog: () => void;
+    closePendingDelete: () => void;
+    closePendingRename: () => void;
+    createSubmissionPendingRef: React.RefObject<boolean>;
+    onCopyLinks: (collection: LibraryCollectionSummary) => Promise<void>;
+    onCopyTitle: (collection: LibraryCollectionSummary) => Promise<void>;
+    onDelete: (collection: LibraryCollectionSummary) => void;
+    onDuplicate: (collection: LibraryCollectionSummary) => void;
+    onExportCsv: (collection: LibraryCollectionSummary) => void;
+    onOpenLinks: (collection: LibraryCollectionSummary) => void;
+    onRename: (collection: LibraryCollectionSummary) => void;
+    onUpdatePriority: (
+        collectionId: string,
+        priority: CollectionPriority
+    ) => Promise<void>;
+    openCreateDialog: (itemId?: string) => void;
+    setHoveredCollectionSource: (source: CollectionListSource | null) => void;
+    setPendingPriorityComboboxOpen: React.Dispatch<
+        React.SetStateAction<string | null>
+    >;
+    syncCreated: (input: SyncCreatedCollectionInput) => void;
+    syncDeleted: (collectionId: string) => void;
+    syncName: (id: string, name: string) => void;
+}
 
 const log = createLogger("library:collections");
 
@@ -1775,9 +1871,6 @@ function useCollectionHoverHotkeys({
     const { favoriteCollectionIdSet, toggleFavorite } =
         useToggleCollectionFavorite();
 
-    const favoriteCollectionIdSetRef = React.useRef(favoriteCollectionIdSet);
-    favoriteCollectionIdSetRef.current = favoriteCollectionIdSet;
-
     const { collections } = useCollectionsContext();
 
     const resolveHoveredCollection = () => {
@@ -1831,7 +1924,7 @@ function useCollectionHoverHotkeys({
         "alt+f",
         (event) => {
             const target = resolveHoveredCollection();
-            if (target && !favoriteCollectionIdSetRef.current.has(target.id)) {
+            if (target && !favoriteCollectionIdSet.has(target.id)) {
                 event.preventDefault();
                 toggleFavorite(target);
             }
@@ -2015,102 +2108,6 @@ function useCollectionPreviewPlayback({
         activeSlide,
         reportSlideError,
     };
-}
-
-interface CollectionsContextValue {
-    claimCollectionAction: (
-        action: CollectionAction,
-        collectionId: string
-    ) => (() => void) | null;
-    collectionSummaries: LibraryCollectionSummary[];
-    collections: LibraryCollectionSummary[];
-    createItemId: string | null;
-    isCollectionActionPending: (
-        action: CollectionAction,
-        collectionId: string
-    ) => boolean;
-    isCreateOpen: boolean;
-    mergeCollectionSummaries: (collections: LibraryCollectionSummary[]) => void;
-    onClearCollectionFilters: () => void;
-    onCloseCreate: () => void;
-    onSelectCollection: (collectionId: string) => void;
-    replaceCollections: (collections: LibraryCollectionSummary[]) => void;
-    requestCreate: (itemId?: string) => void;
-    selectedCollectionIdSet: ReadonlySet<string>;
-    selectedCollectionIds: string[];
-    syncCollectionCreated: (input: {
-        assignedItemIds: string[];
-        collection: LibraryCollectionSummary;
-    }) => void;
-    syncCollectionDeleted: (collectionId: string) => void;
-    syncCollectionName: (id: string, name: string) => void;
-    syncCollectionPriority: (id: string, priority: CollectionPriority) => void;
-    syncCollectionShare: (next: CollectionShareState) => void;
-}
-
-export interface LibraryItemsContextValue {
-    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
-    favoriteItemIdSet: ReadonlySet<string>;
-    favoriteItems: LibraryItemWithCollections[];
-    items: LibraryItemWithCollections[];
-    itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
-    mergeImportedItems: (items: LibraryItemWithCollections[]) => void;
-    onCopyLink: (item: LibraryItemWithCollections) => void;
-    onDelete: (item: LibraryItemWithCollections) => void;
-    onFindSimilar: (item: LibraryItemWithCollections) => void;
-    onOpenFavoriteItem: (item: LibraryItemWithCollections) => void;
-    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
-    onOpenNote: (item: LibraryItemWithCollections) => void;
-    onToggleItemFavorite: (
-        item: LibraryItemWithCollections
-    ) => Promise<LibraryItemFavoriteToggleResult>;
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<LibraryItemCollectionsUpdateResult>;
-    pendingDeleteItemId: string | null;
-}
-
-interface CollectionsListItemContextValue {
-    collection: LibraryCollectionSummary;
-    isSelected: boolean;
-    source: CollectionListSource;
-}
-
-interface CollectionsListState {
-    createItemId: string | null;
-    hoveredCollectionIdRef: React.RefObject<string | null>;
-    hoveredCollectionSourceRef: React.RefObject<CollectionListSource | null>;
-    isCreateOpen: boolean;
-    pendingDeleteId: string | null;
-    pendingPriorityComboboxOpen: string | null;
-    pendingRenameId: string | null;
-}
-
-interface CollectionsListActions {
-    closeCreateDialog: () => void;
-    closePendingDelete: () => void;
-    closePendingRename: () => void;
-    createSubmissionPendingRef: React.RefObject<boolean>;
-    onCopyLinks: (collection: LibraryCollectionSummary) => Promise<void>;
-    onCopyTitle: (collection: LibraryCollectionSummary) => Promise<void>;
-    onDelete: (collection: LibraryCollectionSummary) => void;
-    onDuplicate: (collection: LibraryCollectionSummary) => void;
-    onExportCsv: (collection: LibraryCollectionSummary) => void;
-    onOpenLinks: (collection: LibraryCollectionSummary) => void;
-    onRename: (collection: LibraryCollectionSummary) => void;
-    onUpdatePriority: (
-        collectionId: string,
-        priority: CollectionPriority
-    ) => Promise<void>;
-    openCreateDialog: (itemId?: string) => void;
-    setHoveredCollectionSource: (source: CollectionListSource | null) => void;
-    setPendingPriorityComboboxOpen: React.Dispatch<
-        React.SetStateAction<string | null>
-    >;
-    syncCreated: (input: SyncCreatedCollectionInput) => void;
-    syncDeleted: (collectionId: string) => void;
-    syncName: (id: string, name: string) => void;
 }
 
 interface CreateFormState {
@@ -2496,7 +2493,9 @@ export function CollectionsCard({
     return (
         <div className="flex flex-col overflow-hidden rounded-2xl bg-muted/60">
             <CollectionsThumbnailGrid urls={collection.previewImageUrls}>
-                {(url) => <CollectionsThumbnailCell src={url ?? undefined} />}
+                {(url) => (
+                    <CollectionsThumbnailCell alt="" src={url ?? undefined} />
+                )}
             </CollectionsThumbnailGrid>
             <div className="flex flex-col gap-1 p-3">
                 <h3
@@ -2507,7 +2506,11 @@ export function CollectionsCard({
                 </h3>
                 <p className="text-muted-foreground text-xs">
                     {collection.itemCount}{" "}
-                    {collection.itemCount === 1 ? "item" : "items"}
+                    <T>
+                        <Plural n={collection.itemCount} singular={<>item</>}>
+                            items
+                        </Plural>
+                    </T>
                 </p>
             </div>
         </div>
@@ -4538,6 +4541,7 @@ function CollectionsCreateDialog() {
     const activeDescriptionRequestVersionRef = React.useRef<number | null>(
         null
     );
+    const descriptionSubmissionPendingRef = React.useRef(false);
 
     // Reset before paint so reopening never shows the previous draft.
     useIsoLayoutEffect(() => {
@@ -4586,6 +4590,7 @@ function CollectionsCreateDialog() {
             return;
         }
         descriptionRequestVersionRef.current += 1;
+        activeDescriptionRequestVersionRef.current = null;
         closeCreateDialog();
     });
 
@@ -4600,7 +4605,8 @@ function CollectionsCreateDialog() {
             if (
                 isDescriptionPending ||
                 isSubmitting ||
-                createSubmissionPendingRef.current
+                createSubmissionPendingRef.current ||
+                descriptionSubmissionPendingRef.current
             ) {
                 return;
             }
@@ -4688,7 +4694,8 @@ function CollectionsCreateDialog() {
             title.length === 0 ||
             isDescriptionPending ||
             isSubmitting ||
-            createSubmissionPendingRef.current
+            createSubmissionPendingRef.current ||
+            descriptionSubmissionPendingRef.current
         ) {
             return;
         }
@@ -4696,32 +4703,38 @@ function CollectionsCreateDialog() {
         const requestVersion = descriptionRequestVersionRef.current + 1;
         descriptionRequestVersionRef.current = requestVersion;
         activeDescriptionRequestVersionRef.current = requestVersion;
+        descriptionSubmissionPendingRef.current = true;
         setFormState((current) => ({
             ...current,
             descriptionErrorMessage: null,
         }));
 
         startDescription(async () => {
-            const result = await getCollectionDescriptionSafely({ title });
-            if (requestVersion !== descriptionRequestVersionRef.current) {
-                return;
-            }
+            try {
+                const result = await getCollectionDescriptionSafely({
+                    title,
+                });
+                if (requestVersion !== descriptionRequestVersionRef.current) {
+                    return;
+                }
 
-            if (result.status !== ACTION_STATUS.SUCCESS) {
-                activeDescriptionRequestVersionRef.current = null;
+                if (result.status !== ACTION_STATUS.SUCCESS) {
+                    setFormState((current) => ({
+                        ...current,
+                        descriptionErrorMessage: result.message,
+                    }));
+                    return;
+                }
+
                 setFormState((current) => ({
                     ...current,
-                    descriptionErrorMessage: result.message,
+                    descriptionDraft: result.description,
+                    descriptionErrorMessage: null,
                 }));
-                return;
+            } finally {
+                descriptionSubmissionPendingRef.current = false;
+                activeDescriptionRequestVersionRef.current = null;
             }
-
-            activeDescriptionRequestVersionRef.current = null;
-            setFormState((current) => ({
-                ...current,
-                descriptionDraft: result.description,
-                descriptionErrorMessage: null,
-            }));
         });
     });
 

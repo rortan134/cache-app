@@ -1,11 +1,11 @@
 "use server";
 
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
+import type { CollectionTemplateOption } from "@/lib/collections/templates";
+import { TEMPLATES } from "@/lib/collections/templates";
 import { getValidationErrorMessage } from "@/lib/common/action";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { normalizeCollectionName } from "@/lib/common/strings";
-import type { CollectionTemplateOption } from "@/lib/collections/templates";
-import { TEMPLATES } from "@/lib/collections/templates";
 import { recommendCollectionTemplates } from "@/lib/intelligence/recommendations";
 import { prisma } from "@/prisma";
 import { request as getArcjetRequest } from "@arcjet/next";
@@ -17,8 +17,8 @@ import {
 import { runAskCacheAgent } from "./composer/service";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
-    SECTION_DESCRIPTION_FALLBACK_TEXT,
     CollectionDescriptionRequestSchema,
+    SECTION_DESCRIPTION_FALLBACK_TEXT,
     SectionDescriptionRequestSchema,
     type CollectionDescriptionRequest,
     type DescriptionRequest,
@@ -151,7 +151,8 @@ export async function getCollectionDescription(
             userId: auth.userId,
         });
 
-        if (result.description.length === 0) {
+        const description = result.description.trim();
+        if (!description.length) {
             return {
                 message:
                     "We couldn't generate a collection description right now.",
@@ -160,7 +161,7 @@ export async function getCollectionDescription(
         }
 
         return {
-            description: result.description,
+            description,
             status: "SUCCESS",
         };
     } catch (error) {
