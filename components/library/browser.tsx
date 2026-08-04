@@ -257,6 +257,7 @@ import type {
     BaseUIEvent,
 } from "@base-ui/react";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T, useGT, Var } from "gt-next";
@@ -1823,11 +1824,10 @@ function PaletteChip({
     });
 
     return (
-        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
+        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
             <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
-                className="rounded-full"
                 onClick={handleRemove}
                 size="icon-xs"
                 variant="ghost"
@@ -1935,18 +1935,15 @@ function PaletteAttachmentChip({
                 <AttachmentPreviewCardTrigger
                     render={
                         <Attachment
-                            className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
+                            className="max-w-[min(100%,12rem)] border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
                             data={attachment}
                             onRemove={handleRemove}
                         />
                     }
                 >
-                    <AttachmentPreview className="size-4 rounded-full bg-transparent" />
+                    <AttachmentPreview className="size-4 bg-transparent" />
                     <AttachmentInfo />
-                    <AttachmentRemove
-                        className="rounded-full opacity-100"
-                        size="icon-xs"
-                    >
+                    <AttachmentRemove className="opacity-100" size="icon-xs">
                         <XIcon className="size-3.5! shrink-0" />
                     </AttachmentRemove>
                 </AttachmentPreviewCardTrigger>
@@ -3889,7 +3886,6 @@ function CollectionComboboxPicker({
                     render ?? (
                         <Button
                             aria-label={defaultTriggerAriaLabel}
-                            className="z-1 rounded-full"
                             size="icon-sm"
                             variant="ghost"
                         />
@@ -6108,11 +6104,11 @@ function BrowserContent({
     const allCollectionsRef = React.useRef(allCollections);
     allCollectionsRef.current = allCollections;
 
-    const collectionUpdateRequestTokenByItemIdRef = React.useRef(
-        new Map<string, symbol>()
+    const collectionUpdateRequestTokenByItemIdRef = useRefWithInit(
+        () => new Map<string, symbol>()
     );
-    const itemFavoriteToggleRequestTokenByItemIdRef = React.useRef(
-        new Map<string, symbol>()
+    const itemFavoriteToggleRequestTokenByItemIdRef = useRefWithInit(
+        () => new Map<string, symbol>()
     );
 
     const handleUpdateItemCollections = useStableCallback(
@@ -7900,7 +7896,7 @@ function BrowserContent({
                     >
                         {(suggestion, index) => (
                             <Button
-                                className="rounded-full text-muted-foreground transition-transform duration-100 ease-out active:scale-[0.97]"
+                                className="text-muted-foreground transition-transform duration-100 ease-out active:scale-[0.97]"
                                 key={suggestion.label}
                                 onClick={suggestion.onSelect}
                                 size="xs"

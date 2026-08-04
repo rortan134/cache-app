@@ -148,6 +148,7 @@ import SmartCollectionsBackgroundImg from "@/public/smart-collections-background
 import type { BaseUIEvent } from "@base-ui/react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T, useLocale } from "gt-next";
@@ -839,7 +840,7 @@ export function CollectionsProvider({
     const state = useInternalCollectionsState({ initialCollections });
     const [pendingCollectionActionKeys, setPendingCollectionActionKeys] =
         React.useState<Set<string>>(() => new Set());
-    const collectionActionKeysRef = React.useRef(new Set<string>());
+    const collectionActionKeysRef = useRefWithInit(() => new Set<string>());
 
     const claimCollectionAction = useStableCallback(
         (action: CollectionAction, collectionId: string) => {
@@ -1340,7 +1341,7 @@ function useCollectionAccessGate() {
 
             if (isHidden) {
                 showError(
-                    `Upgrade ${action} every item in ${collection.name}.`
+                    `Upgrade to ${action} every item in ${collection.name}.`
                 );
                 return false;
             }
@@ -1779,7 +1780,7 @@ function useCollectionRowActions() {
     const [pendingPriorityComboboxOpen, setPendingPriorityComboboxOpen] =
         React.useState<string | null>(null);
 
-    const pendingPriorityIdsRef = React.useRef(new Set<string>());
+    const pendingPriorityIdsRef = useRefWithInit(() => new Set<string>());
 
     const getCollectionItems = (collectionId: string) =>
         itemsByCollectionId.get(collectionId) ?? [];

@@ -36,11 +36,10 @@ import { IntegrationUserError } from "@/lib/integrations/error";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     INTEGRATIONS,
-    getIntegration,
+    listIntegrationActions,
     type ExtensionOpenBehavior,
     type IntegrationActionRole,
     type IntegrationDirection,
-    type IntegrationIcon,
     type IntegrationId,
     type OAuthLinkConnectBehavior,
     type RssManageConnectBehavior,
@@ -49,6 +48,7 @@ import {
     type SupportedIntegrationAction,
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import { ArrowUpRight } from "lucide-react";
@@ -80,41 +80,38 @@ interface IntegrationActionViewModel {
     role: IntegrationActionRole;
 }
 
-interface UseIntegrationActionArgs {
+interface UseIntegrationActionsArgs {
     direction: IntegrationDirection;
-    id: IntegrationId;
+    integration: SupportedIntegration;
     isConnected: boolean;
+    isExtensionInstalled: boolean;
 }
 
-interface UseIntegrationActionResult {
+interface UseIntegrationActionsResult {
+    actionStatus: IntegrationActionStatus | null;
     actions: IntegrationActionViewModel[];
-    status: IntegrationActionStatus | null;
 }
 
-interface IntegrationsListStatusProps extends React.ComponentProps<"p"> {
+interface IntegrationsListActionStatusProps extends React.ComponentProps<"p"> {
     tone?: IntegrationActionStatusTone;
 }
 
 interface IntegrationsListItemProps
     extends React.ComponentProps<typeof SidebarItem> {
-    description: string;
     direction?: IntegrationDirection;
-    Icon: IntegrationIcon;
-    integrationId: IntegrationId;
+    integration: SupportedIntegration;
     isConnected: boolean;
-    label: string;
 }
 
 interface IntegrationsListItemPreviewTriggerProps {
-    integrationId: IntegrationId;
+    integration: SupportedIntegration;
     onClick?: () => void;
     render: React.ReactElement;
 }
 
 interface IntegrationsListItemActionsProps extends React.ComponentProps<"div"> {
+    actionStatus: IntegrationActionStatus | null;
     actions: IntegrationActionViewModel[];
-    integrationId: IntegrationId;
-    status: IntegrationActionStatus | null;
 }
 
 interface IntegrationsListItemActionButtonProps {
@@ -145,17 +142,14 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                     {(integration) => (
                         <IntegrationsListItem
                             className="group"
-                            description={integration.description}
                             direction={
                                 integration.source ? "source" : "destination"
                             }
-                            Icon={integration.Icon}
-                            integrationId={integration.id}
+                            integration={integration}
                             isConnected={connectedIntegrations.has(
                                 integration.id
                             )}
                             key={integration.id}
-                            label={integration.label}
                         />
                     )}
                 </IntegrationsListContent>
@@ -232,7 +226,7 @@ function buildCapabilityMissingError({
     integrationId,
     message,
 }: {
-    capability: "connect" | "copy" | "import" | "open" | "sync";
+    capability: IntegrationActionRole;
     integrationId: IntegrationId;
     message: string;
 }): IntegrationUserError {
@@ -321,45 +315,61 @@ async function executeIntegrationAction(args: {
             const successMessage = await executeGooglePhotosPickerFlow();
             return { refresh: true, successMessage };
         }
+        case "import":
+            throw buildCapabilityMissingError({
+                capability: "import",
+                integrationId: integration.id,
+                message: "This integration cannot be imported yet.",
+            });
         default:
-            return { refresh: false, successMessage: null };
+            return ((_: never) => _)(role);
     }
 }
 
-function useIntegrationAction({
+function useIntegrationActions({
     direction,
-    id,
+    integration,
+    isExtensionInstalled,
     isConnected,
-}: UseIntegrationActionArgs): UseIntegrationActionResult {
+}: UseIntegrationActionsArgs): UseIntegrationActionsResult {
     const router = useRouter();
-    const isExtensionInstalled = useIsExtensionInstalled();
-    const integration = getIntegration(id);
 
-    const [status, setStatus] = React.useState<IntegrationActionStatus | null>(
-        null
+    const [actionStatus, setActionStatus] =
+        React.useState<IntegrationActionStatus | null>(null);
+
+    // synchronous guard so a same-role click is blocked before the state
+    // update commits
+    const [activeActionRoles, setActiveActionRoles] = React.useState(
+        () => new Set<IntegrationActionRole>()
     );
-    const [pendingRole, setPendingRole] =
-        React.useState<IntegrationActionRole | null>(null);
 
-    const handleAction = useStableCallback(
+    const activeActionRolesRef = useRefWithInit(
+        () => new Set<IntegrationActionRole>()
+    );
+
+    const handleIntegrationAction = useStableCallback(
         async (role: IntegrationActionRole) => {
-            setStatus(null);
-            setPendingRole(role);
+            if (activeActionRolesRef.current.has(role)) {
+                return;
+            }
+
+            setActionStatus(null);
 
             if (
                 integration.behaviors.connect?.kind === "rss-manage" &&
                 role === "connect"
             ) {
                 openRssManageDialog();
-                setPendingRole(null);
                 return;
             }
 
             if (integration.id === "markdown" && role === "import") {
                 openMarkdownImportDialog();
-                setPendingRole(null);
                 return;
             }
+
+            activeActionRolesRef.current.add(role);
+            setActiveActionRoles(new Set(activeActionRolesRef.current));
 
             try {
                 const result = await executeIntegrationAction({
@@ -373,7 +383,7 @@ function useIntegrationAction({
                 }
 
                 if (result.successMessage) {
-                    setStatus({
+                    setActionStatus({
                         message: result.successMessage,
                         tone: "success",
                     });
@@ -386,7 +396,7 @@ function useIntegrationAction({
                     role,
                 });
 
-                setStatus({
+                setActionStatus({
                     message: getErrorMessage(
                         error,
                         "Could not complete this integration action."
@@ -394,21 +404,25 @@ function useIntegrationAction({
                     tone: "error",
                 });
             } finally {
-                setPendingRole((current) =>
-                    current === role ? null : current
-                );
+                activeActionRolesRef.current.delete(role);
+                setActiveActionRoles(new Set(activeActionRolesRef.current));
             }
         }
     );
 
-    const actions: IntegrationActionViewModel[] = [];
+    const visibleActions: IntegrationActionViewModel[] = [];
 
-    for (const action of integration.actions) {
-        if (action.for !== direction || !isActionVisible(action, isConnected)) {
+    const integrationActions = listIntegrationActions(
+        integration.id,
+        direction
+    );
+
+    for (const action of integrationActions) {
+        if (!isActionVisible(action, isConnected)) {
             continue;
         }
-        actions.push({
-            isLoading: pendingRole === action.role,
+        visibleActions.push({
+            isLoading: activeActionRoles.has(action.role),
             label: resolveActionLabel({
                 connectBehavior: integration.behaviors.connect,
                 isConnected,
@@ -417,12 +431,12 @@ function useIntegrationAction({
                 openBehavior: integration.behaviors.open,
                 role: action.role,
             }),
-            onClick: () => handleAction(action.role),
+            onClick: () => handleIntegrationAction(action.role),
             role: action.role,
         } satisfies IntegrationActionViewModel);
     }
 
-    return { actions, status };
+    return { actionStatus, actions: visibleActions };
 }
 
 function IntegrationsList({
@@ -585,38 +599,48 @@ function IntegrationsListPrivacyDisclaimer() {
 
 function IntegrationsListItem({
     className,
-    description,
     direction = "source",
-    Icon,
-    integrationId,
+    integration,
     isConnected,
-    label,
     ...props
 }: IntegrationsListItemProps) {
-    const { actions, status } = useIntegrationAction({
+    const isExtensionInstalled = useIsExtensionInstalled();
+
+    const { actionStatus, actions } = useIntegrationActions({
         direction,
-        id: integrationId,
+        integration,
         isConnected,
+        isExtensionInstalled,
     });
     const [primaryAction] = actions;
+    const isPrimaryActionLoading = primaryAction?.isLoading ?? false;
 
     const handleClick = useStableCallback(() => {
+        if (isPrimaryActionLoading) {
+            return;
+        }
+
         primaryAction?.onClick();
     });
 
     return (
         <IntegrationsListItemPreviewTrigger
-            integrationId={integrationId}
+            integration={integration}
             onClick={handleClick}
             render={
                 <SidebarItem
                     {...props}
+                    aria-disabled={isPrimaryActionLoading}
                     className={cn("gap-2.5 py-0.5 opacity-100", className)}
-                    tabIndex={actions.length > 0 ? 0 : undefined}
+                    role={primaryAction ? "button" : undefined}
+                    tabIndex={primaryAction ? 0 : undefined}
                 >
-                    <Avatar aria-label={label} className="size-6 rounded-md">
+                    <Avatar
+                        aria-label={integration.label}
+                        className="size-6 rounded-md"
+                    >
                         <AvatarFallback className="rounded-md">
-                            <Icon
+                            <integration.Icon
                                 aria-hidden
                                 className="size-3.5 shrink-0"
                                 focusable="false"
@@ -624,19 +648,18 @@ function IntegrationsListItem({
                         </AvatarFallback>
                     </Avatar>
                     <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                        {label}
+                        {integration.label}
                     </span>
-                    <span className="grid items-center text-muted-foreground leading-snug">
+                    <div className="grid items-center text-muted-foreground leading-snug">
                         <span className="text-right text-[11px] opacity-0 [grid-area:1/1] sm:opacity-100 sm:group-hover:opacity-0 sm:group-focus-within:opacity-0">
-                            {description}
+                            {integration.description}
                         </span>
                         <IntegrationsListItemActions
+                            actionStatus={actionStatus}
                             actions={actions}
                             className="opacity-100 [grid-area:1/1] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                            integrationId={integrationId}
-                            status={status}
                         />
-                    </span>
+                    </div>
                 </SidebarItem>
             }
         />
@@ -644,11 +667,10 @@ function IntegrationsListItem({
 }
 
 function IntegrationsListItemPreviewTrigger({
-    integrationId,
+    integration,
     onClick,
     render,
 }: IntegrationsListItemPreviewTriggerProps) {
-    const integration = getIntegration(integrationId);
     const [isHovered, setIsHovered] = React.useState(false);
 
     const handleClick = useStableCallback(() => {
@@ -681,9 +703,8 @@ function IntegrationsListItemPreviewTrigger({
 
 function IntegrationsListItemActions({
     actions,
-    status,
+    actionStatus,
     className,
-    integrationId,
     ...props
 }: IntegrationsListItemActionsProps) {
     if (actions.length === 0) {
@@ -698,24 +719,24 @@ function IntegrationsListItemActions({
                 className
             )}
         >
-            <IntegrationsListStatus tone={status?.tone}>
-                {status?.message}
-            </IntegrationsListStatus>
+            <IntegrationsListActionStatus tone={actionStatus?.tone}>
+                {actionStatus?.message}
+            </IntegrationsListActionStatus>
             {actions.map((action) => (
                 <IntegrationsListItemActionButton
                     action={action}
-                    key={`${integrationId}-${action.role}`}
+                    key={action.role}
                 />
             ))}
         </div>
     );
 }
 
-function IntegrationsListStatus({
+function IntegrationsListActionStatus({
     tone = "success",
     className,
     ...props
-}: IntegrationsListStatusProps) {
+}: IntegrationsListActionStatusProps) {
     if (!props.children) {
         return null;
     }
