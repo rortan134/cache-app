@@ -442,18 +442,8 @@ type SummarySorter = Record<
 >;
 
 interface CollectionsContextValue {
-    claimCollectionAction: (
-        action: CollectionAction,
-        collectionId: string
-    ) => (() => void) | null;
     collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionSummary[];
-    createItemId: string | null;
-    isCollectionActionPending: (
-        action: CollectionAction,
-        collectionId: string
-    ) => boolean;
-    isCreateOpen: boolean;
     mergeCollectionSummaries: (collections: LibraryCollectionSummary[]) => void;
     onClearCollectionFilters: () => void;
     onCloseCreate: () => void;
@@ -470,6 +460,17 @@ interface CollectionsContextValue {
     syncCollectionName: (id: string, name: string) => void;
     syncCollectionPriority: (id: string, priority: CollectionPriority) => void;
     syncCollectionShare: (next: CollectionShareState) => void;
+}
+
+interface CollectionsPendingActionsContextValue {
+    claimCollectionAction: (
+        action: CollectionAction,
+        collectionId: string
+    ) => (() => void) | null;
+    isCollectionActionPending: (
+        action: CollectionAction,
+        collectionId: string
+    ) => boolean;
 }
 
 export interface LibraryItemsContextValue {
@@ -501,11 +502,18 @@ interface CollectionsListItemContextValue {
     source: CollectionListSource;
 }
 
-interface CollectionsListState {
-    createItemId: string | null;
+interface CollectionsListHoverContextValue {
     hoveredCollectionIdRef: React.RefObject<string | null>;
     hoveredCollectionSourceRef: React.RefObject<CollectionListSource | null>;
+    setHoveredCollectionSource: (source: CollectionListSource | null) => void;
+}
+
+interface CollectionsCreateDialogState {
+    createItemId: string | null;
     isCreateOpen: boolean;
+}
+
+interface CollectionsListState {
     pendingDeleteId: string | null;
     pendingPriorityComboboxOpen: string | null;
     pendingRenameId: string | null;
@@ -528,7 +536,6 @@ interface CollectionsListActions {
         priority: CollectionPriority
     ) => Promise<void>;
     openCreateDialog: (itemId?: string) => void;
-    setHoveredCollectionSource: (source: CollectionListSource | null) => void;
     setPendingPriorityComboboxOpen: React.Dispatch<
         React.SetStateAction<string | null>
     >;
@@ -1328,6 +1335,15 @@ const CollectionsListStateContext =
 const CollectionsListActionsContext =
     React.createContext<CollectionsListActions | null>(null);
 
+const CollectionsListHoverContext =
+    React.createContext<CollectionsListHoverContextValue | null>(null);
+
+const CollectionsCreateDialogContext =
+    React.createContext<CollectionsCreateDialogState | null>(null);
+
+const CollectionsPendingActionsContext =
+    React.createContext<CollectionsPendingActionsContextValue | null>(null);
+
 export function useCollectionsContext(): CollectionsContextValue {
     const context = React.use(CollectionsContext);
     if (!context) {
@@ -1378,6 +1394,36 @@ function useCollectionsListActions(): CollectionsListActions {
     return context;
 }
 
+function useCollectionsListHover(): CollectionsListHoverContextValue {
+    const context = React.use(CollectionsListHoverContext);
+    if (!context) {
+        throw new Error(
+            "Collections list hover state must be read within a CollectionsListProvider."
+        );
+    }
+    return context;
+}
+
+function useCollectionsCreateDialogState(): CollectionsCreateDialogState {
+    const context = React.use(CollectionsCreateDialogContext);
+    if (!context) {
+        throw new Error(
+            "Collections create dialog state must be read within a CollectionsProvider."
+        );
+    }
+    return context;
+}
+
+export function useCollectionsPendingActions(): CollectionsPendingActionsContextValue {
+    const context = React.use(CollectionsPendingActionsContext);
+    if (!context) {
+        throw new Error(
+            "Pending collection actions must be read within a CollectionsProvider."
+        );
+    }
+    return context;
+}
+
 function useInternalCollectionsState({
     initialCollections,
 }: {
@@ -1393,9 +1439,6 @@ function useInternalCollectionsState({
     const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
     >([]);
-
-    const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-    const [createItemId, setCreateItemId] = React.useState<string | null>(null);
 
     const collectionSummaries = sortCollectionSummaries(
         getVisibleCollections(collections, collectionView),
@@ -1417,16 +1460,6 @@ function useInternalCollectionsState({
 
     const toggleCollectionSelection = useStableCallback((id: string) => {
         setSelectedCollectionIds((current) => toggleValue(current, id));
-    });
-
-    const requestCreate = useStableCallback((itemId?: string) => {
-        setCreateItemId(itemId ?? null);
-        setIsCreateOpen(true);
-    });
-
-    const onCloseCreate = useStableCallback(() => {
-        setIsCreateOpen(false);
-        setCreateItemId(null);
     });
 
     const mergeCollectionSummariesState = useStableCallback(
@@ -1481,14 +1514,10 @@ function useInternalCollectionsState({
     return {
         collectionSummaries,
         collections,
-        createItemId,
-        isCreateOpen,
         mergeCollectionSummaries: mergeCollectionSummariesState,
         onClearCollectionFilters: clearCollectionFilters,
-        onCloseCreate,
         onSelectCollection: toggleCollectionSelection,
         replaceCollections,
-        requestCreate,
         selectedCollectionIdSet,
         selectedCollectionIds: validSelectedCollectionIds,
         syncCollectionDeleted,
@@ -1496,6 +1525,23 @@ function useInternalCollectionsState({
         syncCollectionPriority,
         syncCollectionShare,
     };
+}
+
+function useCreateDialogState() {
+    const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+    const [createItemId, setCreateItemId] = React.useState<string | null>(null);
+
+    const requestCreate = useStableCallback((itemId?: string) => {
+        setCreateItemId(itemId ?? null);
+        setIsCreateOpen(true);
+    });
+
+    const onCloseCreate = useStableCallback(() => {
+        setIsCreateOpen(false);
+        setCreateItemId(null);
+    });
+
+    return { createItemId, isCreateOpen, onCloseCreate, requestCreate };
 }
 
 function useCollectionFeedbackWriter() {
@@ -1587,8 +1633,8 @@ function useToggleCollectionFavorite() {
 
 function useCollectionDialogRequests() {
     const { setFeedback } = useCollectionsListStateStore();
-    const { createItemId, isCreateOpen, onCloseCreate, requestCreate } =
-        useCollectionsContext();
+    const { isCreateOpen } = useCollectionsCreateDialogState();
+    const { onCloseCreate, requestCreate } = useCollectionsContext();
     const createSubmissionPendingRef = React.useRef(false);
 
     const [pendingRenameId, setPendingRenameId] = React.useState<string | null>(
@@ -1637,9 +1683,7 @@ function useCollectionDialogRequests() {
         closeCreateDialog: onCloseCreate,
         closePendingDelete: () => setPendingDeleteId(null),
         closePendingRename: () => setPendingRenameId(null),
-        createItemId,
         createSubmissionPendingRef,
-        isCreateOpen,
         openCreateDialog,
         pendingDeleteId,
         pendingRenameId,
@@ -2156,6 +2200,7 @@ export function CollectionsProvider({
     >;
 }>) {
     const state = useInternalCollectionsState({ initialCollections });
+    const createDialog = useCreateDialogState();
 
     const [pendingCollectionActionKeys, setPendingCollectionActionKeys] =
         React.useState<Set<string>>(() => new Set());
@@ -2257,8 +2302,8 @@ export function CollectionsProvider({
 
     const value: CollectionsContextValue = {
         ...state,
-        claimCollectionAction,
-        isCollectionActionPending,
+        onCloseCreate: createDialog.onCloseCreate,
+        requestCreate: createDialog.requestCreate,
         syncCollectionCreated,
         syncCollectionDeleted,
         syncCollectionName,
@@ -2266,7 +2311,25 @@ export function CollectionsProvider({
         syncCollectionShare,
     };
 
-    return <CollectionsContext value={value}>{children}</CollectionsContext>;
+    const createDialogValue: CollectionsCreateDialogState = {
+        createItemId: createDialog.createItemId,
+        isCreateOpen: createDialog.isCreateOpen,
+    };
+
+    const pendingActionsValue: CollectionsPendingActionsContextValue = {
+        claimCollectionAction,
+        isCollectionActionPending,
+    };
+
+    return (
+        <CollectionsCreateDialogContext value={createDialogValue}>
+            <CollectionsPendingActionsContext value={pendingActionsValue}>
+                <CollectionsContext value={value}>
+                    {children}
+                </CollectionsContext>
+            </CollectionsPendingActionsContext>
+        </CollectionsCreateDialogContext>
+    );
 }
 
 function CollectionsListProvider({ children }: React.PropsWithChildren) {
@@ -2333,10 +2396,6 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
     }, []);
 
     const state: CollectionsListState = {
-        createItemId: dialogs.createItemId,
-        hoveredCollectionIdRef,
-        hoveredCollectionSourceRef,
-        isCreateOpen: dialogs.isCreateOpen,
         pendingDeleteId: dialogs.pendingDeleteId,
         pendingPriorityComboboxOpen: rowActions.pendingPriorityComboboxOpen,
         pendingRenameId: dialogs.pendingRenameId,
@@ -2356,7 +2415,6 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
         onRename: dialogs.requestRename,
         onUpdatePriority: rowActions.onUpdatePriority,
         openCreateDialog: dialogs.openCreateDialog,
-        setHoveredCollectionSource,
         setPendingPriorityComboboxOpen:
             rowActions.setPendingPriorityComboboxOpen,
         syncCreated: syncCollectionCreated,
@@ -2364,12 +2422,20 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
         syncName: syncCollectionName,
     };
 
+    const hoverContextValue: CollectionsListHoverContextValue = {
+        hoveredCollectionIdRef,
+        hoveredCollectionSourceRef,
+        setHoveredCollectionSource,
+    };
+
     return (
-        <CollectionsListStateContext value={state}>
-            <CollectionsListActionsContext value={actions}>
-                {children}
-            </CollectionsListActionsContext>
-        </CollectionsListStateContext>
+        <CollectionsListHoverContext value={hoverContextValue}>
+            <CollectionsListStateContext value={state}>
+                <CollectionsListActionsContext value={actions}>
+                    {children}
+                </CollectionsListActionsContext>
+            </CollectionsListStateContext>
+        </CollectionsListHoverContext>
     );
 }
 
@@ -2563,6 +2629,7 @@ function CollectionsThumbnailCell({
             {...props}
             alt={alt}
             className={cn("size-full object-cover", className)}
+            decoding="async"
             draggable={false}
             height={160}
             loading="lazy"
@@ -3577,8 +3644,8 @@ function CollectionsListItem({
     ...props
 }: CollectionsListItemProps) {
     const { selectedCollectionIdSet } = useCollectionsContext();
-    const { hoveredCollectionIdRef } = useCollectionsListState();
-    const { setHoveredCollectionSource } = useCollectionsListActions();
+    const { hoveredCollectionIdRef, setHoveredCollectionSource } =
+        useCollectionsListHover();
 
     const isSelected = selectedCollectionIdSet.has(collection.id);
     const style = getCollectionItemStyle(collection.name, isSelected);
@@ -3928,11 +3995,9 @@ function CollectionsListItemPriorityCombobox() {
 
 function CollectionsListItemShareSubMenu() {
     const { collection } = useCollectionsListItemContext();
-    const {
-        claimCollectionAction,
-        isCollectionActionPending,
-        syncCollectionShare,
-    } = useCollectionsContext();
+    const { claimCollectionAction, isCollectionActionPending } =
+        useCollectionsPendingActions();
+    const { syncCollectionShare } = useCollectionsContext();
     const { setFeedback } = useCollectionsListStateStore();
     const { showError, showSuccess } = useCollectionFeedbackWriter();
     const ensureAccess = useCollectionAccessGate();
@@ -4090,7 +4155,7 @@ function CollectionsListItemExportSubMenu() {
         useCollectionsListActions();
     const { collection } = useCollectionsListItemContext();
     const { claimCollectionAction, isCollectionActionPending } =
-        useCollectionsContext();
+        useCollectionsPendingActions();
     const { setFeedback } = useCollectionsListStateStore();
     const { showError, showSuccess } = useCollectionFeedbackWriter();
     const ensureAccess = useCollectionAccessGate();
@@ -4351,7 +4416,7 @@ function CollectionsListItemMetadata({
 }
 
 function CollectionsCreateDialog() {
-    const { createItemId, isCreateOpen } = useCollectionsListState();
+    const { createItemId, isCreateOpen } = useCollectionsCreateDialogState();
     const { showSuccess } = useCollectionFeedbackWriter();
     const { closeCreateDialog, createSubmissionPendingRef, syncCreated } =
         useCollectionsListActions();

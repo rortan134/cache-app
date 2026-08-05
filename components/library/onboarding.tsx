@@ -3,6 +3,7 @@
 import {
     shareCollectionPubliclySafely,
     useCollectionsContext,
+    useCollectionsPendingActions,
     useLibraryItemsContext,
 } from "@/components/library/collections";
 import { useIntegrationsListStore } from "@/components/library/integrations";
@@ -207,12 +208,9 @@ export function OnboardingMenu({
 }: OnboardingMenuProps) {
     const gt = useGT();
 
-    const {
-        claimCollectionAction,
-        collections,
-        isCollectionActionPending,
-        syncCollectionShare,
-    } = useCollectionsContext();
+    const { claimCollectionAction, isCollectionActionPending } =
+        useCollectionsPendingActions();
+    const { collections, syncCollectionShare } = useCollectionsContext();
     const { items } = useLibraryItemsContext();
     const { setOpen: setIsSidebarOpen } = useSidebar();
     const { copyToClipboard } = useCopyToClipboard();
