@@ -2270,15 +2270,15 @@ export function CollectionsProvider({
 }
 
 function CollectionsListProvider({ children }: React.PropsWithChildren) {
-    const hoveredCollectionIdRef = React.useRef<string | null>(null);
-    const hoveredCollectionSourceRef =
-        React.useRef<CollectionListSource | null>(null);
-
     const { syncCollectionCreated, syncCollectionDeleted, syncCollectionName } =
         useCollectionsContext();
     const { setFavoriteCollectionIds } = useCollectionsListStateStore();
     const dialogs = useCollectionDialogRequests();
     const rowActions = useCollectionRowActions();
+
+    const hoveredCollectionIdRef = React.useRef<string | null>(null);
+    const hoveredCollectionSourceRef =
+        React.useRef<CollectionListSource | null>(null);
 
     const syncDeleted = useStableCallback((collectionId: string) => {
         syncCollectionDeleted(collectionId);
@@ -2296,6 +2296,19 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
             hoveredCollectionSourceRef.current = source;
         }
     );
+
+    useCollectionHoverHotkeys({
+        hoveredCollectionIdRef,
+        hoveredCollectionSourceRef,
+        onCopyLinks: rowActions.onCopyLinks,
+        onUpdatePriority: rowActions.onUpdatePriority,
+        requestDelete: dialogs.requestDelete,
+        requestRename: dialogs.requestRename,
+        setPendingPriorityComboboxOpen:
+            rowActions.setPendingPriorityComboboxOpen,
+    });
+
+    useCollectionPanelHotkeys();
 
     React.useEffect(() => {
         const clearStaleCollectionHover = () => {
@@ -2318,19 +2331,6 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
             );
         };
     }, []);
-
-    useCollectionHoverHotkeys({
-        hoveredCollectionIdRef,
-        hoveredCollectionSourceRef,
-        onCopyLinks: rowActions.onCopyLinks,
-        onUpdatePriority: rowActions.onUpdatePriority,
-        requestDelete: dialogs.requestDelete,
-        requestRename: dialogs.requestRename,
-        setPendingPriorityComboboxOpen:
-            rowActions.setPendingPriorityComboboxOpen,
-    });
-
-    useCollectionPanelHotkeys();
 
     const state: CollectionsListState = {
         createItemId: dialogs.createItemId,
@@ -3583,10 +3583,10 @@ function CollectionsListItem({
     const isSelected = selectedCollectionIdSet.has(collection.id);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
+    const hoverClaimIdRef = React.useRef(0);
+
     const handleMouseEnter = useStableCallback(onMouseEnterProp);
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
-
-    const hoverClaimIdRef = React.useRef(0);
 
     const releaseHoverClaim = useStableCallback(() => {
         releaseCollectionHoverHotkeySurface(hoverClaimIdRef.current);
@@ -3596,8 +3596,6 @@ function CollectionsListItem({
             setHoveredCollectionSource(null);
         }
     });
-
-    React.useEffect(() => releaseHoverClaim, [releaseHoverClaim]);
 
     const onMouseEnter = useStableCallback(
         (event: React.MouseEvent<HTMLDivElement>) => {
@@ -3614,6 +3612,8 @@ function CollectionsListItem({
             handleMouseLeave?.(event);
         }
     );
+
+    React.useEffect(() => releaseHoverClaim, [releaseHoverClaim]);
 
     return (
         <CollectionsListItemContext value={{ collection, isSelected, source }}>
@@ -4204,6 +4204,7 @@ function CollectionsListItemMetadata({
     const { collection } = useCollectionsListItemContext();
     const isFavorite = favoriteCollectionIdSet.has(collection.id);
     const isArchived = collection.priority === "archive";
+    const updatedAt = dayjs(collection.updatedAt);
 
     const handleRename = useStableCallback(() => onRename(collection));
     const handleDelete = useStableCallback(() => onDelete(collection));
@@ -4217,8 +4218,6 @@ function CollectionsListItemMetadata({
             getToggledArchivePriority(collection.priority)
         )
     );
-
-    const updatedAt = dayjs(collection.updatedAt);
 
     return (
         <div className="absolute top-1/2 right-0 flex size-9 -translate-y-1/2 items-center justify-center">
@@ -4361,6 +4360,10 @@ function CollectionsCreateDialog() {
     const [isSubmitting, startCreate] = React.useTransition();
     const [isDescriptionTransitionPending, startDescription] =
         React.useTransition();
+    const nameInputId = React.useId();
+    const errorId = React.useId();
+    const descriptionInputId = React.useId();
+    const descriptionErrorId = React.useId();
 
     const [formState, setFormState] = React.useState(INITIAL_CREATE_FORM_STATE);
     const descriptionRequestVersionRef = React.useRef(0);
@@ -4368,14 +4371,6 @@ function CollectionsCreateDialog() {
         null
     );
     const descriptionSubmissionPendingRef = React.useRef(false);
-
-    // Reset before paint so reopening never shows the previous draft.
-    useIsoLayoutEffect(() => {
-        if (isCreateOpen) {
-            descriptionRequestVersionRef.current += 1;
-            setFormState(INITIAL_CREATE_FORM_STATE);
-        }
-    }, [isCreateOpen]);
 
     const {
         descriptionDraft,
@@ -4388,10 +4383,6 @@ function CollectionsCreateDialog() {
         activeDescriptionRequestVersionRef.current ===
             descriptionRequestVersionRef.current;
     const isNameValid = normalizeWhitespace(nameDraft).length > 0;
-    const nameInputId = React.useId();
-    const errorId = React.useId();
-    const descriptionInputId = React.useId();
-    const descriptionErrorId = React.useId();
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         descriptionRequestVersionRef.current += 1;
@@ -4586,6 +4577,14 @@ function CollectionsCreateDialog() {
             });
         }
     );
+
+    // Reset before paint so reopening never shows the previous draft.
+    useIsoLayoutEffect(() => {
+        if (isCreateOpen) {
+            descriptionRequestVersionRef.current += 1;
+            setFormState(INITIAL_CREATE_FORM_STATE);
+        }
+    }, [isCreateOpen]);
 
     return (
         <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
@@ -4809,37 +4808,23 @@ function CollectionsCreateDialog() {
 function CollectionsRenameDialog() {
     const { collections } = useCollectionsContext();
     const { pendingRenameId } = useCollectionsListState();
+    const { showSuccess } = useCollectionFeedbackWriter();
+    const { closePendingRename, syncName } = useCollectionsListActions();
+
     const pendingRename =
         collections.find((collection) => collection.id === pendingRenameId) ??
         null;
-    const { showSuccess } = useCollectionFeedbackWriter();
-    const { closePendingRename, syncName } = useCollectionsListActions();
     const isOpen = pendingRename !== null;
-    const [isSubmitting, startRename] = React.useTransition();
-    const renameSubmissionPendingRef = React.useRef(false);
 
+    const inputId = React.useId();
+    const errorId = React.useId();
+    const [isSubmitting, startRename] = React.useTransition();
     const [nameDraft, setNameDraft] = React.useState(
         () => pendingRename?.name ?? ""
     );
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+    const renameSubmissionPendingRef = React.useRef(false);
     const renameTargetRef = React.useRef<LibraryCollectionSummary | null>(null);
-
-    // Sync draft before paint so the input never flashes empty on open.
-    useIsoLayoutEffect(() => {
-        if (!pendingRename) {
-            renameTargetRef.current = null;
-            return;
-        }
-        if (renameTargetRef.current?.id === pendingRename.id) {
-            return;
-        }
-        renameTargetRef.current = pendingRename;
-        setNameDraft(pendingRename.name);
-        setErrorMessage(null);
-    }, [pendingRename]);
-
-    const inputId = React.useId();
-    const errorId = React.useId();
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
@@ -4913,6 +4898,20 @@ function CollectionsRenameDialog() {
             handleSubmit();
         }
     );
+
+    // Sync draft before paint so the input never flashes empty on open.
+    useIsoLayoutEffect(() => {
+        if (!pendingRename) {
+            renameTargetRef.current = null;
+            return;
+        }
+        if (renameTargetRef.current?.id === pendingRename.id) {
+            return;
+        }
+        renameTargetRef.current = pendingRename;
+        setNameDraft(pendingRename.name);
+        setErrorMessage(null);
+    }, [pendingRename]);
 
     return (
         <Dialog onOpenChange={handleOpenChange} open={isOpen}>

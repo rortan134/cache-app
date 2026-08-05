@@ -22,9 +22,9 @@ import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T } from "gt-next";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import * as React from "react";
-import useSWR from "swr";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
+import useSWR from "swr";
 
 const QUICK_LOOK_BLOCKED_URL = "about:blank";
 const DEFAULT_QUICK_LOOK_TITLE = "Preview";
@@ -760,7 +760,7 @@ function QuickLookDrawerLoadingState() {
     return (
         <div
             aria-live="polite"
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-xs"
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-sm"
             role="status"
         >
             <Spinner className="size-5 text-muted-foreground" />
