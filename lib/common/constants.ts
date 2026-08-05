@@ -13,7 +13,7 @@ export const FOUNDING_DATE = new Date("2026-04-09T00:00:00.000Z");
 /** Shown after the page-specific title, e.g. "Settings | Cache App". */
 export const APP_NAME = "Cache App";
 
-export const SITE_DOMAIN = "www.cachd.app";
+export const SITE_DOMAIN = "cachd.app";
 
 export const CACHE_EXTENSION_ID = "fibhdcjlclheehonialdpealhemmoikn";
 export const CACHE_EXTENSION_DOWNLOAD_URL =
@@ -72,6 +72,12 @@ export const IMAGE_MIME_TYPES = {
     webp: "image/webp",
 } as const;
 
+export const VIDEO_MIME_TYPES = {
+    mov: "video/quicktime",
+    mp4: "video/mp4",
+    webm: "video/webm",
+} as const;
+
 export const STRING_MIME_TYPES = {
     csv: "text/csv",
     html: "text/html",
@@ -87,6 +93,8 @@ export const MIME_TYPES = {
     binary: "application/octet-stream",
     // image
     ...IMAGE_MIME_TYPES,
+    // video
+    ...VIDEO_MIME_TYPES,
 } as const;
 
 export const EXPORT_IMAGE_TYPES = {

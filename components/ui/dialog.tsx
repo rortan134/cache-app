@@ -7,6 +7,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { XIcon } from "lucide-react";
+import type * as React from "react";
 
 export const DialogCreateHandle: typeof DialogPrimitive.createHandle =
     DialogPrimitive.createHandle;
@@ -156,6 +157,20 @@ export function DialogDescription({
 
 export function DialogClose(props: DialogPrimitive.Close.Props) {
     return <DialogPrimitive.Close {...props} data-slot="dialog-close" />;
+}
+
+export function DialogFieldError({
+    className,
+    ...props
+}: React.ComponentProps<"p">) {
+    return (
+        <p
+            {...props}
+            aria-atomic="true"
+            className={cn("pt-2 text-destructive text-xs", className)}
+            role="alert"
+        />
+    );
 }
 
 function DialogBackdrop({

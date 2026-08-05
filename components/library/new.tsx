@@ -907,14 +907,14 @@ export function NoteRoot({
     const [prevOpen, setPrevOpen] = useState(isOpen);
     const [prevNote, setPrevNote] = useState(note);
 
-    if (isOpen !== prevOpen) {
+    if (!Object.is(isOpen, prevOpen)) {
         setPrevOpen(isOpen);
         if (isOpen) {
             resetDraft();
         }
     }
 
-    if (note !== prevNote) {
+    if (!Object.is(note, prevNote)) {
         setPrevNote(note);
         if (isOpen && isOpen === prevOpen) {
             syncDraftFromNote();

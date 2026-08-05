@@ -1115,6 +1115,10 @@ interface SectionDescriptionResult {
     rawSummary: string | undefined;
 }
 
+interface CollectionDescriptionResult {
+    rawDescription: string | undefined;
+}
+
 interface ExpandedSectionDescriptionResult {
     rawSummary: string | undefined;
 }
@@ -1200,6 +1204,44 @@ export async function generateSectionDescription(args: {
     );
 
     return { rawSummary: rawText };
+}
+
+export async function generateCollectionDescription(args: {
+    prompt: string;
+}): Promise<CollectionDescriptionResult> {
+    const rawText = await generateModelContent(
+        {
+            httpOptions: {
+                retryOptions: {
+                    attempts: SECTION_RETRY_ATTEMPTS,
+                },
+                timeout: SECTION_DESCRIPTION_TIMEOUT_MS,
+            },
+            logLabel: "generate-collection-description",
+            maxOutputTokens: SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT,
+            responseSchema: {
+                description:
+                    "A concise one-sentence description for a personal bookmark collection.",
+                properties: {
+                    description: {
+                        description:
+                            "One brief sentence describing what kind of saved content belongs in the collection. Plain text only, no markdown, no counts, no platform names, no quotes.",
+                        maxLength: String(
+                            SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH
+                        ),
+                        type: Type.STRING,
+                    },
+                },
+                required: ["description"],
+                type: Type.OBJECT,
+            },
+            systemInstruction:
+                "You write concise collection descriptions. Return plain text only, with no preamble. Never mention counts or platform names, and avoid stock lead-ins.",
+        },
+        args.prompt
+    );
+
+    return { rawDescription: rawText };
 }
 
 const SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS = 45_000;

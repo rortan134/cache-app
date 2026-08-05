@@ -91,18 +91,17 @@ Never show the empty state during the loading state. Loading indicators (skeleto
 
 ### File-Level Definition Order
 
-Make sure every component file follows the same vertical stack. Deviations are rare: a stateless pure helper may live above the component only when it is consumed by module-level stateless objects (step #4); helpers that close over component internals or any per-render value live below the types at the bottom (steps #9–#10).
+Make sure every component file follows the same vertical stack. Deviations are rare: a stateless pure helper may live above the component only when it is consumed by module-level stateless objects (step #4); helpers that close over component internals or any per-render value live below the types at the bottom (steps #8–#9).
 
 1. Imports
 2. Module-level constants (UPPER_SNAKE_CASE)
-3. Module-level types/interfaces needed by the component (e.g., TouchScrollState)
+3. Module-level types/interfaces that are not component props or state (e.g., TouchScrollState)
 4. Module-level stateless objects (e.g., stateAttributesMapping)
 5. Module-level pure helper functions used by #4 (if any)
-6. Component definition (export const Component = forwardRef(function Component(...)))
-7. Prop / State interfaces (export interface ComponentProps ...)
-8. Namespace block (export namespace Component { ... })
-9. Private helper functions used only by the component
-10. Private sub-components used only by the component
+6. Component prop/state interfaces (export interface ComponentProps ...)
+7. Component definition (export const Component = forwardRef(function Component(...)))
+8. Private helper functions used only by the component
+9. Private sub-components used only by the component
 
 ### Component Body: Internal Ordering
 

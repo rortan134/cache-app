@@ -6,6 +6,18 @@ import {
 } from "@/components/billing/paywall";
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
+    buildCollectionItemIndexes,
+    CollectionsProvider,
+    LibraryItemsContext,
+    mergeImportedItems,
+    NAME_COLLATOR,
+    reconcileCollectionTags,
+    replaceMultipleItemCollections,
+    sortCollections,
+    useCollectionsContext,
+    type LibraryItemsContextValue,
+} from "@/components/library/collections";
+import {
     Composer,
     ComposerActionMetrics,
     ComposerActionNew,
@@ -34,11 +46,6 @@ import {
     QuickLookDrawerSurface,
     QuickLookDrawerTrigger,
 } from "@/components/library/quick-look";
-import {
-    NAME_COLLATOR,
-    OpenFavoriteItemRefContext,
-    useWorkspaceContext,
-} from "@/components/library/workspace";
 import {
     Attachment,
     AttachmentInfo,
@@ -71,9 +78,14 @@ import {
 } from "@/components/ui/combobox";
 import {
     ContextMenu,
+    ContextMenuGroup,
+    ContextMenuGroupLabel,
     ContextMenuItem,
     ContextMenuPopup,
     ContextMenuSeparator,
+    ContextMenuSub,
+    ContextMenuSubPopup,
+    ContextMenuSubTrigger,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
@@ -125,14 +137,21 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useLastVisited } from "@/hooks/use-last-visited";
 import { useSearchHistory } from "@/hooks/use-search-history";
-import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
-import { downloadMedia } from "@/lib/collections/actions";
+import {
+    createCollectionFromItems,
+    downloadMedia,
+    type CollectionCreateFromItemsResult,
+} from "@/lib/collections/actions";
 import {
     deleteLibraryItem,
     deleteLibraryItems,
     probeLibraryItemsReachabilityAction,
+    toggleLibraryItemFavorite,
+    updateLibraryItemCollections,
+    updateLibraryItemsCollections,
     type LibraryItemCollectionsUpdateResult,
     type LibraryItemDeleteResult,
+    type LibraryItemFavoriteToggleResult,
     type LibraryItemsCollectionsUpdateResult,
     type LibraryItemsDeleteResult,
     type LibraryItemsReachabilityProbeResult,
@@ -148,13 +167,14 @@ import {
 } from "@/lib/collections/library-quality";
 import { buildLibraryMetrics } from "@/lib/collections/metrics";
 import {
+    buildItemsCsv,
     isRecentlySmartCollected,
     itemPreviewImageUrl,
     itemPreviewVideoUrl,
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { removeValue, toggleValue } from "@/lib/common/arrays";
+import { removeValue, toggleValue, updateById } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import {
@@ -190,7 +210,6 @@ import {
     type PreviewDimensions,
 } from "@/lib/common/preview-dimensions";
 import {
-    escapeCsv,
     getNoteExcerpt,
     normalizeWhitespace,
     slugify,
@@ -238,6 +257,7 @@ import type {
     BaseUIEvent,
 } from "@base-ui/react";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T, useGT, Var } from "gt-next";
@@ -288,15 +308,20 @@ import useSWR from "swr";
 
 const log = createLogger("library:browser");
 
-const CSV_HEADERS = [
-    "Section",
-    "Caption",
-    "URL",
-    "Source",
-    "Kind",
-    "Saved At",
-    "Posted At",
-] as const;
+const SQUIRCLE_PATH_D = "M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9";
+
+const UNSPECIFIC_LIBRARY_DOMAIN = "Other";
+
+const COBALT_SOURCES = new Set<LibraryItemSource>([
+    LibraryItemSource.google_photos,
+    LibraryItemSource.instagram,
+    LibraryItemSource.pinterest,
+    LibraryItemSource.tiktok,
+    LibraryItemSource.x_bookmarks,
+    LibraryItemSource.youtube_watch_later,
+]);
+
+const MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000;
 
 const SUGGESTION_LIMIT = 3;
 const SUGGESTION_ICON_CLASS = "size-3.5 shrink-0";
@@ -391,7 +416,8 @@ function buildCommandSuggestions({
             );
         }
         sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
-        const domain = itemDomain(item.url);
+
+        const domain = getLibraryItemDomain(item.url);
         domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
         addedMonthKeys.add(itemMonthKey(item, "added"));
         createdMonthKeys.add(itemMonthKey(item, "created"));
@@ -800,7 +826,7 @@ function buildSectionDescriptionContextItem(
 ): SectionDescriptionContextItem {
     const title =
         normalizeSectionDescriptionText(
-            getItemTitle(item),
+            getLibraryItemTitle(item),
             SECTION_DESCRIPTION_TITLE_MAX_LENGTH
         ) || "Untitled";
 
@@ -815,7 +841,7 @@ function buildSectionDescriptionContextItem(
     const primaryText =
         noteExcerpt ??
         (normalizeSectionDescriptionText(
-            itemPrimaryText(item),
+            getLibraryItemPrimaryText(item),
             SECTION_DESCRIPTION_TEXT_MAX_LENGTH
         ) ||
             title);
@@ -832,7 +858,7 @@ function buildSectionDescriptionContextItem(
         item.kind === "note"
             ? undefined
             : normalizeSectionDescriptionText(
-                  itemDomain(item.url),
+                  getLibraryItemDomain(item.url),
                   SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH
               ) || undefined;
 
@@ -854,10 +880,6 @@ function buildSectionDescriptionContextItem(
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const COMBOBOX_ESCAPE_KEY_REASON = "escape-key";
 const ALL_DOMAIN_FILTER = "__all_domains__";
-const UNSPECIFIC_DOMAIN_FILTER = "Other";
-
-/** Lucide squircle path; pathLength=1 lets the smart-collections stroke cue travel the perimeter. */
-const SQUIRCLE_PATH_D = "M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9";
 
 const SEARCH_HOTKEYS = [
     "ctrl+g",
@@ -936,15 +958,6 @@ const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
 
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
-
-const COBALT_SOURCES = new Set<LibraryItemSource>([
-    LibraryItemSource.google_photos,
-    LibraryItemSource.instagram,
-    LibraryItemSource.pinterest,
-    LibraryItemSource.tiktok,
-    LibraryItemSource.x_bookmarks,
-    LibraryItemSource.youtube_watch_later,
-]);
 
 const DOMAIN_RELATED_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.chrome_bookmarks,
@@ -1074,29 +1087,6 @@ type AskCacheResponseState =
           status: "error";
       };
 
-function itemDomain(url: string): string {
-    return parseDisplayUrl(url) || UNSPECIFIC_DOMAIN_FILTER;
-}
-
-function buildBrowserSectionCsv(
-    sectionTitle: string,
-    items: LibraryItemWithCollections[]
-): string {
-    const rows = items.map((item) => [
-        sectionTitle,
-        item.caption ?? "",
-        normalizeURL(item.url),
-        item.source,
-        item.kind,
-        item.createdAt.toISOString(),
-        item.postedAt?.toISOString() ?? "",
-    ]);
-
-    return [CSV_HEADERS, ...rows]
-        .map((row) => row.map(escapeCsv).join(","))
-        .join("\n");
-}
-
 function getBrowserSectionExportFileName(sectionTitle: string): string {
     const slug = slugify(sectionTitle);
     return slug.length > 0 ? `${slug}-links` : "results-links";
@@ -1146,7 +1136,7 @@ function getItemGroupKey(
         return item.source;
     }
     if (groupBy === "domain") {
-        return itemDomain(item.url);
+        return getLibraryItemDomain(item.url);
     }
     if (groupBy === "canonical-url") {
         return itemCanonicalGroupKey(item);
@@ -1163,7 +1153,7 @@ function getItemGroupKey(
     if (groupBy === "year-created") {
         return itemYearKey(item, "created");
     }
-    return UNSPECIFIC_DOMAIN_FILTER;
+    return UNSPECIFIC_LIBRARY_DOMAIN;
 }
 
 function getGroupCount(
@@ -1190,14 +1180,6 @@ function getGroupCount(
     }
 
     return new Set(items.map((item) => getItemGroupKey(item, groupBy))).size;
-}
-
-function itemPrimaryText(item: LibraryItemWithCollections): string {
-    if (item.kind === "note") {
-        return item.noteContentText?.trim() || "Untitled note";
-    }
-    const caption = item.caption?.trim();
-    return caption && caption.length > 0 ? caption : item.url;
 }
 
 /**
@@ -1300,7 +1282,10 @@ function compareItemsByPrimaryText(
     a: LibraryItemWithCollections,
     b: LibraryItemWithCollections
 ): number {
-    return NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b));
+    return NAME_COLLATOR.compare(
+        getLibraryItemPrimaryText(a),
+        getLibraryItemPrimaryText(b)
+    );
 }
 
 function compareItems(
@@ -1331,7 +1316,10 @@ function compareItems(
                 sourceLabel(b.source)
             );
         }
-        return NAME_COLLATOR.compare(itemDomain(a.url), itemDomain(b.url));
+        return NAME_COLLATOR.compare(
+            getLibraryItemDomain(a.url),
+            getLibraryItemDomain(b.url)
+        );
     })();
 
     return primary || compareItemsByPrimaryText(a, b);
@@ -1805,11 +1793,10 @@ function PaletteChip({
     });
 
     return (
-        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
+        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
             <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
-                className="rounded-full"
                 onClick={handleRemove}
                 size="icon-xs"
                 variant="ghost"
@@ -1917,18 +1904,15 @@ function PaletteAttachmentChip({
                 <AttachmentPreviewCardTrigger
                     render={
                         <Attachment
-                            className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
+                            className="max-w-[min(100%,12rem)] border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
                             data={attachment}
                             onRemove={handleRemove}
                         />
                     }
                 >
-                    <AttachmentPreview className="size-4 rounded-full bg-transparent" />
+                    <AttachmentPreview className="size-4 bg-transparent" />
                     <AttachmentInfo />
-                    <AttachmentRemove
-                        className="rounded-full opacity-100"
-                        size="icon-xs"
-                    >
+                    <AttachmentRemove className="opacity-100" size="icon-xs">
                         <XIcon className="size-3.5! shrink-0" />
                     </AttachmentRemove>
                 </AttachmentPreviewCardTrigger>
@@ -1964,41 +1948,14 @@ function PaletteAttachmentChip({
     );
 }
 
-const LibraryGridCardContext =
-    React.createContext<LibraryGridCardContextValue | null>(null);
-
-function useLibraryGridCardContext(): LibraryGridCardContextValue {
-    const context = React.use(LibraryGridCardContext);
-    if (!context) {
-        throw new Error(
-            "LibraryGridCard components must be used inside <LibraryGridCardProvider>."
-        );
-    }
-    return context;
-}
-
-interface BrowserResultsContextValue {
+interface BrowserContextValue {
     clearLibraryPalette: () => void;
     collapsedSectionKeys: Set<string>;
     collections: LibraryCollectionSummary[];
     columnCount?: number;
     enableSectionCollapse: boolean;
     favoriteItemIdSet: ReadonlySet<string>;
-    /**
-     * Tracks the id of the grid card currently under the pointer so
-     * global hotkeys (e.g. `S` to open the collection picker, `⌥F` /
-     * `⌥E` / `⌘⌫` for card actions) can target the hovered card instead
-     * of requiring keyboard focus on the card, which is unreachable
-     * while the pointer is elsewhere. Mirrors the `hoveredCollectionRef`
-     * pattern used by the collections list. While a card's menu or
-     * context menu is open, the card keeps this id pinned so menu
-     * shortcut labels still work after the pointer moves into the popup.
-     */
     hoveredItemIdRef: React.RefObject<string | null>;
-    /**
-     * When non-null, a card menu/picker has claimed the hover target.
-     * Other cards must not overwrite `hoveredItemIdRef` until released.
-     */
     hoverPinnedItemIdRef: React.RefObject<string | null>;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItemWithCollections) => void;
@@ -2018,22 +1975,6 @@ interface BrowserResultsContextValue {
         itemId: string,
         collectionIds: string[]
     ) => Promise<LibraryItemCollectionsUpdateResult>;
-    /**
-     * The id of the card whose collection picker is currently open, or
-     * `null` when no card picker is open. Driven externally so the
-     * global `S` hotkey can request the hovered card's picker to open
-     * without the card needing to handle the keydown itself (which only
-     * fires while the card has keyboard focus).
-     *
-     * This is the single source of truth for "which picker is open".
-     * A card's `CardCollectionPicker` receives `open = openPickerItemId === item.id`
-     * and reports closures back via `onOpenChange(false)`; treat that
-     * callback as best-effort close signaling. When the picker is
-     * closed by flipping `open` to `false` externally (e.g. another
-     * card's `S` press reassigns `openPickerItemId`), Base-UI does not
-     * dispatch `onOpenChange(false)` for the previously open card —
-     * which is fine because this state already reflects the new target.
-     */
     openPickerItemId: string | null;
     pendingDeleteItemId: string | null;
     setOpenPickerItemId: (id: string | null) => void;
@@ -2042,15 +1983,12 @@ interface BrowserResultsContextValue {
     shouldShowUnreachableProbePending: boolean;
 }
 
-const BrowserResultsContext =
-    React.createContext<BrowserResultsContextValue | null>(null);
+const BrowserContext = React.createContext<BrowserContextValue | null>(null);
 
-function useBrowserResultsContext(): BrowserResultsContextValue {
-    const context = React.use(BrowserResultsContext);
+function useBrowserContext(): BrowserContextValue {
+    const context = React.use(BrowserContext);
     if (!context) {
-        throw new Error(
-            "BrowserResults components must be used inside <BrowserResults>."
-        );
+        throw new Error("Browser components must be used inside BrowserRoot.");
     }
     return context;
 }
@@ -2078,17 +2016,6 @@ function useBrowserGroupContext(): BrowserGroupContextValue {
     return context;
 }
 
-function Browser({
-    children,
-    ...contextValue
-}: React.PropsWithChildren<BrowserResultsContextValue>) {
-    return (
-        <BrowserResultsContext value={contextValue}>
-            {children}
-        </BrowserResultsContext>
-    );
-}
-
 const BrowserEmptyCell = ({
     data,
     index,
@@ -2108,7 +2035,7 @@ const BrowserEmptyCell = ({
 };
 
 function BrowserEmpty() {
-    const { shouldShowEmptyLibraryPeek } = useBrowserResultsContext();
+    const { shouldShowEmptyLibraryPeek } = useBrowserContext();
 
     if (!shouldShowEmptyLibraryPeek) {
         return null;
@@ -2147,7 +2074,7 @@ function BrowserEmpty() {
 
 function BrowserEmptyWithFilters() {
     const { shouldShowNoFilteredResults, clearLibraryPalette } =
-        useBrowserResultsContext();
+        useBrowserContext();
 
     if (!shouldShowNoFilteredResults) {
         return null;
@@ -2166,7 +2093,7 @@ function BrowserEmptyWithFilters() {
 }
 
 function BrowserUnreachableProbePending() {
-    const { shouldShowUnreachableProbePending } = useBrowserResultsContext();
+    const { shouldShowUnreachableProbePending } = useBrowserContext();
 
     if (!shouldShowUnreachableProbePending) {
         return null;
@@ -2200,8 +2127,7 @@ function BrowserGroupProvider({
     children,
     section,
 }: React.PropsWithChildren<{ section: BrowserGroup }>) {
-    const { collapsedSectionKeys, onToggleSection } =
-        useBrowserResultsContext();
+    const { collapsedSectionKeys, onToggleSection } = useBrowserContext();
 
     return (
         <BrowserGroupContext
@@ -2228,7 +2154,7 @@ function BrowserGroupHeader() {
         onExportSectionResults,
         onExpandAllSections,
         onCollapseAllSections,
-    } = useBrowserResultsContext();
+    } = useBrowserContext();
 
     const hasItems = group.items.length > 0;
     const canCreateCollectionFromResults =
@@ -2543,62 +2469,47 @@ function BrowserGroupAIOverviewContent() {
     );
 }
 
-interface BrowserMansonryProps {
+const getBrowserMasonryItemKey = (item: LibraryItemWithCollections) => item.id;
+
+interface BrowserMasonryProps {
     children: (
-        item: LibraryItemWithCollections,
+        data: LibraryItemWithCollections,
         index: number
     ) => React.ReactNode;
 }
 
-const BrowserMasonryContext = React.createContext<
-    | ((item: LibraryItemWithCollections, index: number) => React.ReactNode)
-    | null
->(null);
-
-const BrowserMasonryCell = ({
-    data,
-    index,
-}: MasonryRenderComponentProps<LibraryItemWithCollections>) => {
-    const children = React.use(BrowserMasonryContext);
-    if (!children) {
-        return null;
-    }
-    return children(data, index);
-};
-
-const getBrowserMasonryItemKey = (item: LibraryItemWithCollections) => item.id;
-
-function BrowserMasonry({ children }: BrowserMansonryProps) {
+function BrowserMasonry({ children }: BrowserMasonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
-    const { columnCount } = useBrowserResultsContext();
-    const { state: sidebarState } = useSidebar();
-    const sidebarStateDeferred = useDebouncedValue(sidebarState, 300);
-
-    if (collapsed || items.length === 0) {
-        return null;
-    }
-
-    return (
-        <BrowserMasonryContext value={children}>
-            <Masonry
-                columnCount={columnCount}
-                columnGutter={16}
-                itemAs="article"
-                itemKey={getBrowserMasonryItemKey}
-                itemStyle={{ contain: "layout style" }}
-                items={items}
-                key={`${sidebarStateDeferred}-${items.length}`}
-                maxColumnCount={7}
-                render={BrowserMasonryCell}
-                rowGutter={16}
-                tabIndex={-1}
-            />
-        </BrowserMasonryContext>
-    );
-}
-
-function BrowserCardProvider({ children }: React.PropsWithChildren) {
     const {
+        collections,
+        columnCount,
+        favoriteItemIdSet,
+        hoveredItemIdRef,
+        hoverPinnedItemIdRef,
+        onCopyLink,
+        onDelete,
+        onFindSimilar,
+        onItemFavoriteToggle,
+        onOpenInNewTab,
+        onOpenNote,
+        onUpdateItemCollections,
+        openPickerItemId,
+        pendingDeleteItemId,
+        setOpenPickerItemId,
+    } = useBrowserContext();
+    const { state: sidebarState } = useSidebar();
+    const sidebarStateDeferred = useDebouncedValue(sidebarState, 400);
+
+    const renderMasonryItem = React.useCallback(
+        ({
+            data,
+            index,
+        }: MasonryRenderComponentProps<LibraryItemWithCollections>) =>
+            children(data, index),
+        [children]
+    );
+
+    const value: MediaCardEnvironment = {
         collections,
         favoriteItemIdSet,
         hoveredItemIdRef,
@@ -2613,37 +2524,41 @@ function BrowserCardProvider({ children }: React.PropsWithChildren) {
         openPickerItemId,
         pendingDeleteItemId,
         setOpenPickerItemId,
-    } = useBrowserResultsContext();
+    };
+
+    if (collapsed || items.length === 0) {
+        return null;
+    }
 
     return (
-        <LibraryGridCardContext
-            value={{
-                collections,
-                favoriteItemIdSet,
-                hoveredItemIdRef,
-                hoverPinnedItemIdRef,
-                onCopyLink,
-                onDelete,
-                onFindSimilar,
-                onItemFavoriteToggle,
-                onOpenInNewTab,
-                onOpenNote,
-                onUpdateItemCollections,
-                openPickerItemId,
-                pendingDeleteItemId,
-                setOpenPickerItemId,
-            }}
-        >
-            {children}
-        </LibraryGridCardContext>
+        <MediaCardEnvironmentContext value={value}>
+            <Masonry
+                columnCount={columnCount}
+                columnGutter={16}
+                itemAs="article"
+                itemKey={getBrowserMasonryItemKey}
+                itemStyle={{ contain: "layout style" }}
+                items={items}
+                key={`${sidebarStateDeferred}-${items.length}`}
+                maxColumnCount={7}
+                render={renderMasonryItem}
+                rowGutter={16}
+                scrollFps={16}
+                tabIndex={-1}
+            />
+        </MediaCardEnvironmentContext>
     );
 }
 
-function BrowserGroup({ children }: React.PropsWithChildren) {
+function BrowserGroup({
+    className,
+    ...props
+}: React.ComponentProps<"section">) {
     return (
-        <section className="flex w-full flex-col gap-3">
-            <BrowserCardProvider>{children}</BrowserCardProvider>
-        </section>
+        <section
+            {...props}
+            className={cn("flex w-full flex-col gap-3", className)}
+        />
     );
 }
 
@@ -2655,7 +2570,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
 
     // Reset the error cursor when the candidate list changes so a prior
     // load failure does not permanently hide a newly valid thumbnail.
-    if (urlsKey !== prevUrlsKey) {
+    if (!Object.is(urlsKey, prevUrlsKey)) {
         setPrevUrlsKey(urlsKey);
         setErrorCount(0);
     }
@@ -2678,7 +2593,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
             draggable="false"
             fetchPriority="high"
             height={104}
-            loading="eager"
+            loading="lazy"
             onError={handleImageError}
             src={src}
             width={140}
@@ -3044,7 +2959,7 @@ function buildDomainPaletteOptions(
 ): { itemCount: number; label: string; value: string }[] {
     const counts = new Map<string, number>();
     for (const item of items) {
-        const domain = itemDomain(item.url);
+        const domain = getLibraryItemDomain(item.url);
         counts.set(domain, (counts.get(domain) ?? 0) + 1);
     }
 
@@ -3466,7 +3381,9 @@ function filterCommandItems(
 
     if (input.domainFilters.length > 0) {
         const domainFilterSet = new Set(input.domainFilters);
-        list = list.filter((item) => domainFilterSet.has(itemDomain(item.url)));
+        list = list.filter((item) =>
+            domainFilterSet.has(getLibraryItemDomain(item.url))
+        );
     }
 
     return list;
@@ -3636,7 +3553,7 @@ function useSectionCollapseState({
     const [prevSectionKeySignature, setPrevSectionKeySignature] =
         React.useState(sectionKeySignature);
 
-    if (sectionKeySignature !== prevSectionKeySignature) {
+    if (!Object.is(sectionKeySignature, prevSectionKeySignature)) {
         setPrevSectionKeySignature(sectionKeySignature);
         const validKeys = new Set(groups.map((section) => section.key));
         setCollapsedSectionKeys((current) => {
@@ -3648,7 +3565,7 @@ function useSectionCollapseState({
     const [prevEnableSectionCollapse, setPrevEnableSectionCollapse] =
         React.useState(enableSectionCollapse);
 
-    if (prevEnableSectionCollapse !== enableSectionCollapse) {
+    if (!Object.is(prevEnableSectionCollapse, enableSectionCollapse)) {
         setPrevEnableSectionCollapse(enableSectionCollapse);
         if (!enableSectionCollapse) {
             setCollapsedSectionKeys((current) =>
@@ -3684,21 +3601,15 @@ function useSectionCollapseState({
 
 interface LibraryProps {
     connectedIntegrationCount: number;
+    initialCollections: LibraryCollectionSummary[];
+    initialItems: LibraryItemWithCollections[];
     lockedItemCount: number;
     totalItemCount: number;
 }
 
 function useLibraryItemActions(args: {
-    onDeleteSuccess?: (result: {
-        collectionSummaries: LibraryCollectionSummary[];
-    }) => void;
-    setVisibleItems: (
-        value:
-            | LibraryItemWithCollections[]
-            | ((
-                  current: LibraryItemWithCollections[]
-              ) => LibraryItemWithCollections[])
-    ) => void;
+    onDeleteSuccess?: (collectionSummaries: LibraryCollectionSummary[]) => void;
+    removeItems: (itemIds: string[]) => void;
 }) {
     const [pendingDeleteItem, setPendingDeleteItem] =
         React.useState<LibraryItemWithCollections | null>(null);
@@ -3750,10 +3661,8 @@ function useLibraryItemActions(args: {
             }
 
             if (result.status === ACTION_STATUS.DELETED) {
-                args.setVisibleItems((current) =>
-                    current.filter((item) => item.id !== result.itemId)
-                );
-                args.onDeleteSuccess?.(result);
+                args.removeItems([result.itemId]);
+                args.onDeleteSuccess?.(result.collectionSummaries);
             }
 
             if (pendingDeleteItem && pendingDeleteItem.id === targetItemId) {
@@ -3771,6 +3680,269 @@ function useLibraryItemActions(args: {
         isDeletePending,
         pendingDeleteItem,
     };
+}
+
+function getLibraryItemDomain(url: string): string {
+    return parseDisplayUrl(url) || UNSPECIFIC_LIBRARY_DOMAIN;
+}
+
+function getLibraryItemPrimaryText(item: LibraryItemWithCollections): string {
+    if (item.kind === ITEM_KIND_NOTE) {
+        return item.noteContentText?.trim() || "Untitled note";
+    }
+    const caption = item.caption?.trim();
+    return caption && caption.length > 0 ? caption : item.url;
+}
+
+function getLibraryItemTitle(item: LibraryItemWithCollections): string {
+    if (item.kind === ITEM_KIND_NOTE) {
+        return "";
+    }
+    const caption = item.caption?.trim();
+    if (caption) {
+        return caption;
+    }
+    return item.url;
+}
+
+interface CollectionComboboxPickerProps
+    extends React.ComponentProps<typeof ComboboxTrigger> {
+    collections: LibraryCollectionSummary[];
+    items: LibraryItemWithCollections[];
+    onOpenChange?: (open: boolean) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
+    onUpdateItemsCollections?: (input: {
+        itemIds: string[];
+        nextSharedCollectionIds: string[];
+        previousSharedCollectionIds: string[];
+    }) => Promise<LibraryItemsCollectionsUpdateResult>;
+    open?: boolean;
+    showSmartCollectionsIndicator?: boolean;
+}
+
+function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
+    if (items.length === 0) {
+        return [];
+    }
+
+    const [firstItem, ...remainingItems] = items;
+    const sharedCollectionIds = new Set(
+        firstItem?.collections.map((collection) => collection.id)
+    );
+
+    for (const item of remainingItems) {
+        const itemCollectionIds = new Set(
+            item.collections.map((collection) => collection.id)
+        );
+        for (const collectionId of [...sharedCollectionIds]) {
+            if (!itemCollectionIds.has(collectionId)) {
+                sharedCollectionIds.delete(collectionId);
+            }
+        }
+    }
+
+    return Array.from(sharedCollectionIds);
+}
+
+function SmartCollectionsSquircleIndicator() {
+    return (
+        <svg
+            aria-hidden="true"
+            className="size-4.5"
+            fill="none"
+            focusable="false"
+            role="img"
+            viewBox="0 0 24 24"
+        >
+            <path
+                d={SQUIRCLE_PATH_D}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+            />
+            <path
+                className="motion-safe:animate-smart-collections-indicator"
+                d={SQUIRCLE_PATH_D}
+                pathLength={1}
+            />
+        </svg>
+    );
+}
+
+function defaultCollectionTriggerIcon(
+    selectedCount: number,
+    shouldShowSmartCollectionsIndicator: boolean
+) {
+    if (selectedCount === 0) {
+        return <SquircleDashed aria-hidden className="size-4.5" />;
+    }
+    if (shouldShowSmartCollectionsIndicator) {
+        return <SmartCollectionsSquircleIndicator />;
+    }
+    return <Squircle aria-hidden className="size-4.5" />;
+}
+
+function CollectionComboboxPicker({
+    collections,
+    items,
+    onUpdateItemsCollections,
+    onUpdateItemCollections,
+    open: openProp,
+    onOpenChange,
+    children,
+    render,
+    showSmartCollectionsIndicator = false,
+    ...props
+}: CollectionComboboxPickerProps) {
+    const [isOpenInternal, setIsOpenInternal] = React.useState(false);
+    const isOpen = openProp ?? isOpenInternal;
+    const setIsOpen = onOpenChange ?? setIsOpenInternal;
+    const selectedCollectionIds = getSharedCollectionIds(items);
+    const selectedCount = selectedCollectionIds.length;
+    const shouldShowSmartCollectionsIndicator =
+        showSmartCollectionsIndicator && selectedCount > 0;
+
+    const handleValueChange = useStableCallback((nextIds: string[]) => {
+        const nextCollectionIds = [...nextIds];
+
+        if (items.length === 1) {
+            const [item] = items;
+            if (!item) {
+                return;
+            }
+            onUpdateItemCollections(item.id, nextCollectionIds).catch(
+                (error: unknown) => {
+                    log.error("Failed to update item collections", error, {
+                        itemId: item.id,
+                    });
+                }
+            );
+            return;
+        }
+
+        if (!onUpdateItemsCollections) {
+            throw new Error(
+                "Bulk collection updates require onUpdateItemsCollections."
+            );
+        }
+
+        onUpdateItemsCollections({
+            itemIds: items.map((item) => item.id),
+            nextSharedCollectionIds: nextCollectionIds,
+            previousSharedCollectionIds: selectedCollectionIds,
+        }).catch((error: unknown) => {
+            log.error("Failed to update item collections", error, {
+                itemIds: items.map((item) => item.id),
+            });
+        });
+    });
+
+    let defaultTriggerAriaLabel = "Add to collections";
+    if (shouldShowSmartCollectionsIndicator) {
+        defaultTriggerAriaLabel = "Smart Collections just organized this";
+    } else if (selectedCount > 0) {
+        defaultTriggerAriaLabel = `Edit collections (${selectedCount} selected)`;
+    }
+
+    return (
+        <Combobox
+            autoHighlight
+            items={collections}
+            multiple
+            onOpenChange={setIsOpen}
+            onValueChange={handleValueChange}
+            open={isOpen}
+            value={selectedCollectionIds}
+        >
+            <ComboboxTrigger
+                {...props}
+                render={
+                    render ?? (
+                        <Button
+                            aria-label={defaultTriggerAriaLabel}
+                            size="icon-sm"
+                            variant="ghost"
+                        />
+                    )
+                }
+            >
+                {children ??
+                    defaultCollectionTriggerIcon(
+                        selectedCount,
+                        shouldShowSmartCollectionsIndicator
+                    )}
+            </ComboboxTrigger>
+            <ComboboxPopup>
+                <ComboboxInput
+                    endAddon={<Kbd>S</Kbd>}
+                    placeholder="Assign collections..."
+                />
+                <ComboboxEmpty>No matching collections</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(collection) => (
+                            <ComboboxItem
+                                className="group/item"
+                                key={collection.id}
+                                value={collection.id}
+                            >
+                                <div className="flex max-w-56 items-center justify-between gap-3">
+                                    <span className="min-w-0 max-w-full flex-1 truncate text-foreground text-sm">
+                                        {collection.name}
+                                    </span>
+                                    <div className="relative flex w-fit items-center justify-end pl-4">
+                                        <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-0">
+                                            {collection.itemCount}
+                                        </span>
+                                        <span className="absolute right-0 shrink-0 text-nowrap text-muted-foreground text-xs opacity-0 transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-100">
+                                            Save
+                                        </span>
+                                    </div>
+                                </div>
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
+    );
+}
+
+interface MediaCardEnvironment {
+    collections: LibraryCollectionSummary[];
+    favoriteItemIdSet: ReadonlySet<string>;
+    hoveredItemIdRef: React.RefObject<string | null>;
+    hoverPinnedItemIdRef: React.RefObject<string | null>;
+    onCopyLink: (item: LibraryItemWithCollections) => void;
+    onDelete: (item: LibraryItemWithCollections) => void;
+    onFindSimilar: (item: LibraryItemWithCollections) => void;
+    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
+    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
+    onOpenNote: (item: LibraryItemWithCollections) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
+    openPickerItemId: string | null;
+    pendingDeleteItemId: string | null;
+    setOpenPickerItemId: (id: string | null) => void;
+}
+
+const MediaCardEnvironmentContext =
+    React.createContext<MediaCardEnvironment | null>(null);
+
+function useMediaCardEnvironment(): MediaCardEnvironment {
+    const environment = React.use(MediaCardEnvironmentContext);
+    if (!environment) {
+        throw new Error(
+            "MediaCard components must be used inside <MediaCardEnvironmentContext>."
+        );
+    }
+    return environment;
 }
 
 function MediaPreview({
@@ -3795,7 +3967,7 @@ function MediaPreview({
         );
     const [prevSrc, setPrevSrc] = React.useState(src);
 
-    if (src !== prevSrc) {
+    if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setHasImageFailed(false);
         setDimensions(readCachedPreviewDimensions(src));
@@ -4058,57 +4230,93 @@ function MediaPreview({
     );
 }
 
-type LibraryGridCardContextValue = Pick<
-    BrowserResultsContextValue,
-    | "collections"
-    | "favoriteItemIdSet"
-    | "hoveredItemIdRef"
-    | "hoverPinnedItemIdRef"
-    | "onCopyLink"
-    | "onDelete"
-    | "onFindSimilar"
-    | "onItemFavoriteToggle"
-    | "onOpenInNewTab"
-    | "onOpenNote"
-    | "onUpdateItemCollections"
-    | "openPickerItemId"
-    | "pendingDeleteItemId"
-    | "setOpenPickerItemId"
->;
-
-interface CollectionComboboxPickerProps
-    extends React.ComponentProps<typeof ComboboxTrigger> {
-    collections: LibraryCollectionSummary[];
-    items: LibraryItemWithCollections[];
-    onOpenChange?: (open: boolean) => void;
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<LibraryItemCollectionsUpdateResult>;
-    onUpdateItemsCollections?: (input: {
-        itemIds: string[];
-        nextSharedCollectionIds: string[];
-        previousSharedCollectionIds: string[];
-    }) => Promise<LibraryItemsCollectionsUpdateResult>;
-    open?: boolean;
-    /** Temporary “just organized” affordance after Smart Collections assigns memberships. */
-    showSmartCollectionsIndicator?: boolean;
-}
-
-interface LibraryGridCardProps {
+interface MediaCardData {
+    displayTitle: string;
+    isNote: boolean;
     item: LibraryItemWithCollections;
-}
-
-interface LibraryGridCardMenuProps {
-    addedLabel: string;
-    createdLabel: string;
-    href: string;
-    isDownloading: boolean;
-    item: LibraryItemWithCollections;
-    kind: "context" | "menu";
-    onDownload: () => void;
-    onZoomIn: () => void;
     previewImageUrl: string | null;
+}
+
+interface MediaCardInteractionState {
+    isDownloading: boolean;
+    isZoomed: boolean;
+    onDownload: () => void;
+    onZoomChange: (nextZoomed: boolean) => void;
+    onZoomIn: () => void;
+}
+
+interface MediaCardSurfaceState {
+    isMenuOpen: boolean;
+    onMenuOpenChange: (open: boolean) => void;
+}
+
+type MediaCardActionEntry = () => React.ReactElement | null;
+
+interface MediaCardActionPlugin {
+    contextMenu: MediaCardActionEntry;
+    id: string;
+    isAvailable: (data: MediaCardData) => boolean;
+    menu: MediaCardActionEntry;
+    separatorBefore: boolean;
+}
+
+type MediaDownloadFileExtension = Exclude<keyof typeof MIME_TYPES, "binary">;
+
+const MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE: Record<
+    string,
+    MediaDownloadFileExtension
+> = {
+    [MIME_TYPES.avif]: "avif",
+    [MIME_TYPES.bmp]: "bmp",
+    [MIME_TYPES.gif]: "gif",
+    [MIME_TYPES.ico]: "ico",
+    [MIME_TYPES.jfif]: "jfif",
+    [MIME_TYPES.jpg]: "jpg",
+    [MIME_TYPES.mov]: "mov",
+    [MIME_TYPES.mp4]: "mp4",
+    [MIME_TYPES.png]: "png",
+    [MIME_TYPES.svg]: "svg",
+    [MIME_TYPES.webp]: "webp",
+    [MIME_TYPES.webm]: "webm",
+} as const;
+
+function getMediaDownloadFileExtension(
+    url: string,
+    contentType: string | null
+): MediaDownloadFileExtension | null {
+    const normalizedContentType = contentType
+        ?.split(";", 1)[0]
+        ?.trim()
+        .toLowerCase();
+    const contentTypeExtension =
+        normalizedContentType &&
+        MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE[normalizedContentType];
+    if (contentTypeExtension) {
+        return contentTypeExtension;
+    }
+
+    let pathname: string;
+    try {
+        pathname = new URL(url).pathname;
+    } catch {
+        return null;
+    }
+
+    let urlExtension = pathname
+        .slice(pathname.lastIndexOf(".") + 1)
+        .toLowerCase();
+    if (urlExtension === "jpeg") {
+        urlExtension = "jpg";
+    }
+    for (const extension of Object.values(
+        MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE
+    )) {
+        if (extension === urlExtension) {
+            return extension;
+        }
+    }
+
+    return null;
 }
 
 function formatWaybackDate(daysOffset: number): string {
@@ -4135,247 +4343,155 @@ function itemDateLabel(dateValue: Date | string | null | undefined): string {
     });
 }
 
-function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
-    if (items.length === 0) {
-        return [];
-    }
-
-    const [firstItem, ...remainingItems] = items;
-    const sharedCollectionIds = new Set(
-        firstItem?.collections.map((collection) => collection.id)
-    );
-
-    for (const item of remainingItems) {
-        const itemCollectionIds = new Set(
-            item.collections.map((collection) => collection.id)
-        );
-        for (const collectionId of [...sharedCollectionIds]) {
-            if (!itemCollectionIds.has(collectionId)) {
-                sharedCollectionIds.delete(collectionId);
-            }
-        }
-    }
-
-    return Array.from(sharedCollectionIds);
-}
-
-function getItemTitle(item: LibraryItemWithCollections): string {
-    if (item.kind === "note") {
-        return "";
-    }
-    const caption = item.caption?.trim();
-    if (caption) {
-        return caption;
-    }
-    return item.url;
-}
-
-async function downloadLibraryItemMedia(
+async function saveLibraryItemMedia(
     item: LibraryItemWithCollections
 ): Promise<void> {
     if (!COBALT_SOURCES.has(item.source)) {
-        // TODO: more download options
-        return;
+        throw new Error("Media downloads are not available for this source.");
     }
 
     const result = await downloadMedia(item.url);
     if (result.status !== ACTION_STATUS.SUCCESS) {
-        return;
+        throw new Error(result.message);
     }
 
-    const ownerDocument = getOwnerDocument();
-    const link = ownerDocument.createElement("a");
-    link.href = result.downloadUrl;
-    link.download = "";
-    link.target = "_blank";
-    ownerDocument.body.appendChild(link);
-    link.click();
-    ownerDocument.body.removeChild(link);
+    const response = await fetch(result.downloadUrl, {
+        signal: AbortSignal.timeout(MEDIA_DOWNLOAD_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to fetch media download (${response.status})`);
+    }
+
+    const blob = await response.blob();
+    const extension = getMediaDownloadFileExtension(
+        response.url || result.downloadUrl,
+        response.headers.get("content-type") || blob.type
+    );
+    if (!extension) {
+        throw new Error("Could not determine the downloaded media type.");
+    }
+
+    await saveFile(blob, {
+        description: "Media file",
+        extension,
+        name: slugify(getLibraryItemTitle(item)) || "cache-media",
+    });
 }
 
-function SmartCollectionsSquircleIndicator() {
+const MediaCardDataContext = React.createContext<MediaCardData | null>(null);
+
+function useMediaCardData(): MediaCardData {
+    const data = React.use(MediaCardDataContext);
+    if (!data) {
+        throw new Error(
+            "Media card components must be used inside <MediaCardDataProvider>."
+        );
+    }
+    return data;
+}
+
+function MediaCardDataProvider({
+    children,
+    data,
+}: React.PropsWithChildren<{
+    data: LibraryItemWithCollections;
+}>) {
     return (
-        <svg
-            aria-hidden="true"
-            className="size-4.5"
-            fill="none"
-            focusable="false"
-            role="img"
-            viewBox="0 0 24 24"
+        <MediaCardDataContext
+            value={{
+                displayTitle: getLibraryItemPrimaryText(data),
+                isNote: data.kind === ITEM_KIND_NOTE,
+                item: data,
+                previewImageUrl: itemPreviewImageUrl(data),
+            }}
         >
-            <path
-                d={SQUIRCLE_PATH_D}
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-            />
-            <path
-                className="motion-safe:animate-smart-collections-indicator"
-                d={SQUIRCLE_PATH_D}
-                pathLength={1}
-            />
-        </svg>
+            {children}
+        </MediaCardDataContext>
     );
 }
 
-function defaultCollectionTriggerIcon(
-    selectedCount: number,
-    shouldShowSmartCollectionsIndicator: boolean
-) {
-    if (selectedCount === 0) {
-        return <SquircleDashed aria-hidden className="size-4.5" />;
+const MediaCardInteractionContext =
+    React.createContext<MediaCardInteractionState | null>(null);
+
+function useMediaCardInteraction(): MediaCardInteractionState {
+    const interaction = React.use(MediaCardInteractionContext);
+    if (!interaction) {
+        throw new Error(
+            "Media card components must be used inside <MediaCardInteractionProvider>."
+        );
     }
-    if (shouldShowSmartCollectionsIndicator) {
-        return <SmartCollectionsSquircleIndicator />;
-    }
-    return <Squircle aria-hidden className="size-4.5" />;
+    return interaction;
 }
 
-function CollectionComboboxPicker({
-    collections,
-    items,
-    onUpdateItemsCollections,
-    onUpdateItemCollections,
-    open: openProp,
-    onOpenChange,
-    children,
-    render,
-    showSmartCollectionsIndicator = false,
-    ...props
-}: CollectionComboboxPickerProps) {
-    const [isOpenInternal, setIsOpenInternal] = React.useState(false);
-    const isOpen = openProp ?? isOpenInternal;
-    const setIsOpen = onOpenChange ?? setIsOpenInternal;
-    const selectedCollectionIds = getSharedCollectionIds(items);
-    const selectedCount = selectedCollectionIds.length;
-    const shouldShowSmartCollectionsIndicator =
-        showSmartCollectionsIndicator && selectedCount > 0;
+function MediaCardInteractionProvider({ children }: React.PropsWithChildren) {
+    const { item } = useMediaCardData();
+    const [isDownloading, startDownloadTransition] = React.useTransition();
+    const [hasDownloadError, setHasDownloadError] = React.useState(false);
+    const [isZoomed, setIsZoomed] = React.useState(false);
 
-    const handleValueChange = useStableCallback((nextIds: string[]) => {
-        const nextCollectionIds = [...nextIds];
-
-        if (items.length === 1) {
-            const [item] = items;
-            if (!item) {
-                return;
+    const handleDownload = useStableCallback(() => {
+        setHasDownloadError(false);
+        startDownloadTransition(async () => {
+            try {
+                await saveLibraryItemMedia(item);
+            } catch (error) {
+                setHasDownloadError(true);
+                log.error("Failed to prepare media download", error, {
+                    itemId: item.id,
+                    url: item.url,
+                });
             }
-            onUpdateItemCollections(item.id, nextCollectionIds).catch(
-                () => undefined
-            );
-            return;
-        }
-
-        if (!onUpdateItemsCollections) {
-            throw new Error(
-                "Bulk collection updates require onUpdateItemsCollections."
-            );
-        }
-
-        onUpdateItemsCollections({
-            itemIds: items.map((item) => item.id),
-            nextSharedCollectionIds: nextCollectionIds,
-            previousSharedCollectionIds: selectedCollectionIds,
-        }).catch(() => undefined);
+        });
     });
 
-    let defaultTriggerAriaLabel = "Add to collections";
-    if (shouldShowSmartCollectionsIndicator) {
-        defaultTriggerAriaLabel = "Smart Collections just organized this";
-    } else if (selectedCount > 0) {
-        defaultTriggerAriaLabel = `Edit collections (${selectedCount} selected)`;
-    }
+    const handleZoomChange = useStableCallback((nextZoomed: boolean) => {
+        if (!nextZoomed) {
+            setIsZoomed(false);
+        }
+    });
+
+    const handleZoomIn = useStableCallback(() => {
+        setIsZoomed(true);
+    });
 
     return (
-        <Combobox
-            autoHighlight
-            items={collections}
-            multiple
-            onOpenChange={setIsOpen}
-            onValueChange={handleValueChange}
-            open={isOpen}
-            value={selectedCollectionIds}
-        >
-            <ComboboxTrigger
-                {...props}
-                render={
-                    render ?? (
-                        <Button
-                            aria-label={defaultTriggerAriaLabel}
-                            className="z-1 rounded-full"
-                            size="icon-sm"
-                            variant="ghost"
-                        />
-                    )
-                }
+        <>
+            <MediaCardInteractionContext
+                value={{
+                    isDownloading,
+                    isZoomed,
+                    onDownload: handleDownload,
+                    onZoomChange: handleZoomChange,
+                    onZoomIn: handleZoomIn,
+                }}
             >
-                {children ??
-                    defaultCollectionTriggerIcon(
-                        selectedCount,
-                        shouldShowSmartCollectionsIndicator
-                    )}
-            </ComboboxTrigger>
-            <ComboboxPopup>
-                <ComboboxInput
-                    endAddon={<Kbd>S</Kbd>}
-                    placeholder="Assign collections..."
-                />
-                <ComboboxEmpty>No matching collections</ComboboxEmpty>
-                <ComboboxList>
-                    <ComboboxCollection>
-                        {(collection) => (
-                            <ComboboxItem
-                                className="group/item"
-                                key={collection.id}
-                                value={collection.id}
-                            >
-                                <div className="flex max-w-56 items-center justify-between gap-3">
-                                    <span className="min-w-0 max-w-full flex-1 truncate text-foreground text-sm">
-                                        {collection.name}
-                                    </span>
-                                    <div className="relative flex w-fit items-center justify-end pl-4">
-                                        <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-0">
-                                            {collection.itemCount}
-                                        </span>
-                                        <span className="absolute right-0 shrink-0 text-nowrap text-muted-foreground text-xs opacity-0 transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-100">
-                                            Save
-                                        </span>
-                                    </div>
-                                </div>
-                            </ComboboxItem>
-                        )}
-                    </ComboboxCollection>
-                </ComboboxList>
-            </ComboboxPopup>
-        </Combobox>
+                {children}
+            </MediaCardInteractionContext>
+            {hasDownloadError ? (
+                <p
+                    aria-atomic="true"
+                    aria-live="assertive"
+                    className="mt-1 px-1 text-destructive text-xs leading-tight"
+                    role="alert"
+                >
+                    <T>Couldn't download this media. Please try again.</T>
+                </p>
+            ) : null}
+        </>
     );
 }
 
-function CardCollectionPicker({
-    item,
-    onOpenChange,
-    open,
-}: {
-    item: LibraryItemWithCollections;
-    onOpenChange?: (open: boolean) => void;
-    open?: boolean;
-}) {
-    const { collections, onUpdateItemCollections } =
-        useLibraryGridCardContext();
+const MediaCardSurfaceContext =
+    React.createContext<MediaCardSurfaceState | null>(null);
 
-    return (
-        <CollectionComboboxPicker
-            collections={collections}
-            items={[item]}
-            onOpenChange={onOpenChange}
-            onUpdateItemCollections={onUpdateItemCollections}
-            open={open}
-            showSmartCollectionsIndicator={
-                item.collections.length > 0 &&
-                isRecentlySmartCollected(item.smartCollectedAt)
-            }
-        />
-    );
+function useMediaCardSurface(): MediaCardSurfaceState {
+    const context = React.use(MediaCardSurfaceContext);
+    if (!context) {
+        throw new Error(
+            "Media card surfaces must be used inside <MediaCardContextMenuSurface>."
+        );
+    }
+    return context;
 }
 
 function PreviewColorBadge({ value }: { value: string }) {
@@ -4407,7 +4523,7 @@ function PreviewColorPalette({ src }: { src: string }) {
         keepPreviousData: true,
     });
 
-    if (!data) {
+    if (!data?.length) {
         return null;
     }
 
@@ -4420,71 +4536,354 @@ function PreviewColorPalette({ src }: { src: string }) {
     );
 }
 
-function CardMenu({
-    addedLabel,
-    createdLabel,
-    href,
-    isDownloading,
-    item,
-    kind,
-    onDownload,
-    onZoomIn,
-    previewImageUrl,
-}: LibraryGridCardMenuProps) {
-    const {
-        favoriteItemIdSet,
-        onCopyLink,
-        onDelete,
-        onFindSimilar,
-        onItemFavoriteToggle,
-        onOpenInNewTab,
-        onOpenNote,
-        pendingDeleteItemId,
-    } = useLibraryGridCardContext();
-    const Item = kind === "context" ? ContextMenuItem : MenuItem;
-    const ItemSeparator =
-        kind === "context" ? ContextMenuSeparator : MenuSeparator;
-    const isNote = item.kind === ITEM_KIND_NOTE;
-    const isFavorite = favoriteItemIdSet.has(item.id);
-    const isDeletePending = pendingDeleteItemId === item.id;
-    const SourceIcon = getSourceIcon(item.source);
-    const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
+function MediaCardMenuDetails() {
+    const { isNote, item, previewImageUrl } = useMediaCardData();
 
-    const handleItemFavoriteToggle = useStableCallback(() =>
-        onItemFavoriteToggle(item)
+    const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
+    const createdLabel = itemDateLabel(item.createdAt);
+    const href = normalizeURL(item.url);
+
+    return (
+        <Collapsible>
+            <CollapsibleTrigger
+                className="max-w-56"
+                render={
+                    <Button
+                        className="max-w-full justify-between rounded-xl"
+                        variant="ghost"
+                    />
+                }
+            >
+                <span className="block truncate text-xs">
+                    {getLibraryItemPrimaryText(item)}
+                </span>
+                <ChevronDown className="ml-auto inline-block size-4" />
+            </CollapsibleTrigger>
+            <CollapsiblePanel className="px-2.5 text-[11px] text-muted-foreground">
+                {isNote ? null : (
+                    <span className="block max-w-48 truncate py-0.5 text-muted-foreground underline">
+                        {href}
+                    </span>
+                )}
+                <div className="flex items-center justify-between gap-3 py-0.5">
+                    <span>Created</span>
+                    <span className="text-foreground tabular-nums">
+                        {createdLabel}
+                    </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 py-0.5">
+                    <span>Added</span>
+                    <span className="text-foreground tabular-nums">
+                        {addedLabel}
+                    </span>
+                </div>
+                {previewImageUrl ? (
+                    <div className="flex items-center justify-between gap-3 py-0.5 pb-3">
+                        <span>Palette</span>
+                        <PreviewColorPalette src={previewImageUrl} />
+                    </div>
+                ) : null}
+            </CollapsiblePanel>
+        </Collapsible>
     );
+}
 
-    const handleOpenNote = useStableCallback(() => onOpenNote?.(item));
+function useMediaCardFavoriteAction() {
+    const { item } = useMediaCardData();
+    const { favoriteItemIdSet, onItemFavoriteToggle } =
+        useMediaCardEnvironment();
+    const isFavorite = favoriteItemIdSet.has(item.id);
+    const handleToggle = useStableCallback(() => onItemFavoriteToggle(item));
 
-    const handleOpenInNewTab = useStableCallback(() => onOpenInNewTab?.(item));
+    return { handleToggle, isFavorite };
+}
 
-    const handleCopyLink = useStableCallback(() => onCopyLink?.(item));
+function MediaCardMenuFavoriteAction() {
+    const { handleToggle, isFavorite } = useMediaCardFavoriteAction();
 
-    const handleFindSimilar = useStableCallback(() => onFindSimilar(item));
+    return (
+        <MenuItem onClick={handleToggle}>
+            <Star
+                className={cn(
+                    "size-4.5 text-muted-foreground",
+                    isFavorite && "fill-current"
+                )}
+            />
+            {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            <Kbd className="ml-auto">
+                <AltKbd />F
+            </Kbd>
+        </MenuItem>
+    );
+}
 
-    const handleDelete = useStableCallback(() => onDelete?.(item));
+function MediaCardContextMenuFavoriteAction() {
+    const { handleToggle, isFavorite } = useMediaCardFavoriteAction();
+
+    return (
+        <ContextMenuItem onClick={handleToggle}>
+            <Star
+                className={cn(
+                    "size-4.5 text-muted-foreground",
+                    isFavorite && "fill-current"
+                )}
+            />
+            {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            <Kbd className="ml-auto">
+                <AltKbd />F
+            </Kbd>
+        </ContextMenuItem>
+    );
+}
+
+function useMediaCardNoteAction() {
+    const { item } = useMediaCardData();
+    const { onOpenNote } = useMediaCardEnvironment();
+
+    return useStableCallback(() => onOpenNote(item));
+}
+
+function MediaCardMenuNoteAction() {
+    const handleOpenNote = useMediaCardNoteAction();
+
+    return (
+        <MenuItem onClick={handleOpenNote}>
+            <FilePenLineIcon className="size-4.5 text-muted-foreground" />
+            Edit note
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuNoteAction() {
+    const handleOpenNote = useMediaCardNoteAction();
+
+    return (
+        <ContextMenuItem onClick={handleOpenNote}>
+            <FilePenLineIcon className="size-4.5 text-muted-foreground" />
+            Edit note
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuQuickLookAction() {
+    const { displayTitle, item } = useMediaCardData();
+
+    return (
+        <QuickLookDrawer
+            description={getLibraryItemDomain(item.url)}
+            key={item.url}
+            title={displayTitle}
+            url={item.url}
+        >
+            <QuickLookDrawerTrigger nativeButton={false} render={<MenuItem />}>
+                <EyeIcon className="size-4.5 text-muted-foreground" />
+                Quick Look
+                <Kbd className="ml-auto">
+                    <AltKbd />E
+                </Kbd>
+            </QuickLookDrawerTrigger>
+        </QuickLookDrawer>
+    );
+}
+
+function MediaCardContextMenuQuickLookAction() {
+    const { displayTitle, item } = useMediaCardData();
+
+    return (
+        <QuickLookDrawer
+            description={getLibraryItemDomain(item.url)}
+            key={item.url}
+            title={displayTitle}
+            url={item.url}
+        >
+            <QuickLookDrawerTrigger
+                nativeButton={false}
+                render={<ContextMenuItem />}
+            >
+                <EyeIcon className="size-4.5 text-muted-foreground" />
+                Quick Look
+                <Kbd className="ml-auto">
+                    <AltKbd />E
+                </Kbd>
+            </QuickLookDrawerTrigger>
+        </QuickLookDrawer>
+    );
+}
+
+function MediaCardMenuZoomAction() {
+    const { onZoomIn } = useMediaCardInteraction();
+
+    return (
+        <MenuItem onClick={onZoomIn}>
+            <ZoomIn className="size-4.5 text-muted-foreground" />
+            Zoom in
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuZoomAction() {
+    const { onZoomIn } = useMediaCardInteraction();
+
+    return (
+        <ContextMenuItem onClick={onZoomIn}>
+            <ZoomIn className="size-4.5 text-muted-foreground" />
+            Zoom in
+        </ContextMenuItem>
+    );
+}
+
+function useMediaCardLinkActions() {
+    const { item } = useMediaCardData();
+    const { onCopyLink, onOpenInNewTab } = useMediaCardEnvironment();
+    const SourceIcon = getSourceIcon(item.source);
+
+    const handleOpenInNewTab = useStableCallback(() => onOpenInNewTab(item));
+    const handleCopyLink = useStableCallback(() => onCopyLink(item));
+
+    return { handleCopyLink, handleOpenInNewTab, SourceIcon };
+}
+
+function MediaCardMenuOpenLinkAction() {
+    const { SourceIcon, handleOpenInNewTab } = useMediaCardLinkActions();
+
+    return (
+        <MenuItem className="cursor-alias" onClick={handleOpenInNewTab}>
+            {SourceIcon ? (
+                <SourceIcon className="size-4 text-muted-foreground" />
+            ) : (
+                <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
+            )}
+            Open in New Tab
+            <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuOpenLinkAction() {
+    const { SourceIcon, handleOpenInNewTab } = useMediaCardLinkActions();
+
+    return (
+        <ContextMenuItem className="cursor-alias" onClick={handleOpenInNewTab}>
+            {SourceIcon ? (
+                <SourceIcon className="size-4 text-muted-foreground" />
+            ) : (
+                <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
+            )}
+            Open in New Tab
+            <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuCopyLinkAction() {
+    const { handleCopyLink } = useMediaCardLinkActions();
+
+    return (
+        <MenuItem onClick={handleCopyLink}>
+            <LinkIcon className="size-4.5 text-muted-foreground" />
+            Copy link URL
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuCopyLinkAction() {
+    const { handleCopyLink } = useMediaCardLinkActions();
+
+    return (
+        <ContextMenuItem onClick={handleCopyLink}>
+            <LinkIcon className="size-4.5 text-muted-foreground" />
+            Copy link URL
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuDownloadAction() {
+    const { isDownloading, onDownload } = useMediaCardInteraction();
+
+    return (
+        <MenuItem disabled={isDownloading} onClick={onDownload}>
+            <DownloadIcon className="size-4.5 text-muted-foreground" />
+            {isDownloading ? "Downloading..." : "Download"}
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuDownloadAction() {
+    const { isDownloading, onDownload } = useMediaCardInteraction();
+
+    return (
+        <ContextMenuItem disabled={isDownloading} onClick={onDownload}>
+            <DownloadIcon className="size-4.5 text-muted-foreground" />
+            {isDownloading ? "Downloading..." : "Download"}
+        </ContextMenuItem>
+    );
+}
+
+function useMediaCardFindSimilarAction() {
+    const { item } = useMediaCardData();
+    const { onFindSimilar } = useMediaCardEnvironment();
+
+    return useStableCallback(() => onFindSimilar(item));
+}
+
+function MediaCardMenuFindSimilarAction() {
+    const handleFindSimilar = useMediaCardFindSimilarAction();
+
+    return (
+        <MenuItem onClick={handleFindSimilar}>
+            <SearchIcon className="size-4.5 text-muted-foreground" />
+            Find similar
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuFindSimilarAction() {
+    const handleFindSimilar = useMediaCardFindSimilarAction();
+
+    return (
+        <ContextMenuItem onClick={handleFindSimilar}>
+            <SearchIcon className="size-4.5 text-muted-foreground" />
+            Find similar
+        </ContextMenuItem>
+    );
+}
+
+function useMediaCardWaybackActions() {
+    const { item } = useMediaCardData();
 
     const handleWayback30 = useStableCallback(() =>
         openExternal(
-            `https://web.archive.org/web/${formatWaybackDate(-30)}/${item.url}`
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-30) +
+                "/" +
+                item.url
         )
     );
 
     const handleWayback90 = useStableCallback(() =>
         openExternal(
-            `https://web.archive.org/web/${formatWaybackDate(-90)}/${item.url}`
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-90) +
+                "/" +
+                item.url
         )
     );
 
     const handleWayback180 = useStableCallback(() =>
         openExternal(
-            `https://web.archive.org/web/${formatWaybackDate(-180)}/${item.url}`
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-180) +
+                "/" +
+                item.url
         )
     );
 
     const handleWayback365 = useStableCallback(() =>
         openExternal(
-            `https://web.archive.org/web/${formatWaybackDate(-365)}/${item.url}`
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-365) +
+                "/" +
+                item.url
         )
     );
 
@@ -4492,187 +4891,316 @@ function CardMenu({
         openExternal(`https://web.archive.org/web/*/${item.url}`)
     );
 
+    return {
+        handleWayback30,
+        handleWayback90,
+        handleWayback180,
+        handleWayback365,
+        handleWaybackAll,
+    };
+}
+
+function MediaCardMenuWaybackAction() {
+    const {
+        handleWayback180,
+        handleWayback30,
+        handleWayback365,
+        handleWayback90,
+        handleWaybackAll,
+    } = useMediaCardWaybackActions();
+
+    return (
+        <MenuSub>
+            <MenuSubTrigger>
+                <History className="size-4.5 text-muted-foreground" />
+                Previous versions
+            </MenuSubTrigger>
+            <MenuSubPopup>
+                <MenuGroup>
+                    <MenuGroupLabel>Wayback Machine</MenuGroupLabel>
+                    <MenuItem onClick={handleWayback30}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        month ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWayback90}>
+                        <History className="size-4 text-muted-foreground" /> 3
+                        months ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWayback180}>
+                        <History className="size-4 text-muted-foreground" /> 6
+                        months ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWayback365}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        year ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWaybackAll}>
+                        <History className="size-4 text-muted-foreground" />
+                        View all snapshots
+                    </MenuItem>
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
+    );
+}
+
+function MediaCardContextMenuWaybackAction() {
+    const {
+        handleWayback180,
+        handleWayback30,
+        handleWayback365,
+        handleWayback90,
+        handleWaybackAll,
+    } = useMediaCardWaybackActions();
+
+    return (
+        <ContextMenuSub>
+            <ContextMenuSubTrigger>
+                <History className="size-4.5 text-muted-foreground" />
+                Previous versions
+            </ContextMenuSubTrigger>
+            <ContextMenuSubPopup>
+                <ContextMenuGroup>
+                    <ContextMenuGroupLabel>
+                        Wayback Machine
+                    </ContextMenuGroupLabel>
+                    <ContextMenuItem onClick={handleWayback30}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        month ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWayback90}>
+                        <History className="size-4 text-muted-foreground" /> 3
+                        months ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWayback180}>
+                        <History className="size-4 text-muted-foreground" /> 6
+                        months ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWayback365}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        year ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWaybackAll}>
+                        <History className="size-4 text-muted-foreground" />
+                        View all snapshots
+                    </ContextMenuItem>
+                </ContextMenuGroup>
+            </ContextMenuSubPopup>
+        </ContextMenuSub>
+    );
+}
+
+function useMediaCardDeleteAction() {
+    const { item } = useMediaCardData();
+    const { onDelete, pendingDeleteItemId } = useMediaCardEnvironment();
+    const isDeletePending = pendingDeleteItemId === item.id;
+    const handleDelete = useStableCallback(() => onDelete(item));
+
+    return { handleDelete, isDeletePending };
+}
+
+function MediaCardMenuDeleteAction() {
+    const { handleDelete, isDeletePending } = useMediaCardDeleteAction();
+
+    return (
+        <MenuItem disabled={isDeletePending} onClick={handleDelete}>
+            {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
+            <Kbd className="ml-auto">
+                <CmdKbd />⌫
+            </Kbd>
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuDeleteAction() {
+    const { handleDelete, isDeletePending } = useMediaCardDeleteAction();
+
+    return (
+        <ContextMenuItem disabled={isDeletePending} onClick={handleDelete}>
+            {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
+            <Kbd className="ml-auto">
+                <CmdKbd />⌫
+            </Kbd>
+        </ContextMenuItem>
+    );
+}
+
+const MEDIA_CARD_ACTION_PLUGINS = [
+    {
+        contextMenu: MediaCardContextMenuFavoriteAction,
+        id: "favorite",
+        isAvailable: () => true,
+        menu: MediaCardMenuFavoriteAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuNoteAction,
+        id: "edit-note",
+        isAvailable: ({ isNote }) => isNote,
+        menu: MediaCardMenuNoteAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuQuickLookAction,
+        id: "quick-look",
+        isAvailable: ({ item }) =>
+            item.kind !== ITEM_KIND_NOTE &&
+            toValidUrl(normalizeURL(item.url)) !== FALLBACK_URL,
+        menu: MediaCardMenuQuickLookAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuZoomAction,
+        id: "zoom",
+        isAvailable: ({ previewImageUrl }) => previewImageUrl !== null,
+        menu: MediaCardMenuZoomAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuOpenLinkAction,
+        id: "open-link",
+        isAvailable: ({ isNote }) => !isNote,
+        menu: MediaCardMenuOpenLinkAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuCopyLinkAction,
+        id: "copy-link",
+        isAvailable: ({ isNote }) => !isNote,
+        menu: MediaCardMenuCopyLinkAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuDownloadAction,
+        id: "download",
+        isAvailable: ({ isNote, item }) =>
+            !isNote && COBALT_SOURCES.has(item.source),
+        menu: MediaCardMenuDownloadAction,
+        separatorBefore: true,
+    },
+    {
+        contextMenu: MediaCardContextMenuFindSimilarAction,
+        id: "find-similar",
+        isAvailable: () => true,
+        menu: MediaCardMenuFindSimilarAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuWaybackAction,
+        id: "wayback",
+        isAvailable: ({ isNote }) => !isNote,
+        menu: MediaCardMenuWaybackAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuDeleteAction,
+        id: "delete",
+        isAvailable: () => true,
+        menu: MediaCardMenuDeleteAction,
+        separatorBefore: true,
+    },
+] satisfies readonly MediaCardActionPlugin[];
+
+function MediaCardMenuActionList() {
+    const data = useMediaCardData();
+    const visiblePlugins = MEDIA_CARD_ACTION_PLUGINS.filter((plugin) =>
+        plugin.isAvailable(data)
+    );
+
     return (
         <>
-            <Collapsible>
-                <CollapsibleTrigger
-                    className="max-w-56"
-                    render={
-                        <Button
-                            className="max-w-full justify-between rounded-xl"
-                            variant="ghost"
-                        />
-                    }
-                >
-                    <span className="block truncate text-xs">
-                        {itemPrimaryText(item)}
-                    </span>
-                    <ChevronDown className="ml-auto inline-block size-4" />
-                </CollapsibleTrigger>
-                <CollapsiblePanel className="px-2.5 text-[11px] text-muted-foreground">
-                    {isNote ? null : (
-                        <span className="block max-w-48 truncate py-0.5 text-muted-foreground underline">
-                            {href}
-                        </span>
-                    )}
-                    <div className="flex items-center justify-between gap-3 py-0.5">
-                        <span>Created</span>
-                        <span className="text-foreground tabular-nums">
-                            {createdLabel}
-                        </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3 py-0.5">
-                        <span>Added</span>
-                        <span className="text-foreground tabular-nums">
-                            {addedLabel}
-                        </span>
-                    </div>
-                    {previewImageUrl ? (
-                        <div className="flex items-center justify-between gap-3 py-0.5 pb-3">
-                            <span>Palette</span>
-                            <PreviewColorPalette src={previewImageUrl} />
-                        </div>
-                    ) : null}
-                </CollapsiblePanel>
-            </Collapsible>
-            <ItemSeparator />
-            <Item onClick={handleItemFavoriteToggle}>
-                <Star
-                    className={cn(
-                        "size-4.5 text-muted-foreground",
-                        isFavorite && "fill-current"
-                    )}
-                />
-                {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-                <Kbd className="ml-auto">
-                    <AltKbd />F
-                </Kbd>
-            </Item>
-            {isNote ? (
-                <Item onClick={handleOpenNote}>
-                    <FilePenLineIcon className="size-4.5 text-muted-foreground" />
-                    Edit note
-                </Item>
-            ) : null}
-            {canPreview ? (
-                <QuickLookDrawer
-                    description={itemDomain(item.url)}
-                    key={item.url}
-                    title={getItemTitle(item)}
-                    url={item.url}
-                >
-                    <QuickLookDrawerTrigger
-                        nativeButton={false}
-                        render={<Item />}
-                    >
-                        <EyeIcon className="size-4.5 text-muted-foreground" />
-                        Quick Look
-                        <Kbd className="ml-auto">
-                            <AltKbd />E
-                        </Kbd>
-                    </QuickLookDrawerTrigger>
-                </QuickLookDrawer>
-            ) : null}
-            {previewImageUrl ? (
-                <Item onClick={onZoomIn}>
-                    <ZoomIn className="size-4.5 text-muted-foreground" />
-                    Zoom in
-                </Item>
-            ) : null}
-            {isNote ? null : (
-                <>
-                    <Item className="cursor-alias" onClick={handleOpenInNewTab}>
-                        {SourceIcon ? (
-                            <SourceIcon className="size-4 text-muted-foreground" />
-                        ) : (
-                            <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
-                        )}
-                        Open in New Tab
-                        <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
-                    </Item>
-                    <Item onClick={handleCopyLink}>
-                        <LinkIcon className="size-4.5 text-muted-foreground" />
-                        Copy link URL
-                    </Item>
-                    <ItemSeparator />
-                    <Item disabled={isDownloading} onClick={onDownload}>
-                        <DownloadIcon className="size-4.5 text-muted-foreground" />
-                        {isDownloading ? "Downloading..." : "Download"}
-                    </Item>
-                </>
-            )}
-            <Item onClick={handleFindSimilar}>
-                <SearchIcon className="size-4.5 text-muted-foreground" />
-                Find similar
-            </Item>
-            {isNote ? null : (
-                <MenuSub>
-                    <MenuSubTrigger>
-                        <History className="size-4.5 text-muted-foreground" />
-                        Previous versions
-                    </MenuSubTrigger>
-                    <MenuSubPopup>
-                        <MenuGroup>
-                            <MenuGroupLabel>Wayback Machine</MenuGroupLabel>
-                            <MenuItem onClick={handleWayback30}>
-                                <History className="size-4 text-muted-foreground" />
-                                1 month ago
-                            </MenuItem>
-                            <MenuItem onClick={handleWayback90}>
-                                <History className="size-4 text-muted-foreground" />
-                                3 months ago
-                            </MenuItem>
-                            <MenuItem onClick={handleWayback180}>
-                                <History className="size-4 text-muted-foreground" />
-                                6 months ago
-                            </MenuItem>
-                            <MenuItem onClick={handleWayback365}>
-                                <History className="size-4 text-muted-foreground" />
-                                1 year ago
-                            </MenuItem>
-                            <MenuItem onClick={handleWaybackAll}>
-                                <History className="size-4 text-muted-foreground" />
-                                View all snapshots
-                            </MenuItem>
-                        </MenuGroup>
-                    </MenuSubPopup>
-                </MenuSub>
-            )}
-            <ItemSeparator />
-            <Item disabled={isDeletePending} onClick={handleDelete}>
-                {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
-                <Kbd className="ml-auto">
-                    <CmdKbd />⌫
-                </Kbd>
-            </Item>
+            {visiblePlugins.map((plugin) => {
+                const MenuEntry = plugin.menu;
+                return (
+                    <React.Fragment key={plugin.id}>
+                        {plugin.separatorBefore ? <MenuSeparator /> : null}
+                        <MenuEntry />
+                    </React.Fragment>
+                );
+            })}
         </>
     );
 }
 
-function MediaCard({ item }: LibraryGridCardProps) {
-    const {
-        hoveredItemIdRef,
-        hoverPinnedItemIdRef,
-        onOpenInNewTab,
-        onOpenNote,
-        openPickerItemId,
-        setOpenPickerItemId,
-    } = useLibraryGridCardContext();
-    const isNote = item.kind === ITEM_KIND_NOTE;
-    const [isDownloading, startDownloadTransition] = React.useTransition();
-    const [isCardMenuOpen, setIsCardMenuOpen] = React.useState(false);
+function MediaCardContextMenuActionList() {
+    const data = useMediaCardData();
+    const visiblePlugins = MEDIA_CARD_ACTION_PLUGINS.filter((plugin) =>
+        plugin.isAvailable(data)
+    );
+
+    return (
+        <>
+            {visiblePlugins.map((plugin) => {
+                const ContextMenuEntry = plugin.contextMenu;
+                return (
+                    <React.Fragment key={plugin.id}>
+                        {plugin.separatorBefore ? (
+                            <ContextMenuSeparator />
+                        ) : null}
+                        <ContextMenuEntry />
+                    </React.Fragment>
+                );
+            })}
+        </>
+    );
+}
+
+function MediaCardMenuContent() {
+    return (
+        <>
+            <MediaCardMenuDetails />
+            <MenuSeparator />
+            <MediaCardMenuActionList />
+        </>
+    );
+}
+
+function MediaCardContextMenuContent() {
+    return (
+        <>
+            <MediaCardMenuDetails />
+            <ContextMenuSeparator />
+            <MediaCardContextMenuActionList />
+        </>
+    );
+}
+
+function MediaCardMenuSurface() {
+    const { displayTitle } = useMediaCardData();
+    const { isMenuOpen, onMenuOpenChange } = useMediaCardSurface();
+
+    return (
+        <Menu onOpenChange={onMenuOpenChange} open={isMenuOpen}>
+            <MenuTrigger
+                render={
+                    <Button
+                        className="w-full min-w-0 flex-1 justify-start overflow-clip text-nowrap px-0 text-left text-[11px]!"
+                        size="xs"
+                        title={displayTitle}
+                        type="button"
+                        variant="ghost"
+                    />
+                }
+            >
+                <Ticker>{displayTitle}</Ticker>
+            </MenuTrigger>
+            <MenuPopup>
+                <MediaCardMenuContent />
+            </MenuPopup>
+        </Menu>
+    );
+}
+
+function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
+    const { item } = useMediaCardData();
+    const { hoveredItemIdRef, hoverPinnedItemIdRef, openPickerItemId } =
+        useMediaCardEnvironment();
+
+    const [isMenuOpen, setIsMenuOpen] = React.useState(false);
     const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
-    const [isZoomed, setIsZoomed] = React.useState(false);
-    const href = normalizeURL(item.url);
-    const previewImageUrl = itemPreviewImageUrl(item);
-    const previewVideoUrl = itemPreviewVideoUrl(item);
-    const createdLabel = itemDateLabel(item.createdAt);
-    const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
-    const hasNoteContent = (item.noteContentText ?? "").trim().length > 0;
-    const displayTitle = getItemTitle(item);
-    const { markVisited, isLastVisited } = useLastVisited();
+
     const isPickerOpen = openPickerItemId === item.id;
-    const isHoverPinned = isCardMenuOpen || isContextMenuOpen || isPickerOpen;
+    const isHoverPinned = isMenuOpen || isContextMenuOpen || isPickerOpen;
     const isPointerOverCardRef = React.useRef(false);
 
     React.useEffect(
@@ -4687,11 +5215,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
         [hoveredItemIdRef, hoverPinnedItemIdRef, item.id]
     );
 
-    // Keep the hover target pinned while a menu/picker is open so shortcuts
-    // still resolve after the pointer moves into the popup — and so sibling
-    // cards cannot steal the target via mouseEnter. On unpin, drop the hover
-    // target unless the pointer is still over this card (mouseLeave is a no-op
-    // while pinned, so a stale id would otherwise stick for global hotkeys).
     React.useEffect(() => {
         if (isHoverPinned) {
             hoverPinnedItemIdRef.current = item.id;
@@ -4710,44 +5233,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
         }
     }, [hoveredItemIdRef, hoverPinnedItemIdRef, isHoverPinned, item.id]);
 
-    const handleZoomChange = useStableCallback((nextZoomed: boolean) => {
-        if (!nextZoomed) {
-            setIsZoomed(false);
-        }
-    });
-
-    const handleZoomIn = useStableCallback(() => {
-        setIsZoomed(true);
-    });
-
-    const handlePrimaryAction = () => {
-        if (isNote) {
-            onOpenNote?.(item);
-        } else {
-            onOpenInNewTab?.(item);
-            markVisited(item.id);
-        }
-    };
-
-    const handlePickerOpenChange = useStableCallback((nextOpen: boolean) => {
-        setOpenPickerItemId(nextOpen ? item.id : null);
-    });
-
-    const handlePrimaryClick = useStableCallback(
-        (event: React.MouseEvent<HTMLElement>) => {
-            event.preventDefault();
-            handlePrimaryAction();
-        }
-    );
-
-    const handlePrimaryKeyDown = useStableCallback(
-        (event: React.KeyboardEvent<HTMLElement>) => {
-            if (event.key === "Enter") {
-                handlePrimaryAction();
-            }
-        }
-    );
-
     const handleMouseEnter = useStableCallback(() => {
         isPointerOverCardRef.current = true;
         const pinnedId = hoverPinnedItemIdRef.current;
@@ -4764,137 +5249,161 @@ function MediaCard({ item }: LibraryGridCardProps) {
         }
     });
 
-    const handleDownload = useStableCallback(() => {
-        startDownloadTransition(async () => {
-            try {
-                await downloadLibraryItemMedia(item);
-            } catch (error) {
-                log.error("Failed to prepare media download", error, {
-                    itemId: item.id,
-                    url: item.url,
-                });
+    return (
+        <MediaCardSurfaceContext
+            value={{
+                isMenuOpen,
+                onMenuOpenChange: setIsMenuOpen,
+            }}
+        >
+            <ContextMenu onOpenChange={setIsContextMenuOpen}>
+                <ContextMenuTrigger
+                    className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                >
+                    {children}
+                </ContextMenuTrigger>
+                <ContextMenuPopup>
+                    <MediaCardContextMenuContent />
+                </ContextMenuPopup>
+            </ContextMenu>
+        </MediaCardSurfaceContext>
+    );
+}
+
+function MediaCardPreview(props: React.ComponentProps<"div">) {
+    const { isNote, item, previewImageUrl } = useMediaCardData();
+    const { isZoomed, onZoomChange } = useMediaCardInteraction();
+    const { isLastVisited } = useLastVisited();
+    const hasNoteContent = (item.noteContentText ?? "").trim().length > 0;
+    const previewVideoUrl = itemPreviewVideoUrl(item);
+
+    return (
+        // biome-ignore lint/a11y/useSemanticElements: ControlledZoom conflicts with anchor elements
+        <div
+            {...props}
+            aria-label={
+                isNote
+                    ? item.noteContentText?.trim() || "Note"
+                    : getLibraryItemTitle(item)
             }
-        });
+            className={cn(
+                "squircle relative flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                { "bg-muted/90": isNote }
+            )}
+            role="link"
+            tabIndex={0}
+        >
+            {isNote ? (
+                <div className="mask-b-from-[calc(100%-var(--fade-size))] size-full max-h-60 select-none p-4 [--fade-size:5rem]">
+                    <Streamdown className="text-[11px] text-foreground">
+                        {hasNoteContent && item.noteContentHtml
+                            ? item.noteContentHtml
+                            : "Tap to start writing in this note"}
+                    </Streamdown>
+                </div>
+            ) : (
+                <>
+                    <ControlledZoom
+                        isZoomed={isZoomed}
+                        onZoomChange={onZoomChange}
+                    >
+                        <MediaPreview
+                            src={previewImageUrl}
+                            videoSrc={previewVideoUrl}
+                        />
+                    </ControlledZoom>
+                    {isLastVisited(item.id) ? (
+                        <span className="absolute right-2 bottom-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
+                            <T>Last visited</T>
+                            <ArrowUpRight
+                                aria-hidden
+                                className="hidden size-4 group-hover:inline-block"
+                                focusable="false"
+                            />
+                        </span>
+                    ) : (
+                        <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
+                            <ArrowUpRight
+                                aria-hidden
+                                className="size-4"
+                                focusable="false"
+                            />
+                        </span>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
+function MediaCardOpenTarget() {
+    const { isNote, item } = useMediaCardData();
+    const { onOpenInNewTab, onOpenNote } = useMediaCardEnvironment();
+    const { markVisited } = useLastVisited();
+
+    const handleOpen = useStableCallback(() => {
+        if (isNote) {
+            onOpenNote(item);
+            return;
+        }
+        onOpenInNewTab(item);
+        markVisited(item.id);
+    });
+
+    const handleOpenTargetClick = useStableCallback(
+        (event: React.MouseEvent<HTMLElement>) => {
+            event.preventDefault();
+            handleOpen();
+        }
+    );
+
+    const handleOpenTargetKeyDown = useStableCallback(
+        (event: React.KeyboardEvent<HTMLElement>) => {
+            if (event.key === "Enter") {
+                handleOpen();
+            }
+        }
+    );
+
+    return (
+        <MediaCardPreview
+            onClick={handleOpenTargetClick}
+            onKeyDown={handleOpenTargetKeyDown}
+        />
+    );
+}
+
+function MediaCardActions() {
+    const { item } = useMediaCardData();
+    const {
+        collections,
+        onUpdateItemCollections,
+        openPickerItemId,
+        setOpenPickerItemId,
+    } = useMediaCardEnvironment();
+    const isPickerOpen = openPickerItemId === item.id;
+
+    const handlePickerOpenChange = useStableCallback((nextOpen: boolean) => {
+        setOpenPickerItemId(nextOpen ? item.id : null);
     });
 
     return (
-        <ContextMenu onOpenChange={setIsContextMenuOpen}>
-            <ContextMenuTrigger
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                render={
-                    <div className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!" />
+        <div className="flex items-center py-1.5 pr-1">
+            <CollectionComboboxPicker
+                collections={collections}
+                items={[item]}
+                onOpenChange={handlePickerOpenChange}
+                onUpdateItemCollections={onUpdateItemCollections}
+                open={isPickerOpen}
+                showSmartCollectionsIndicator={
+                    item.collections.length > 0 &&
+                    isRecentlySmartCollected(item.smartCollectedAt)
                 }
-            >
-                {/* biome-ignore lint/a11y/useSemanticElements: ControlledZoom conflicts with anchor elements */}
-                <div
-                    aria-label={
-                        isNote
-                            ? item.noteContentText?.trim() || "Note"
-                            : displayTitle
-                    }
-                    className={cn(
-                        "squircle relative flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-                        { "bg-muted/90": isNote }
-                    )}
-                    onClick={handlePrimaryClick}
-                    onKeyDown={handlePrimaryKeyDown}
-                    role="link"
-                    tabIndex={0}
-                >
-                    {isNote ? (
-                        <div className="mask-b-from-[calc(100%-var(--fade-size))] size-full max-h-60 select-none p-4 [--fade-size:5rem]">
-                            <Streamdown className="text-[11px] text-foreground">
-                                {hasNoteContent && item.noteContentHtml
-                                    ? item.noteContentHtml
-                                    : "Tap to start writing in this note"}
-                            </Streamdown>
-                        </div>
-                    ) : (
-                        <>
-                            <ControlledZoom
-                                isZoomed={isZoomed}
-                                onZoomChange={handleZoomChange}
-                            >
-                                <MediaPreview
-                                    src={previewImageUrl}
-                                    videoSrc={previewVideoUrl}
-                                />
-                            </ControlledZoom>
-                            {isLastVisited(item.id) ? (
-                                <span className="absolute right-2 bottom-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
-                                    <T>Last visited</T>
-                                    <ArrowUpRight
-                                        aria-hidden
-                                        className="hidden size-4 group-hover:inline-block"
-                                        focusable="false"
-                                    />
-                                </span>
-                            ) : (
-                                <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
-                                    <ArrowUpRight
-                                        aria-hidden
-                                        className="size-4"
-                                        focusable="false"
-                                    />
-                                </span>
-                            )}
-                        </>
-                    )}
-                </div>
-                <div className="flex items-center py-1.5 pr-1">
-                    <CardCollectionPicker
-                        item={item}
-                        onOpenChange={handlePickerOpenChange}
-                        open={isPickerOpen}
-                    />
-                    <Menu
-                        onOpenChange={setIsCardMenuOpen}
-                        open={isCardMenuOpen}
-                    >
-                        <MenuTrigger
-                            render={
-                                <Button
-                                    className="w-full min-w-0 flex-1 justify-start overflow-clip text-nowrap px-0 text-left text-[11px]!"
-                                    size="xs"
-                                    title={displayTitle}
-                                    type="button"
-                                    variant="ghost"
-                                />
-                            }
-                        >
-                            <Ticker>{displayTitle}</Ticker>
-                        </MenuTrigger>
-                        <MenuPopup>
-                            <CardMenu
-                                addedLabel={addedLabel}
-                                createdLabel={createdLabel}
-                                href={href}
-                                isDownloading={isDownloading}
-                                item={item}
-                                kind="menu"
-                                onDownload={handleDownload}
-                                onZoomIn={handleZoomIn}
-                                previewImageUrl={previewImageUrl}
-                            />
-                        </MenuPopup>
-                    </Menu>
-                </div>
-            </ContextMenuTrigger>
-            <ContextMenuPopup>
-                <CardMenu
-                    addedLabel={addedLabel}
-                    createdLabel={createdLabel}
-                    href={href}
-                    isDownloading={isDownloading}
-                    item={item}
-                    kind="context"
-                    onDownload={handleDownload}
-                    onZoomIn={handleZoomIn}
-                    previewImageUrl={previewImageUrl}
-                />
-            </ContextMenuPopup>
-        </ContextMenu>
+            />
+            <MediaCardMenuSurface />
+        </div>
     );
 }
 
@@ -5090,7 +5599,7 @@ function buildSimilarBrowserFilterState(
 ): BrowserSimilarFilterState {
     const shouldUseDomainFilter =
         DOMAIN_RELATED_SOURCES.has(options.source) &&
-        options.domain !== UNSPECIFIC_DOMAIN_FILTER;
+        options.domain !== UNSPECIFIC_LIBRARY_DOMAIN;
 
     return {
         ...state,
@@ -5391,20 +5900,19 @@ function CreateResultsCollectionDialog({
  * and the `S` collection-picker shortcut. Registered once at the browser
  * root so every card does not mount its own `useHotkeys` listeners.
  */
-function useCardHoverHotkeys(input: {
+function useCardHoverHotkeys({
+    hoveredItemIdRef,
+    itemsRef,
+    onDelete,
+    onItemFavoriteToggle,
+    pendingDeleteItemIdRef,
+}: {
     hoveredItemIdRef: React.RefObject<string | null>;
     itemsRef: React.RefObject<LibraryItemWithCollections[]>;
     onDelete: (item: LibraryItemWithCollections) => void;
     onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
     pendingDeleteItemIdRef: React.RefObject<string | null>;
 }) {
-    const {
-        hoveredItemIdRef,
-        itemsRef,
-        onDelete,
-        onItemFavoriteToggle,
-        pendingDeleteItemIdRef,
-    } = input;
     const quickLookTriggerId = React.useId();
 
     const resolveHoveredItem = useStableCallback(() => {
@@ -5452,8 +5960,8 @@ function useCardHoverHotkeys(input: {
             event.preventDefault();
             openQuickLookDrawer(
                 {
-                    description: itemDomain(item.url),
-                    title: getItemTitle(item),
+                    description: getLibraryItemDomain(item.url),
+                    title: getLibraryItemTitle(item),
                     url: item.url,
                 },
                 quickLookTriggerId
@@ -5487,33 +5995,388 @@ function useCardHoverHotkeys(input: {
 }
 
 export function BrowserRoot({
+    children,
     connectedIntegrationCount,
+    initialCollections,
+    initialItems,
     lockedItemCount,
     totalItemCount,
-}: LibraryProps) {
+}: React.PropsWithChildren<LibraryProps>) {
+    const [items, setItems] = React.useState(initialItems);
+
+    return (
+        <CollectionsProvider
+            initialCollections={initialCollections}
+            setItems={setItems}
+        >
+            <BrowserContent
+                connectedIntegrationCount={connectedIntegrationCount}
+                items={items}
+                lockedItemCount={lockedItemCount}
+                setItems={setItems}
+                totalItemCount={totalItemCount}
+            >
+                {children}
+            </BrowserContent>
+        </CollectionsProvider>
+    );
+}
+
+function BrowserContent({
+    children,
+    connectedIntegrationCount,
+    items,
+    lockedItemCount,
+    setItems,
+    totalItemCount,
+}: React.PropsWithChildren<
+    Omit<LibraryProps, "initialCollections" | "initialItems"> & {
+        items: LibraryItemWithCollections[];
+        setItems: React.Dispatch<
+            React.SetStateAction<LibraryItemWithCollections[]>
+        >;
+    }
+>) {
     const { hasAccess } = useSubscriptionAccess();
     const isExtensionInstalled = useIsExtensionInstalled();
     const paletteCaretTimeout = useTimeout();
     const paletteFocusOutTimeout = useTimeout();
 
     const {
-        collectionPreviewThumbnailUrlsById,
         collectionSummaries: collections,
-        favoriteItemIdSet,
-        items,
+        collections: allCollections,
+        mergeCollectionSummaries,
         onClearCollectionFilters,
-        onCreateCollectionFromResults,
-        onDeleteItemSuccess,
         onSelectCollection: onRemoveCollectionFilter,
-        onToggleItemFavorite,
-        onUpdateItemCollections,
-        onUpdateItemsCollections,
         requestCreate,
         selectedCollectionIds,
-        setItems: onItemsChange,
-    } = useWorkspaceContext();
+        syncCollectionCreated,
+    } = useCollectionsContext();
 
-    const openFavoriteItemRef = React.use(OpenFavoriteItemRefContext);
+    const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
+        buildCollectionItemIndexes(items);
+
+    const favoriteItems = items
+        .filter(
+            (
+                item
+            ): item is LibraryItemWithCollections & { favoritedAt: Date } =>
+                item.favoritedAt !== null
+        )
+        .toSorted(
+            (left, right) =>
+                right.favoritedAt.getTime() - left.favoritedAt.getTime()
+        );
+    const favoriteItemIdSet = new Set(favoriteItems.map((item) => item.id));
+    const allCollectionsRef = React.useRef(allCollections);
+    allCollectionsRef.current = allCollections;
+
+    const collectionUpdateRequestTokenByItemIdRef = useRefWithInit(
+        () => new Map<string, symbol>()
+    );
+    const itemFavoriteToggleRequestTokenByItemIdRef = useRefWithInit(
+        () => new Map<string, symbol>()
+    );
+
+    const handleUpdateItemCollections = useStableCallback(
+        async (
+            itemId: string,
+            collectionIds: string[]
+        ): Promise<LibraryItemCollectionsUpdateResult> => {
+            const requestToken = Symbol(itemId);
+            collectionUpdateRequestTokenByItemIdRef.current.set(
+                itemId,
+                requestToken
+            );
+
+            const existingItem = items.find((item) => item.id === itemId);
+            if (!existingItem) {
+                collectionUpdateRequestTokenByItemIdRef.current.delete(itemId);
+                return {
+                    message: "We couldn't update collections for this item.",
+                    status: "ERROR",
+                };
+            }
+
+            const previousCollections = existingItem.collections;
+
+            const collectionIdSet = new Set(collectionIds);
+            const optimisticCollections = sortCollections(
+                allCollections.filter((collection) =>
+                    collectionIdSet.has(collection.id)
+                )
+            );
+            setItems((current) =>
+                updateById(current, itemId, (item) => ({
+                    ...item,
+                    collections: optimisticCollections,
+                }))
+            );
+
+            let result: LibraryItemCollectionsUpdateResult;
+            try {
+                result = await updateLibraryItemCollections({
+                    collectionIds,
+                    itemId,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't update collections for this item.",
+                    status: "ERROR",
+                };
+            }
+
+            if (
+                collectionUpdateRequestTokenByItemIdRef.current.get(itemId) !==
+                requestToken
+            ) {
+                return result;
+            }
+
+            if (result.status === "UPDATED") {
+                mergeCollectionSummaries(result.collectionSummaries);
+                setItems((current) =>
+                    updateById(current, itemId, (item) => ({
+                        ...item,
+                        collections: result.collections,
+                    }))
+                );
+            } else {
+                setItems((current) =>
+                    updateById(current, itemId, (item) => ({
+                        ...item,
+                        collections: reconcileCollectionTags(
+                            allCollectionsRef.current,
+                            previousCollections
+                        ),
+                    }))
+                );
+            }
+            collectionUpdateRequestTokenByItemIdRef.current.delete(itemId);
+            return result;
+        }
+    );
+
+    const handleUpdateItemsCollections = useStableCallback(
+        async (input: {
+            itemIds: string[];
+            nextSharedCollectionIds: string[];
+            previousSharedCollectionIds: string[];
+        }): Promise<LibraryItemsCollectionsUpdateResult> => {
+            const requestedItemIds = new Set(input.itemIds);
+            const previousItemCollections = items
+                .filter((item) => requestedItemIds.has(item.id))
+                .map((item) => ({
+                    collections: item.collections,
+                    itemId: item.id,
+                }));
+            const nextSharedCollectionIdSet = new Set(
+                input.nextSharedCollectionIds
+            );
+            const previousSharedCollectionIdSet = new Set(
+                input.previousSharedCollectionIds
+            );
+            const requestToken = Symbol("bulk-collection-update");
+            for (const { itemId } of previousItemCollections) {
+                collectionUpdateRequestTokenByItemIdRef.current.set(
+                    itemId,
+                    requestToken
+                );
+            }
+            const optimisticItemCollections = previousItemCollections.map(
+                ({ collections: itemCollections, itemId }) => {
+                    const optimisticCollections = sortCollections([
+                        ...itemCollections.filter(
+                            (collection) =>
+                                !(
+                                    previousSharedCollectionIdSet.has(
+                                        collection.id
+                                    ) ||
+                                    nextSharedCollectionIdSet.has(collection.id)
+                                )
+                        ),
+                        ...allCollections.filter((collection) =>
+                            nextSharedCollectionIdSet.has(collection.id)
+                        ),
+                    ]);
+                    return {
+                        collections: optimisticCollections,
+                        itemId,
+                    };
+                }
+            );
+
+            setItems((current) =>
+                replaceMultipleItemCollections(
+                    current,
+                    optimisticItemCollections
+                )
+            );
+
+            let result: LibraryItemsCollectionsUpdateResult;
+
+            try {
+                result = await updateLibraryItemsCollections(input);
+            } catch {
+                result = {
+                    message: "We couldn't update collections for those items.",
+                    status: "ERROR",
+                };
+            }
+
+            const currentItemIds = [...requestedItemIds].filter(
+                (itemId) =>
+                    collectionUpdateRequestTokenByItemIdRef.current.get(
+                        itemId
+                    ) === requestToken
+            );
+            if (currentItemIds.length === 0) {
+                return result;
+            }
+
+            const currentItemIdSet = new Set(currentItemIds);
+            if (result.status === "UPDATED") {
+                if (currentItemIds.length === requestedItemIds.size) {
+                    mergeCollectionSummaries(result.collectionSummaries);
+                }
+                setItems((current) =>
+                    replaceMultipleItemCollections(
+                        current,
+                        result.itemCollections.filter((entry) =>
+                            currentItemIdSet.has(entry.itemId)
+                        )
+                    )
+                );
+            } else {
+                setItems((current) =>
+                    replaceMultipleItemCollections(
+                        current,
+                        previousItemCollections
+                            .filter(({ itemId }) =>
+                                currentItemIdSet.has(itemId)
+                            )
+                            .map(
+                                ({
+                                    collections: previousCollections,
+                                    itemId,
+                                }) => ({
+                                    collections: reconcileCollectionTags(
+                                        allCollectionsRef.current,
+                                        previousCollections
+                                    ),
+                                    itemId,
+                                })
+                            )
+                    )
+                );
+            }
+
+            for (const itemId of currentItemIds) {
+                collectionUpdateRequestTokenByItemIdRef.current.delete(itemId);
+            }
+
+            return result;
+        }
+    );
+
+    const handleToggleItemFavorite = useStableCallback(
+        async (
+            item: LibraryItemWithCollections
+        ): Promise<LibraryItemFavoriteToggleResult> => {
+            const requestToken = Symbol(item.id);
+            itemFavoriteToggleRequestTokenByItemIdRef.current.set(
+                item.id,
+                requestToken
+            );
+
+            const currentItem = items.find((entry) => entry.id === item.id);
+            if (!currentItem) {
+                itemFavoriteToggleRequestTokenByItemIdRef.current.delete(
+                    item.id
+                );
+                return {
+                    message: "We couldn't update this favorite right now.",
+                    status: "ERROR",
+                };
+            }
+
+            const previousFavoritedAt = currentItem.favoritedAt;
+            const optimisticFavoritedAt = previousFavoritedAt
+                ? null
+                : new Date();
+
+            setItems((current) =>
+                updateById(current, item.id, (liveItem) => ({
+                    ...liveItem,
+                    favoritedAt: optimisticFavoritedAt,
+                }))
+            );
+
+            let result: LibraryItemFavoriteToggleResult;
+            try {
+                result = await toggleLibraryItemFavorite(item.id);
+            } catch {
+                result = {
+                    message: "We couldn't update this favorite right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (
+                itemFavoriteToggleRequestTokenByItemIdRef.current.get(
+                    item.id
+                ) !== requestToken
+            ) {
+                return result;
+            }
+
+            if (result.status === "UPDATED") {
+                setItems((current) =>
+                    updateById(current, result.item.id, () => result.item)
+                );
+            } else {
+                setItems((current) =>
+                    updateById(current, item.id, (liveItem) => ({
+                        ...liveItem,
+                        favoritedAt: previousFavoritedAt,
+                    }))
+                );
+            }
+
+            itemFavoriteToggleRequestTokenByItemIdRef.current.delete(item.id);
+            return result;
+        }
+    );
+
+    const handleCreateCollectionFromResults = useStableCallback(
+        async (input: {
+            description?: string;
+            itemIds: string[];
+            name: string;
+        }): Promise<CollectionCreateFromItemsResult> => {
+            let result: CollectionCreateFromItemsResult;
+
+            try {
+                result = await createCollectionFromItems(input);
+            } catch {
+                result = {
+                    message: "We couldn't create this collection right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status !== "CREATED") {
+                return result;
+            }
+
+            syncCollectionCreated({
+                assignedItemIds: result.assignedItemIds,
+                collection: result.collection,
+            });
+
+            return result;
+        }
+    );
 
     const [query, setQuery] = React.useState("");
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
@@ -5580,7 +6443,6 @@ export function BrowserRoot({
     >(null);
 
     const [isCommandOpen, setIsCommandOpen] = React.useState(false);
-    const [isCommandFocused, setIsCommandFocused] = React.useState(false);
 
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -5600,10 +6462,11 @@ export function BrowserRoot({
         isDeletePending,
         pendingDeleteItem,
     } = useLibraryItemActions({
-        onDeleteSuccess: (result) => {
-            onDeleteItemSuccess(result);
-        },
-        setVisibleItems: onItemsChange,
+        onDeleteSuccess: mergeCollectionSummaries,
+        removeItems: (itemIds) =>
+            setItems((current) =>
+                current.filter((item) => !itemIds.includes(item.id))
+            ),
     });
     const pendingDeleteItemIdRef = React.useRef<string | null>(
         pendingDeleteItem?.id ?? null
@@ -5623,15 +6486,6 @@ export function BrowserRoot({
         startCreateResultsCollectionTransition,
     ] = React.useTransition();
 
-    /**
-     * Auto-records any newly-added search term into the persistent
-     * `useSearchHistory` store. Observing `searchTerms` here (rather than
-     * calling `recordSearchTerm` at every commit site) keeps the recording
-     * concern in one place and captures terms added by both the inline
-     * palette actions and Ask Cache patches. The ref is seeded with `[]`
-     * rather than `searchTerms` so a non-empty initial state (e.g. future
-     * URL hydration) is still recorded on the first run.
-     */
     const prevSearchTermsRef = React.useRef<string[]>([]);
     React.useEffect(() => {
         const prev = prevSearchTermsRef.current;
@@ -5706,7 +6560,7 @@ export function BrowserRoot({
             });
 
         // Local set so the async loop does not re-probe the same batch while
-        // waiting for React to commit `onItemsChange` into `itemsRef`.
+        // waiting for React to commit `setItems` into `itemsRef`.
         const probedItemIds = new Set<string>();
 
         const run = async () => {
@@ -5820,7 +6674,7 @@ export function BrowserRoot({
                 const resultById = new Map(
                     result.results.map((entry) => [entry.itemId, entry])
                 );
-                onItemsChange((previous) =>
+                setItems((previous) =>
                     previous.map((item) => {
                         const entry = resultById.get(item.id);
                         if (!entry) {
@@ -5842,10 +6696,10 @@ export function BrowserRoot({
 
         return () => {
             // Stop the async loop on unmount or before the next effect run so
-            // it cannot keep probing or calling onItemsChange after teardown.
+            // it cannot keep probing or calling setItems after teardown.
             unreachableProbeVersionRef.current += 1;
         };
-    }, [onItemsChange, unreachableFilterEnabled]);
+    }, [setItems, unreachableFilterEnabled]);
 
     const domainOptions = buildDomainPaletteOptions(items);
 
@@ -6157,14 +7011,12 @@ export function BrowserRoot({
 
             if (deletedIds.length > 0) {
                 const deletedIdSet = new Set(deletedIds);
-                onItemsChange((current) =>
+                setItems((current) =>
                     current.filter((item) => !deletedIdSet.has(item.id))
                 );
-                onDeleteItemSuccess({
-                    collectionSummaries: Array.from(
-                        collectionSummariesById.values()
-                    ),
-                });
+                mergeCollectionSummaries(
+                    Array.from(collectionSummariesById.values())
+                );
             }
 
             setIsRemoveDuplicatesDialogOpen(false);
@@ -6322,7 +7174,7 @@ export function BrowserRoot({
     const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(true);
 
     const [prevSuggestionCount, setPrevSuggestionCount] = React.useState(0);
-    if (prevSuggestionCount !== suggestions.length) {
+    if (!Object.is(prevSuggestionCount, suggestions.length)) {
         if (suggestions.length > 0 && prevSuggestionCount === 0) {
             setIsSuggestionsOpen(true);
         }
@@ -6630,7 +7482,7 @@ export function BrowserRoot({
             // expressions (value blocks) inside try/catch statements.
             const description = createResultsDescriptionDraft || undefined;
             try {
-                result = await onCreateCollectionFromResults({
+                result = await handleCreateCollectionFromResults({
                     description,
                     itemIds: resultCollectionItemIds,
                     name: createResultsNameDraft,
@@ -6667,7 +7519,14 @@ export function BrowserRoot({
             try {
                 await saveFile(
                     new Blob(
-                        [buildBrowserSectionCsv(sectionTitle, sectionItems)],
+                        [
+                            buildItemsCsv(
+                                "Section",
+                                sectionTitle,
+                                sectionItems,
+                                "\n"
+                            ),
+                        ],
                         { type: MIME_TYPES.csv }
                     ),
                     {
@@ -6703,7 +7562,7 @@ export function BrowserRoot({
 
     const handleItemFavoriteToggle = useStableCallback(
         (item: LibraryItemWithCollections) => {
-            onToggleItemFavorite(item).catch((error) => {
+            handleToggleItemFavorite(item).catch((error) => {
                 log.error("Failed to toggle item favorite", {
                     error,
                     itemId: item.id,
@@ -6722,7 +7581,7 @@ export function BrowserRoot({
 
     const handleFindSimilar = useStableCallback(
         (item: LibraryItemWithCollections) => {
-            const similarDomain = itemDomain(item.url);
+            const similarDomain = getLibraryItemDomain(item.url);
             const nextFilters = buildSimilarBrowserFilterState(
                 {
                     collectionMembershipFilter,
@@ -6769,7 +7628,7 @@ export function BrowserRoot({
                         return;
                     }
 
-                    onItemsChange((current) => {
+                    setItems((current) => {
                         const existingIndex = current.findIndex(
                             (item) => item.id === result.item.id
                         );
@@ -6801,7 +7660,7 @@ export function BrowserRoot({
                         return;
                     }
 
-                    onItemsChange((current) => {
+                    setItems((current) => {
                         const existingIndex = current.findIndex(
                             (item) => item.id === result.item.id
                         );
@@ -6831,7 +7690,6 @@ export function BrowserRoot({
         }
 
         const handleFocusIn = (event: FocusEvent) => {
-            setIsCommandFocused(true);
             if (event.target instanceof ownerWindow.HTMLInputElement) {
                 setIsCommandOpen(true);
             }
@@ -6853,7 +7711,6 @@ export function BrowserRoot({
                         element.contains(active)
                     )
                 ) {
-                    setIsCommandFocused(false);
                     setIsCommandOpen(false);
                 }
             };
@@ -6879,25 +7736,9 @@ export function BrowserRoot({
         []
     );
 
-    React.useEffect(() => {
-        if (!openFavoriteItemRef) {
-            return;
-        }
-        openFavoriteItemRef.current = handleOpenFavoriteItem;
-        return () => {
-            openFavoriteItemRef.current = null;
-        };
-    }, [handleOpenFavoriteItem, openFavoriteItemRef]);
-
-    let placeholder = "Search, filter, group, sort, and more";
-    if (paletteSection === "search") {
-        if (hasActiveFilters) {
-            placeholder = "Ask Cache anything";
-        } else if (isCommandFocused) {
-            placeholder = "What are you looking for?";
-        } else {
-            placeholder = "Search, filter, group, sort, and more";
-        }
+    let placeholder = "Ask Cache anything";
+    if (paletteSection === "search" && hasActiveFilters) {
+        placeholder = "Ask Cache anything";
     } else if (paletteSection === "filter") {
         placeholder = "Filter the library";
     } else if (paletteSection === "group") {
@@ -6920,189 +7761,236 @@ export function BrowserRoot({
 
     const handleCloseNoteDrawer = useStableCallback(() => setActiveNote(null));
 
+    const mergeImportedLibraryItems = useStableCallback(
+        (importedItems: LibraryItemWithCollections[]) => {
+            setItems((current) => mergeImportedItems(current, importedItems));
+        }
+    );
+
+    const libraryItemsContextValue: LibraryItemsContextValue = {
+        collectionPreviewThumbnailUrlsById,
+        favoriteItemIdSet,
+        favoriteItems,
+        items,
+        itemsByCollectionId,
+        mergeImportedItems: mergeImportedLibraryItems,
+        onCopyLink: handleCopyLink,
+        onDelete: handleRequestDelete,
+        onFindSimilar: handleFindSimilar,
+        onOpenFavoriteItem: handleOpenFavoriteItem,
+        onOpenInNewTab: handleOpenInNewTab,
+        onOpenNote: handleOpenNote,
+        onToggleItemFavorite: handleToggleItemFavorite,
+        onUpdateItemCollections: handleUpdateItemCollections,
+        pendingDeleteItemId: pendingDeleteItem?.id ?? null,
+    };
+
+    const browserContextValue: BrowserContextValue = {
+        clearLibraryPalette,
+        collapsedSectionKeys: collapsedSectionKeySet,
+        collections,
+        columnCount: resolvedColumnCount,
+        enableSectionCollapse,
+        favoriteItemIdSet,
+        hoveredItemIdRef,
+        hoverPinnedItemIdRef,
+        onCollapseAllSections: collapseAllSections,
+        onCopyLink: handleCopyLink,
+        onCreateCollectionFromResults: handleOpenCreateResultsDialog,
+        onDelete: handleRequestDelete,
+        onExpandAllSections: expandAllSections,
+        onExportSectionResults: handleExportSectionResults,
+        onFindSimilar: handleFindSimilar,
+        onItemFavoriteToggle: handleToggleItemFavorite,
+        onOpenInNewTab: handleOpenInNewTab,
+        onOpenNote: handleOpenNote,
+        onToggleSection: toggleSection,
+        onUpdateItemCollections: handleUpdateItemCollections,
+        openPickerItemId,
+        pendingDeleteItemId: pendingDeleteItem?.id ?? null,
+        setOpenPickerItemId,
+        shouldShowEmptyLibraryPeek,
+        shouldShowNoFilteredResults,
+        shouldShowUnreachableProbePending:
+            isUnreachableProbePending && filteredItems.length === 0,
+    };
+
     return (
-        <div
-            className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
-            style={sectionStyle}
-        >
-            <Composer>
-                <ComposerInput
-                    containerRef={commandPanelContainerRef}
-                    groups={paletteGroups}
-                    isOpen={isCommandOpen}
-                    onKeyDown={handlePaletteInputKeyDown}
-                    onOpenChange={handleCommandOpenChange}
-                    onValueChange={handleCommandInputChange}
-                    placeholder={placeholder}
-                    query={query}
-                    ref={inputRef}
-                    stackEntries={paletteStackEntries}
-                />
-                <ComposerActions
-                    canClear={canClear}
-                    connectedIntegrationCount={connectedIntegrationCount}
-                    duplicatesFilterEnabled={duplicatesFilterEnabled}
-                    groupBy={groupBy}
-                    metrics={libraryMetrics}
-                    onClearPalette={clearLibraryPalette}
-                    onCreateCollection={requestCreate}
-                    onCreateNote={handleCreateNote}
-                    onOpenCommandFromOnboarding={
-                        handleOpenCommandFromOnboarding
-                    }
-                    onRemoveDuplicates={handleRequestRemoveDuplicates}
-                    removableDuplicateCount={removableDuplicateIds.length}
-                    resultsSummary={resultsSummary}
-                    sectionsLength={groups.length}
+        <LibraryItemsContext value={libraryItemsContextValue}>
+            <BrowserContext value={browserContextValue}>
+                {children}
+                <div
+                    className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
+                    style={sectionStyle}
                 >
-                    <ComposerActionNew />
-                    <ComposerActionMetrics />
-                    <ComposerActionOnboarding />
-                    <ComposerActionRemoveDuplicates />
-                </ComposerActions>
-            </Composer>
-            <ComposerSuggestionsList
-                onOpenChange={setIsSuggestionsOpen}
-                open={isSuggestionsOpen}
-                suggestions={suggestions}
-            >
-                {(suggestion, index) => (
-                    <Button
-                        className="rounded-full text-muted-foreground transition-transform duration-100 ease-out active:scale-[0.97]"
-                        key={suggestion.label}
-                        onClick={suggestion.onSelect}
-                        size="xs"
-                        variant="ghost"
-                    >
-                        {suggestion.icon}
-                        &nbsp;
-                        {suggestion.label}
-                        <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
-                            <CmdKbd />
-                            {index + 1}
-                        </Kbd>
-                    </Button>
-                )}
-            </ComposerSuggestionsList>
-            {isPreviewOnly ? <InlinePaywallBanner /> : null}
-            <Browser
-                clearLibraryPalette={clearLibraryPalette}
-                collapsedSectionKeys={collapsedSectionKeySet}
-                collections={collections}
-                columnCount={resolvedColumnCount}
-                enableSectionCollapse={enableSectionCollapse}
-                favoriteItemIdSet={favoriteItemIdSet}
-                hoveredItemIdRef={hoveredItemIdRef}
-                hoverPinnedItemIdRef={hoverPinnedItemIdRef}
-                onCollapseAllSections={collapseAllSections}
-                onCopyLink={handleCopyLink}
-                onCreateCollectionFromResults={handleOpenCreateResultsDialog}
-                onDelete={handleRequestDelete}
-                onExpandAllSections={expandAllSections}
-                onExportSectionResults={handleExportSectionResults}
-                onFindSimilar={handleFindSimilar}
-                onItemFavoriteToggle={handleItemFavoriteToggle}
-                onOpenInNewTab={handleOpenInNewTab}
-                onOpenNote={handleOpenNote}
-                onToggleSection={toggleSection}
-                onUpdateItemCollections={onUpdateItemCollections}
-                openPickerItemId={openPickerItemId}
-                pendingDeleteItemId={pendingDeleteItem?.id ?? null}
-                setOpenPickerItemId={setOpenPickerItemId}
-                shouldShowEmptyLibraryPeek={shouldShowEmptyLibraryPeek}
-                shouldShowNoFilteredResults={shouldShowNoFilteredResults}
-                shouldShowUnreachableProbePending={
-                    isUnreachableProbePending && filteredItems.length === 0
-                }
-            >
-                <BrowserEmpty />
-                <BrowserEmptyWithFilters />
-                <BrowserUnreachableProbePending />
-                <BrowserGroupList groups={groups}>
-                    {(section) => (
-                        <BrowserGroup>
-                            {enableSectionCollapse ? (
-                                <>
-                                    <BrowserGroupHeader />
-                                    {!section.title && (
-                                        <BrowserGroupAIOverview>
-                                            <BrowserGroupAIOverviewContent />
-                                        </BrowserGroupAIOverview>
-                                    )}
-                                    <BrowserGroupEmpty>
-                                        No items were found in this section.
-                                    </BrowserGroupEmpty>
-                                </>
-                            ) : null}
-                            <BrowserMasonry>
-                                {(item) => <MediaCard item={item} />}
-                            </BrowserMasonry>
-                        </BrowserGroup>
-                    )}
-                </BrowserGroupList>
-            </Browser>
-            {shouldShowLockedPreview ? (
-                <div className="relative isolate flex flex-col gap-8">
-                    <BlockPaywallBanner length={totalItemCount} />
-                    <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
-                    <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                        <Masonry
-                            columnCount={resolvedColumnCount}
-                            columnGutter={16}
-                            items={LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS}
-                            maxColumnCount={7}
-                            render={LockedPreviewCard}
-                            rowGutter={16}
+                    <Composer>
+                        <ComposerInput
+                            containerRef={commandPanelContainerRef}
+                            groups={paletteGroups}
+                            isOpen={isCommandOpen}
+                            onKeyDown={handlePaletteInputKeyDown}
+                            onOpenChange={handleCommandOpenChange}
+                            onValueChange={handleCommandInputChange}
+                            placeholder={placeholder}
+                            query={query}
+                            ref={inputRef}
+                            stackEntries={paletteStackEntries}
                         />
-                    </div>
+                        <ComposerActions
+                            canClear={canClear}
+                            connectedIntegrationCount={
+                                connectedIntegrationCount
+                            }
+                            duplicatesFilterEnabled={duplicatesFilterEnabled}
+                            groupBy={groupBy}
+                            metrics={libraryMetrics}
+                            onClearPalette={clearLibraryPalette}
+                            onCreateCollection={requestCreate}
+                            onCreateNote={handleCreateNote}
+                            onOpenCommandFromOnboarding={
+                                handleOpenCommandFromOnboarding
+                            }
+                            onRemoveDuplicates={handleRequestRemoveDuplicates}
+                            removableDuplicateCount={
+                                removableDuplicateIds.length
+                            }
+                            resultsSummary={resultsSummary}
+                            sectionsLength={groups.length}
+                        >
+                            <ComposerActionNew />
+                            <ComposerActionMetrics />
+                            <ComposerActionOnboarding />
+                            <ComposerActionRemoveDuplicates />
+                        </ComposerActions>
+                    </Composer>
+                    <ComposerSuggestionsList
+                        onOpenChange={setIsSuggestionsOpen}
+                        open={isSuggestionsOpen}
+                        suggestions={suggestions}
+                    >
+                        {(suggestion, index) => (
+                            <Button
+                                className="text-muted-foreground transition-transform duration-100 ease-out active:scale-[0.97]"
+                                key={suggestion.label}
+                                onClick={suggestion.onSelect}
+                                size="xs"
+                                variant="ghost"
+                            >
+                                {suggestion.icon}
+                                &nbsp;
+                                {suggestion.label}
+                                <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
+                                    <CmdKbd />
+                                    {index + 1}
+                                </Kbd>
+                            </Button>
+                        )}
+                    </ComposerSuggestionsList>
+                    {isPreviewOnly ? <InlinePaywallBanner /> : null}
+                    <BrowserEmpty />
+                    <BrowserEmptyWithFilters />
+                    <BrowserUnreachableProbePending />
+                    <BrowserGroupList groups={groups}>
+                        {(section) => (
+                            <BrowserGroup>
+                                {enableSectionCollapse ? (
+                                    <>
+                                        <BrowserGroupHeader />
+                                        {section.title ? null : (
+                                            <BrowserGroupAIOverview>
+                                                <BrowserGroupAIOverviewContent />
+                                            </BrowserGroupAIOverview>
+                                        )}
+                                        <BrowserGroupEmpty>
+                                            No items were found in this section.
+                                        </BrowserGroupEmpty>
+                                    </>
+                                ) : null}
+                                <BrowserMasonry>
+                                    {(data) => (
+                                        <MediaCardDataProvider data={data}>
+                                            <MediaCardInteractionProvider>
+                                                <MediaCardContextMenuSurface>
+                                                    <MediaCardOpenTarget />
+                                                    <MediaCardActions />
+                                                </MediaCardContextMenuSurface>
+                                            </MediaCardInteractionProvider>
+                                        </MediaCardDataProvider>
+                                    )}
+                                </BrowserMasonry>
+                            </BrowserGroup>
+                        )}
+                    </BrowserGroupList>
+                    {shouldShowLockedPreview ? (
+                        <div className="relative isolate flex flex-col gap-8">
+                            <BlockPaywallBanner length={totalItemCount} />
+                            <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
+                            <div className="select-none opacity-70 blur-[1.5px] saturate-75">
+                                <Masonry
+                                    columnCount={resolvedColumnCount}
+                                    columnGutter={16}
+                                    items={LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS}
+                                    maxColumnCount={7}
+                                    render={LockedPreviewCard}
+                                    rowGutter={16}
+                                />
+                            </div>
+                        </div>
+                    ) : null}
+                    <NoteDrawer
+                        activeNote={activeNote}
+                        handlePasteUrlIntoLibrary={handlePasteUrlIntoLibrary}
+                        handleSaveNote={handleSaveNote}
+                        isSavingNote={isSavingNote}
+                        isSavingPastedUrl={isSavingPastedUrl}
+                        onNoteDrawerClose={handleCloseNoteDrawer}
+                    />
+                    <QuickLookDrawerSurface />
+                    <DeleteItemDialog
+                        isDeletePending={isDeletePending}
+                        onConfirmDelete={handleConfirmDelete}
+                        onOpenChange={handleDeleteDialogOpenChange}
+                        open={pendingDeleteItem !== null}
+                        pendingDeleteItem={pendingDeleteItem}
+                    />
+                    <RemoveDuplicatesDialog
+                        count={pendingRemoveDuplicateIds.length}
+                        isRemoving={isRemovingDuplicates}
+                        onConfirm={handleConfirmRemoveDuplicates}
+                        onOpenChange={handleRemoveDuplicatesDialogOpenChange}
+                        open={isRemoveDuplicatesDialogOpen}
+                    />
+                    <CreateResultsCollectionDialog
+                        collections={collections}
+                        createResultsDescriptionDraft={
+                            createResultsDescriptionDraft
+                        }
+                        createResultsDescriptionId={createResultsDescriptionId}
+                        createResultsError={createResultsError}
+                        createResultsNameDraft={createResultsNameDraft}
+                        createResultsNameInputId={createResultsNameInputId}
+                        isCreatingResultsCollection={
+                            isCreatingResultsCollection
+                        }
+                        onCreateCollectionFromResultsSubmit={
+                            handleCreateCollectionFromResultsSubmit
+                        }
+                        onOpenChange={handleCreateResultsDialogOpenChange}
+                        onUpdateCreateResultsDescriptionDraft={
+                            setCreateResultsDescriptionDraft
+                        }
+                        onUpdateCreateResultsError={setCreateResultsError}
+                        onUpdateCreateResultsNameDraft={
+                            setCreateResultsNameDraft
+                        }
+                        onUpdateItemCollections={handleUpdateItemCollections}
+                        onUpdateItemsCollections={handleUpdateItemsCollections}
+                        open={isCreateResultsDialogOpen}
+                        resultItemCount={resultCollectionItemIds.length}
+                        visibleResultItems={visibleResultItems}
+                    />
                 </div>
-            ) : null}
-            <NoteDrawer
-                activeNote={activeNote}
-                handlePasteUrlIntoLibrary={handlePasteUrlIntoLibrary}
-                handleSaveNote={handleSaveNote}
-                isSavingNote={isSavingNote}
-                isSavingPastedUrl={isSavingPastedUrl}
-                onNoteDrawerClose={handleCloseNoteDrawer}
-            />
-            <QuickLookDrawerSurface />
-            <DeleteItemDialog
-                isDeletePending={isDeletePending}
-                onConfirmDelete={handleConfirmDelete}
-                onOpenChange={handleDeleteDialogOpenChange}
-                open={pendingDeleteItem !== null}
-                pendingDeleteItem={pendingDeleteItem}
-            />
-            <RemoveDuplicatesDialog
-                count={pendingRemoveDuplicateIds.length}
-                isRemoving={isRemovingDuplicates}
-                onConfirm={handleConfirmRemoveDuplicates}
-                onOpenChange={handleRemoveDuplicatesDialogOpenChange}
-                open={isRemoveDuplicatesDialogOpen}
-            />
-            <CreateResultsCollectionDialog
-                collections={collections}
-                createResultsDescriptionDraft={createResultsDescriptionDraft}
-                createResultsDescriptionId={createResultsDescriptionId}
-                createResultsError={createResultsError}
-                createResultsNameDraft={createResultsNameDraft}
-                createResultsNameInputId={createResultsNameInputId}
-                isCreatingResultsCollection={isCreatingResultsCollection}
-                onCreateCollectionFromResultsSubmit={
-                    handleCreateCollectionFromResultsSubmit
-                }
-                onOpenChange={handleCreateResultsDialogOpenChange}
-                onUpdateCreateResultsDescriptionDraft={
-                    setCreateResultsDescriptionDraft
-                }
-                onUpdateCreateResultsError={setCreateResultsError}
-                onUpdateCreateResultsNameDraft={setCreateResultsNameDraft}
-                onUpdateItemCollections={onUpdateItemCollections}
-                onUpdateItemsCollections={onUpdateItemsCollections}
-                open={isCreateResultsDialogOpen}
-                resultItemCount={resultCollectionItemIds.length}
-                visibleResultItems={visibleResultItems}
-            />
-        </div>
+            </BrowserContext>
+        </LibraryItemsContext>
     );
 }

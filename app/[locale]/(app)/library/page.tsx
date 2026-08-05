@@ -2,7 +2,6 @@ import { buildPageMetadata } from "@/app/metadata";
 import { BrowserRoot } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
 import { Integrations } from "@/components/library/integrations";
-import { WorkspaceProvider } from "@/components/library/workspace";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
@@ -72,20 +71,18 @@ export default async function LibraryPage() {
     ]);
 
     return (
-        <WorkspaceProvider
+        <BrowserRoot
+            connectedIntegrationCount={connectedIntegrations.size}
             initialCollections={collections}
             initialItems={items}
             key={userId}
+            lockedItemCount={lockedItemCount}
+            totalItemCount={totalItemCount}
         >
             <ApplicationSidebar>
                 <Integrations connectedIntegrations={connectedIntegrations} />
                 <Collections />
             </ApplicationSidebar>
-            <BrowserRoot
-                connectedIntegrationCount={connectedIntegrations.size}
-                lockedItemCount={lockedItemCount}
-                totalItemCount={totalItemCount}
-            />
-        </WorkspaceProvider>
+        </BrowserRoot>
     );
 }

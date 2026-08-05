@@ -9,10 +9,14 @@ export const PreviewCardCreateHandle: typeof PreviewCardPrimitive.createHandle =
 export const PreviewCard: typeof PreviewCardPrimitive.Root =
     PreviewCardPrimitive.Root;
 
-export function PreviewCardTrigger(props: PreviewCardPrimitive.Trigger.Props) {
+export function PreviewCardTrigger({
+    closeDelay = 0,
+    ...props
+}: PreviewCardPrimitive.Trigger.Props) {
     return (
         <PreviewCardPrimitive.Trigger
             {...props}
+            closeDelay={closeDelay}
             data-slot="preview-card-trigger"
         />
     );

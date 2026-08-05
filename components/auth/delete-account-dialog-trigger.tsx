@@ -23,6 +23,9 @@ import { T } from "gt-next";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+const DELETE_ACCOUNT_FAILURE_MESSAGE =
+    "We couldn't delete your account. Please try again.";
+
 const log = createLogger("auth-delete-account");
 
 export function DeleteAccountDialogTrigger(
@@ -32,45 +35,57 @@ export function DeleteAccountDialogTrigger(
     const [isOpen, setIsOpen] = React.useState(false);
     const [isPending, startTransition] = React.useTransition();
     const [errorMessage, setErrorMessage] = React.useState<null | string>(null);
+    const deleteSubmissionPendingRef = React.useRef(false);
 
     const handleConfirm = useStableCallback(() => {
-        if (isPending) {
+        if (deleteSubmissionPendingRef.current) {
             return;
         }
         setErrorMessage(null);
+        deleteSubmissionPendingRef.current = true;
+
         startTransition(async () => {
-            const result: DeleteAccountActionState =
-                await deleteAccountAction();
-
-            if (result.status === "error") {
-                setErrorMessage(result.message);
-                return;
-            }
-
             try {
-                const signOutResult = await authClient.signOut();
+                const result: DeleteAccountActionState =
+                    await deleteAccountAction();
 
-                if (signOutResult?.error) {
-                    log.error("signOut after account deletion failed", {
-                        code: signOutResult.error.code,
-                        status: signOutResult.error.status,
-                    });
+                if (result.status === "error") {
+                    setErrorMessage(result.message);
+                    return;
                 }
-            } catch (error) {
-                log.error(
-                    "signOut after account deletion failed (network)",
-                    error
-                );
-            }
 
-            router.push(result.redirect ?? "/logout");
+                try {
+                    const signOutResult = await authClient.signOut();
+
+                    if (signOutResult?.error) {
+                        log.error("signOut after account deletion failed", {
+                            code: signOutResult.error.code,
+                            status: signOutResult.error.status,
+                        });
+                    }
+                } catch (error) {
+                    log.error(
+                        "signOut after account deletion failed (network)",
+                        error
+                    );
+                }
+
+                router.push(result.redirect ?? "/logout");
+            } catch (error) {
+                log.error("deleteAccountAction failed", error);
+                setErrorMessage(DELETE_ACCOUNT_FAILURE_MESSAGE);
+            } finally {
+                deleteSubmissionPendingRef.current = false;
+            }
         });
     });
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        setIsOpen(nextOpen);
-        if (!nextOpen) {
-            setErrorMessage(null);
+        if (nextOpen || !deleteSubmissionPendingRef.current) {
+            setIsOpen(nextOpen);
+            if (!nextOpen) {
+                setErrorMessage(null);
+            }
         }
     });
 

@@ -6,7 +6,8 @@ import {
     SORT_ASC,
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
-import { toValidUrl } from "@/lib/common/url";
+import { escapeCsv, neutralizeCsvFormula } from "@/lib/common/strings";
+import { normalizeURL, toValidUrl } from "@/lib/common/url";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";
 import type {
@@ -305,4 +306,39 @@ export function itemPreviewVideoUrl(item: {
     }
 
     return `/api/preview?url=${encodeURIComponent(href)}&type=video`;
+}
+
+/**
+ * Builds a CSV export of library items prefixed with a leading grouping
+ * column whose header cell is `headerLabel` and whose data cells are `label`.
+ * Defaults to the RFC 4180 CRLF record separator.
+ */
+export function buildItemsCsv(
+    headerLabel: string,
+    label: string,
+    items: LibraryItemWithCollections[],
+    recordSeparator = "\r\n"
+): string {
+    const headers = [
+        neutralizeCsvFormula(headerLabel),
+        "Caption",
+        "URL",
+        "Source",
+        "Kind",
+        "Saved At",
+        "Posted At",
+    ];
+    const rows = items.map((item) => [
+        neutralizeCsvFormula(label),
+        neutralizeCsvFormula(item.caption ?? ""),
+        normalizeURL(item.url),
+        item.source,
+        item.kind,
+        item.createdAt.toISOString(),
+        item.postedAt?.toISOString() ?? "",
+    ]);
+
+    return [headers, ...rows]
+        .map((row) => row.map(escapeCsv).join(","))
+        .join(recordSeparator);
 }

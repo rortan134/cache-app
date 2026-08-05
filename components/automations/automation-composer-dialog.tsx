@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/common/cn";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
@@ -59,6 +60,8 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 
 const ALL_LIBRARY_COLLECTION_ID = "all_library";
+const SAVE_AUTOMATION_FAILURE_MESSAGE =
+    "We couldn't save this automation. Please try again.";
 const AUTOMATION_OPTION_TRIGGER_CLASS_NAME =
     "h-7 max-w-full min-w-0 justify-start gap-1 rounded-md px-2 font-normal text-muted-foreground hover:bg-muted hover:text-foreground";
 const AUTOMATION_OPTION_POPUP_CLASS_NAME = "min-w-44";
@@ -107,6 +110,8 @@ const ALL_LIBRARY_OPTION: AutomationCollectionOption = {
     id: ALL_LIBRARY_COLLECTION_ID,
     name: "All library",
 };
+
+const log = createLogger("automations:composer");
 
 type AutomationCadence = "daily" | "weekly" | "monthly";
 type AutomationPayloadScope = "all_library_items" | "collection";
@@ -179,6 +184,7 @@ export function AutomationComposerDialog({
     const isOpenControlled = open !== undefined;
     const isOpen = isOpenControlled ? open : uncontrolledOpen;
     const [isPending, startTransition] = React.useTransition();
+    const submissionPendingRef = React.useRef(false);
     const [formState, setFormState] = React.useState<AutomationFormState>(() =>
         getInitialFormState(automation, collections)
     );
@@ -192,10 +198,12 @@ export function AutomationComposerDialog({
     const shouldRenderTrigger = trigger !== null;
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        if (!isOpenControlled) {
-            setUncontrolledOpen(nextOpen);
+        if (nextOpen || !submissionPendingRef.current) {
+            if (!isOpenControlled) {
+                setUncontrolledOpen(nextOpen);
+            }
+            onOpenChange?.(nextOpen);
         }
-        onOpenChange?.(nextOpen);
     });
 
     useIsoLayoutEffect(() => {
@@ -250,6 +258,10 @@ export function AutomationComposerDialog({
         (event: React.ChangeEvent<HTMLFormElement>) => {
             event.preventDefault();
 
+            if (submissionPendingRef.current) {
+                return;
+            }
+
             if (!(formState.title.trim() && formState.prompt.trim())) {
                 updateFormState({
                     errorMessage: "Title and instructions are required.",
@@ -257,77 +269,91 @@ export function AutomationComposerDialog({
                 return;
             }
 
+            submissionPendingRef.current = true;
+
             startTransition(async () => {
-                const isAllLibraryPayload =
-                    formState.collection.id === ALL_LIBRARY_COLLECTION_ID;
+                try {
+                    const isAllLibraryPayload =
+                        formState.collection.id === ALL_LIBRARY_COLLECTION_ID;
 
-                const payloadScope: AutomationPayloadScope = isAllLibraryPayload
-                    ? "all_library_items"
-                    : "collection";
+                    const payloadScope: AutomationPayloadScope =
+                        isAllLibraryPayload
+                            ? "all_library_items"
+                            : "collection";
 
-                const timezone =
-                    automation === undefined
-                        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-                        : automation.timezone;
+                    const timezone =
+                        automation === undefined
+                            ? Intl.DateTimeFormat().resolvedOptions().timeZone
+                            : automation.timezone;
 
-                const input = {
-                    collectionId: isAllLibraryPayload
-                        ? null
-                        : formState.collection.id,
-                    payloadScope,
-                    prompt: formState.prompt,
-                    schedule: {
-                        cadence: formState.cadence.value,
-                        monthDay:
-                            formState.cadence.value === "monthly"
-                                ? formState.monthDay
-                                : null,
-                        timeOfDayMinutes: parseTimeOfDayMinutes(
-                            formState.timeValue
-                        ),
-                        timezone,
-                        weekDay:
-                            formState.cadence.value === "weekly"
-                                ? formState.weekDay
-                                : null,
-                    },
-                    title: formState.title,
-                };
+                    const input = {
+                        collectionId: isAllLibraryPayload
+                            ? null
+                            : formState.collection.id,
+                        payloadScope,
+                        prompt: formState.prompt,
+                        schedule: {
+                            cadence: formState.cadence.value,
+                            monthDay:
+                                formState.cadence.value === "monthly"
+                                    ? formState.monthDay
+                                    : null,
+                            timeOfDayMinutes: parseTimeOfDayMinutes(
+                                formState.timeValue
+                            ),
+                            timezone,
+                            weekDay:
+                                formState.cadence.value === "weekly"
+                                    ? formState.weekDay
+                                    : null,
+                        },
+                        title: formState.title,
+                    };
 
-                const result = isEditing
-                    ? await updateAutomation({
-                          automation: input,
-                          automationId: automation.id,
-                      })
-                    : await createAutomation(input);
+                    const result = isEditing
+                        ? await updateAutomation({
+                              automation: input,
+                              automationId: automation.id,
+                          })
+                        : await createAutomation(input);
 
-                if (result.status !== "SUCCESS") {
-                    setFormState((currentState) => ({
-                        ...currentState,
-                        errorMessage: result.message,
-                    }));
-                    return;
-                }
-
-                if (isEditing && shouldResumeAfterSave) {
-                    const resumeResult = await resumeAutomation({
-                        automationId: automation.id,
-                        schedule: input.schedule,
-                    });
-
-                    if (resumeResult.status !== "SUCCESS") {
+                    if (result.status !== "SUCCESS") {
                         setFormState((currentState) => ({
                             ...currentState,
-                            errorMessage: resumeResult.message,
+                            errorMessage: result.message,
                         }));
-
                         return;
                     }
-                }
 
-                handleOpenChange(false);
-                setFormState(getInitialFormState(undefined, collections));
-                router.refresh();
+                    if (isEditing && shouldResumeAfterSave) {
+                        const resumeResult = await resumeAutomation({
+                            automationId: automation.id,
+                            schedule: input.schedule,
+                        });
+
+                        if (resumeResult.status !== "SUCCESS") {
+                            setFormState((currentState) => ({
+                                ...currentState,
+                                errorMessage: resumeResult.message,
+                            }));
+
+                            return;
+                        }
+                    }
+
+                    submissionPendingRef.current = false;
+                    handleOpenChange(false);
+                    setFormState(getInitialFormState(undefined, collections));
+                    router.refresh();
+                } catch (error) {
+                    log.error("Automation submit action failed", error);
+                    setFormState((currentState) => ({
+                        ...currentState,
+                        errorMessage: SAVE_AUTOMATION_FAILURE_MESSAGE,
+                    }));
+                } finally {
+                    submissionPendingRef.current = false;
+                }
             });
         }
     );
