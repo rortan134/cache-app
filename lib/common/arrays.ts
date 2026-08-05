@@ -44,6 +44,17 @@ export function countBy<T, K extends PropertyKey>(
     return counts;
 }
 
+export function keyBy<T, K extends PropertyKey>(
+    items: readonly T[],
+    getKey: (item: T) => K
+): Map<K, T> {
+    const map = new Map<K, T>();
+    for (const item of items) {
+        map.set(getKey(item), item);
+    }
+    return map;
+}
+
 export async function mapConcurrent<T, R>(
     items: readonly T[],
     fn: (item: T) => Promise<R>,

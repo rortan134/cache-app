@@ -235,6 +235,7 @@ export function OnboardingMenu({
             isCollectionActionPending("share", pendingShareCollection.id));
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [isSurveySubmitted, setIsSurveySubmitted] = React.useState(false);
     const [dialogSelections, setDialogSelections] = React.useState<
         Set<PainPointId>
     >(() => new Set());
@@ -345,6 +346,7 @@ export function OnboardingMenu({
 
     const handleOpenSurveyDialog = useStableCallback(() => {
         setDialogSelections(new Set());
+        setIsSurveySubmitted(false);
         setIsDialogOpen(true);
     });
 
@@ -352,6 +354,7 @@ export function OnboardingMenu({
         setIsDialogOpen(open);
         if (!open) {
             setDialogSelections(new Set());
+            setIsSurveySubmitted(false);
         }
     });
 
@@ -375,6 +378,8 @@ export function OnboardingMenu({
         );
 
         markTaskCompleted("pain-point-survey");
+
+        setIsSurveySubmitted(true);
 
         if (dialogSelections.size === 0) {
             setIsDialogOpen(false);
@@ -512,6 +517,7 @@ export function OnboardingMenu({
                 </Dialog>
             ) : null}
             <SurveyDialog
+                isResponseStep={isSurveySubmitted}
                 onCheckedChange={handleTogglePainPoint}
                 onOpenChange={handleSurveyDialogOpenChange}
                 onSubmit={handleSubmitSurvey}
@@ -572,6 +578,7 @@ function OnboardingTaskStateIcon({ isCompleted }: { isCompleted: boolean }) {
 }
 
 interface SurveyDialogProps {
+    isResponseStep: boolean;
     onCheckedChange: (painPointId: PainPointId, checked: boolean) => void;
     onOpenChange: (open: boolean) => void;
     onSubmit: () => void;
@@ -580,13 +587,13 @@ interface SurveyDialogProps {
 }
 
 function SurveyDialog({
+    isResponseStep,
     onCheckedChange,
     onOpenChange,
     onSubmit,
     open,
     selections,
 }: SurveyDialogProps) {
-    const isResponseStep = selections.size > 0;
     const selectedOptions = isResponseStep
         ? PAIN_POINT_OPTIONS.filter((option) => selections.has(option.id))
         : null;

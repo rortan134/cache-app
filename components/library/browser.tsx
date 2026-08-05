@@ -167,6 +167,7 @@ import {
 } from "@/lib/collections/library-quality";
 import { buildLibraryMetrics } from "@/lib/collections/metrics";
 import {
+    buildItemsCsv,
     isRecentlySmartCollected,
     itemPreviewImageUrl,
     itemPreviewVideoUrl,
@@ -209,7 +210,6 @@ import {
     type PreviewDimensions,
 } from "@/lib/common/preview-dimensions";
 import {
-    escapeCsv,
     getNoteExcerpt,
     normalizeWhitespace,
     slugify,
@@ -322,16 +322,6 @@ const COBALT_SOURCES = new Set<LibraryItemSource>([
 ]);
 
 const MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000;
-
-const CSV_HEADERS = [
-    "Section",
-    "Caption",
-    "URL",
-    "Source",
-    "Kind",
-    "Saved At",
-    "Posted At",
-] as const;
 
 const SUGGESTION_LIMIT = 3;
 const SUGGESTION_ICON_CLASS = "size-3.5 shrink-0";
@@ -1096,25 +1086,6 @@ type AskCacheResponseState =
           prompt: string;
           status: "error";
       };
-
-function buildBrowserSectionCsv(
-    sectionTitle: string,
-    items: LibraryItemWithCollections[]
-): string {
-    const rows = items.map((item) => [
-        sectionTitle,
-        item.caption ?? "",
-        normalizeURL(item.url),
-        item.source,
-        item.kind,
-        item.createdAt.toISOString(),
-        item.postedAt?.toISOString() ?? "",
-    ]);
-
-    return [CSV_HEADERS, ...rows]
-        .map((row) => row.map(escapeCsv).join(","))
-        .join("\n");
-}
 
 function getBrowserSectionExportFileName(sectionTitle: string): string {
     const slug = slugify(sectionTitle);
@@ -7548,7 +7519,14 @@ function BrowserContent({
             try {
                 await saveFile(
                     new Blob(
-                        [buildBrowserSectionCsv(sectionTitle, sectionItems)],
+                        [
+                            buildItemsCsv(
+                                "Section",
+                                sectionTitle,
+                                sectionItems,
+                                "\n"
+                            ),
+                        ],
                         { type: MIME_TYPES.csv }
                     ),
                     {
