@@ -23,6 +23,9 @@ import { T } from "gt-next";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+const DELETE_ACCOUNT_FAILURE_MESSAGE =
+    "We couldn't delete your account. Please try again.";
+
 const log = createLogger("auth-delete-account");
 
 export function DeleteAccountDialogTrigger(
@@ -68,6 +71,9 @@ export function DeleteAccountDialogTrigger(
                 }
 
                 router.push(result.redirect ?? "/logout");
+            } catch (error) {
+                log.error("deleteAccountAction failed", error);
+                setErrorMessage(DELETE_ACCOUNT_FAILURE_MESSAGE);
             } finally {
                 deleteSubmissionPendingRef.current = false;
             }

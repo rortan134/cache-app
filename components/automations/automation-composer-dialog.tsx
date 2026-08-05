@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/common/cn";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
@@ -59,6 +60,8 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 
 const ALL_LIBRARY_COLLECTION_ID = "all_library";
+const SAVE_AUTOMATION_FAILURE_MESSAGE =
+    "We couldn't save this automation. Please try again.";
 const AUTOMATION_OPTION_TRIGGER_CLASS_NAME =
     "h-7 max-w-full min-w-0 justify-start gap-1 rounded-md px-2 font-normal text-muted-foreground hover:bg-muted hover:text-foreground";
 const AUTOMATION_OPTION_POPUP_CLASS_NAME = "min-w-44";
@@ -107,6 +110,8 @@ const ALL_LIBRARY_OPTION: AutomationCollectionOption = {
     id: ALL_LIBRARY_COLLECTION_ID,
     name: "All library",
 };
+
+const log = createLogger("automations:composer");
 
 type AutomationCadence = "daily" | "weekly" | "monthly";
 type AutomationPayloadScope = "all_library_items" | "collection";
@@ -340,6 +345,12 @@ export function AutomationComposerDialog({
                     handleOpenChange(false);
                     setFormState(getInitialFormState(undefined, collections));
                     router.refresh();
+                } catch (error) {
+                    log.error("Automation submit action failed", error);
+                    setFormState((currentState) => ({
+                        ...currentState,
+                        errorMessage: SAVE_AUTOMATION_FAILURE_MESSAGE,
+                    }));
                 } finally {
                     submissionPendingRef.current = false;
                 }
