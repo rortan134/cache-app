@@ -6,7 +6,7 @@ import {
     SORT_ASC,
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
-import { escapeCsv } from "@/lib/common/strings";
+import { escapeCsv, neutralizeCsvFormula } from "@/lib/common/strings";
 import { normalizeURL, toValidUrl } from "@/lib/common/url";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";
@@ -320,7 +320,7 @@ export function buildItemsCsv(
     recordSeparator = "\r\n"
 ): string {
     const headers = [
-        headerLabel,
+        neutralizeCsvFormula(headerLabel),
         "Caption",
         "URL",
         "Source",
@@ -329,8 +329,8 @@ export function buildItemsCsv(
         "Posted At",
     ];
     const rows = items.map((item) => [
-        label,
-        item.caption ?? "",
+        neutralizeCsvFormula(label),
+        neutralizeCsvFormula(item.caption ?? ""),
         normalizeURL(item.url),
         item.source,
         item.kind,
