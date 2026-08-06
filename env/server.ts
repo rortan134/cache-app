@@ -8,9 +8,9 @@ export const serverEnv = createEnv({
     extends: [vercel()],
     server: {
         AI_GATEWAY_API_KEY: z.string().optional(),
-        ARCJET_KEY: z.string().startsWith("ajkey_"),
-        BETTER_AUTH_SECRET: z.string(),
-        BETTER_AUTH_URL: z.url(),
+        ARCJET_KEY: z.string().startsWith("ajkey_").optional(),
+        BETTER_AUTH_SECRET: z.string().optional(),
+        BETTER_AUTH_URL: z.url().optional(),
         /** Optional override for local/unpacked Chrome extension origin trust. */
         CACHE_EXTENSION_ID: z
             .string()
@@ -18,6 +18,10 @@ export const serverEnv = createEnv({
             .optional(),
         CRON_SECRET: z.string().optional(),
         DATABASE_URL: z.string().startsWith("postgres://"),
+        DISABLE_AUTH: z
+            .enum(["true", "false"])
+            .default("false")
+            .transform((value) => value === "true"),
         EMAIL_FROM: z.string().optional(),
         EMAIL_SERVER_HOST: z.string().optional(),
         EMAIL_SERVER_PASSWORD: z.string().optional(),
@@ -26,18 +30,18 @@ export const serverEnv = createEnv({
         GEMINI_API_KEY: z.string(),
         GITHUB_CLIENT_ID: z.string().optional(),
         GITHUB_CLIENT_SECRET: z.string().optional(),
-        GOOGLE_CLIENT_ID: z.string(),
-        GOOGLE_CLIENT_SECRET: z.string().startsWith("G"),
-        GT_API_KEY: z.string(),
-        GT_PROJECT_ID: z.string(),
+        GOOGLE_CLIENT_ID: z.string().optional(),
+        GOOGLE_CLIENT_SECRET: z.string().startsWith("G").optional(),
+        GT_API_KEY: z.string().optional(),
+        GT_PROJECT_ID: z.string().optional(),
         NOTION_CLIENT_ID: z.string().optional(),
         NOTION_CLIENT_SECRET: z.string().optional(),
         PINTEREST_CLIENT_ID: z.string().optional(),
         PINTEREST_CLIENT_SECRET: z.string().optional(),
-        STRIPE_PRICE_ID_MONTHLY: z.string().startsWith("price_"),
-        STRIPE_PRICE_ID_YEARLY: z.string().startsWith("price_"),
-        STRIPE_SECRET_KEY: z.string().startsWith("sk_"),
-        STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_"),
+        STRIPE_PRICE_ID_MONTHLY: z.string().startsWith("price_").optional(),
+        STRIPE_PRICE_ID_YEARLY: z.string().startsWith("price_").optional(),
+        STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
+        STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
         TAVILY_API_KEY: z.string().optional(),
         /** Comma-separated extra origins trusted by better-auth (CORS/CSRF). */
         TRUSTED_ORIGINS: z.string().optional(),
