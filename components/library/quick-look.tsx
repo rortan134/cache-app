@@ -254,11 +254,6 @@ export function QuickLookDrawerSurface() {
         triggerId,
     } = useQuickLookDrawerStore();
 
-    // `activeIndex` is persisted alongside `items`, but a cross-tab `storage` event
-    // can deliver one key before the other (stan-js writes each key separately), and
-    // per-key storage corruption can leave the persisted pair inconsistent. Clamp on
-    // read so the surface never indexes out of bounds; the source stays clamped on
-    // write via `openWithEntry`/`selectQueueIndex`, so no write-back effect is needed.
     const safeActiveIndex = clampQuickLookActiveIndex(
         activeIndex,
         items.length
@@ -269,14 +264,9 @@ export function QuickLookDrawerSurface() {
         setIsOpen(nextIsOpen);
         if (!nextIsOpen) {
             setTriggerId(null);
-            QUICK_LOOK_DRAWER_HANDLE.close();
         }
     });
 
-    // Cross-tab `storage` events can clear `items` while the drawer is open.
-    // The drawer closes visually via the `open` prop below, but the store's
-    // `isOpen` flag and handle state still need to be cleaned up to stay
-    // consistent for the next open call.
     React.useEffect(() => {
         if (isOpen && items.length === 0) {
             setIsOpen(false);
