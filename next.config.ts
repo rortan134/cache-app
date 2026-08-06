@@ -45,6 +45,7 @@ const nextConfig: NextConfig = {
         },
         turbopackRustReactCompiler: true,
         useOffline: true,
+        useTypeScriptCli: true,
     },
     async headers() {
         return [
