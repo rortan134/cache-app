@@ -6,7 +6,10 @@ export const clientEnv = createEnv({
     client: {
         NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().optional(),
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_"),
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z
+            .string()
+            .startsWith("pk_")
+            .optional(),
     },
     emptyStringAsUndefined: true,
     extends: [vercel()],

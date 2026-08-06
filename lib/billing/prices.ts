@@ -4,17 +4,7 @@ import { StripeError } from "@/lib/billing/error";
 
 export type PriceType = "free" | "monthly" | "yearly";
 
-export type PriceInterval = "day" | "week" | "month" | "year";
-
-export interface PlanPrice {
-    amountCents: number; // integer cents
-    currency: string; // ISO 4217 uppercase (e.g., EUR)
-    id: string;
-    interval: PriceInterval;
-    nickname?: string | null;
-}
-
-export async function getPlanPriceById(priceId: string): Promise<PlanPrice> {
+export async function getPlanPriceById(priceId: string) {
     const price = await withStripe((stripe) => stripe.prices.retrieve(priceId));
 
     if (price.type !== "recurring" || !price.recurring?.interval) {
@@ -38,20 +28,33 @@ export async function getPlanPriceById(priceId: string): Promise<PlanPrice> {
         id: price.id,
         interval: price.recurring.interval,
         nickname: price.nickname ?? null,
-    } satisfies PlanPrice;
+    };
 }
 
 export function getPlanPriceIds(): { monthly: string; yearly: string } {
     return {
-        monthly: serverEnv.STRIPE_PRICE_ID_MONTHLY,
-        yearly: serverEnv.STRIPE_PRICE_ID_YEARLY,
+        monthly: requirePlanPriceId(
+            serverEnv.STRIPE_PRICE_ID_MONTHLY,
+            "STRIPE_PRICE_ID_MONTHLY"
+        ),
+        yearly: requirePlanPriceId(
+            serverEnv.STRIPE_PRICE_ID_YEARLY,
+            "STRIPE_PRICE_ID_YEARLY"
+        ),
     };
 }
 
-export async function getPlanPrices(): Promise<{
-    monthly: PlanPrice;
-    yearly: PlanPrice;
-}> {
+function requirePlanPriceId(value: string | undefined, name: string): string {
+    if (!value) {
+        throw new StripeError({
+            message: `Missing required environment variable: ${name}`,
+            operation: "prices::getPlanPriceIds",
+        });
+    }
+    return value;
+}
+
+export async function getPlanPrices() {
     const prices = getPlanPriceIds();
 
     const [monthly, yearly] = await Promise.all([

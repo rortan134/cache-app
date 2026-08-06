@@ -31,26 +31,15 @@ import {
     addLibraryItem,
     toMcpLibraryItem,
 } from "@/lib/integrations/mcp/service";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol";
 import type {
     CallToolResult,
-    ServerNotification,
-    ServerRequest,
-} from "@modelcontextprotocol/sdk/types";
+    McpServer,
+    ServerContext,
+} from "@modelcontextprotocol/server";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import * as z from "zod";
 
 const log = createLogger("mcp.route");
-
-// Upstream PR modelcontextprotocol/typescript-sdk#1990 fixes the AnySchema
-// type-identity leak; once it ships in a release, drop this comment.
-// `CallToolResult.structuredContent` is typed as `{[x: string]: unknown}` by
-// the SDK. Our richer `McpLibraryItem` interface narrows the shape too far to
-// structurally fit; the runtime payload conforms, so we cast at the boundary.
-function asStructured<T extends object>(value: T): Record<string, unknown> {
-    return value as unknown as Record<string, unknown>;
-}
 
 // ---------------------------------------------------------------------------
 // Result helpers. Tool handlers return either a typed `structuredContent`
@@ -58,13 +47,11 @@ function asStructured<T extends object>(value: T): Record<string, unknown> {
 // clients always get useful feedback.
 // ---------------------------------------------------------------------------
 
-type McpExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
-
-function resolveAuth(extra: McpExtra): {
+function resolveAuth(extra: ServerContext): {
     scopes: McpScope[];
     userId: string;
 } | null {
-    const authInfo = extra.authInfo;
+    const authInfo = extra.http?.authInfo;
     let userId: string | null = null;
     if (typeof authInfo?.extra?.userId === "string") {
         userId = authInfo.extra.userId;
@@ -123,7 +110,7 @@ function textErrorResult(message: string): CallToolResult {
  * running with `library:read` cannot upsert or delete library data.
  */
 async function authorizeToolCall(
-    extra: McpExtra,
+    extra: ServerContext,
     required: McpScope
 ): Promise<{ userId: string } | { result: CallToolResult }> {
     const auth = resolveAuth(extra);
@@ -185,7 +172,7 @@ function handleToolError(
 
 async function handleListLibraryItems(
     args: z.infer<typeof McpLibraryItemListInputSchema>,
-    extra: McpExtra
+    extra: ServerContext
 ): Promise<CallToolResult> {
     const auth = await authorizeToolCall(extra, "library:read");
     if ("result" in auth) {
@@ -213,7 +200,7 @@ async function handleListLibraryItems(
         };
         return {
             content: [{ text: JSON.stringify(payload), type: "text" }],
-            structuredContent: asStructured(payload),
+            structuredContent: payload,
         };
     } catch (error) {
         return handleToolError(
@@ -227,7 +214,7 @@ async function handleListLibraryItems(
 
 async function handleGetLibraryItem(
     args: z.infer<typeof McpGetLibraryItemInputSchema>,
-    extra: McpExtra
+    extra: ServerContext
 ): Promise<CallToolResult> {
     const auth = await authorizeToolCall(extra, "library:read");
     if ("result" in auth) {
@@ -246,7 +233,7 @@ async function handleGetLibraryItem(
         const payload = toMcpLibraryItem(item);
         return {
             content: [{ text: JSON.stringify(payload), type: "text" }],
-            structuredContent: asStructured(payload),
+            structuredContent: payload,
         };
     } catch (error) {
         return handleToolError(
@@ -260,7 +247,7 @@ async function handleGetLibraryItem(
 
 async function handleAddLibraryItem(
     args: z.infer<typeof McpAddLibraryItemInputSchema>,
-    extra: McpExtra
+    extra: ServerContext
 ): Promise<CallToolResult> {
     const auth = await authorizeToolCall(extra, "library:write");
     if ("result" in auth) {
@@ -289,7 +276,7 @@ async function handleAddLibraryItem(
             content: [
                 { text: `Saved. ${JSON.stringify(payload)}`, type: "text" },
             ],
-            structuredContent: asStructured(payload),
+            structuredContent: payload,
         };
     } catch (error) {
         // Client-facing validation failures (XOR / invalid URL) are safe to
@@ -311,7 +298,7 @@ async function handleAddLibraryItem(
 
 async function handleDeleteLibraryItem(
     args: z.infer<typeof McpDeleteLibraryItemInputSchema>,
-    extra: McpExtra
+    extra: ServerContext
 ): Promise<CallToolResult> {
     const auth = await authorizeToolCall(extra, "library:write");
     if ("result" in auth) {
@@ -329,7 +316,7 @@ async function handleDeleteLibraryItem(
                     type: "text",
                 },
             ],
-            structuredContent: asStructured(payload),
+            structuredContent: payload,
         };
     } catch (error) {
         if (
@@ -351,7 +338,7 @@ async function handleDeleteLibraryItem(
                         type: "text",
                     },
                 ],
-                structuredContent: asStructured(payload),
+                structuredContent: payload,
             };
         }
         return handleToolError(
@@ -364,8 +351,8 @@ async function handleDeleteLibraryItem(
 }
 
 async function handleListCollections(
-    _args: Record<string, never>,
-    extra: McpExtra
+    _args: object,
+    extra: ServerContext
 ): Promise<CallToolResult> {
     const auth = await authorizeToolCall(extra, "library:read");
     if ("result" in auth) {
@@ -385,7 +372,7 @@ async function handleListCollections(
         };
         return {
             content: [{ text: JSON.stringify(payload), type: "text" }],
-            structuredContent: asStructured(payload),
+            structuredContent: payload,
         };
     } catch (error) {
         return handleToolError(
@@ -432,8 +419,8 @@ const baseHandler = createMcpHandler(
                 annotations: LibAnn.ReadOnly,
                 description:
                     "List library items for the authenticated user. Supports optional `search` (substring match across captions, URLs, and note text), optional `collectionId` filter, and paginated results via `limit`/`offset`. Returns `hasMore` and `nextOffset` for pagination. Read-only; idempotent.",
-                inputSchema: McpLibraryItemListInputSchema.shape,
-                outputSchema: McpLibraryItemListOutputSchema.shape,
+                inputSchema: McpLibraryItemListInputSchema,
+                outputSchema: McpLibraryItemListOutputSchema,
                 title: "List Library Items",
             },
             handleListLibraryItems
@@ -445,8 +432,8 @@ const baseHandler = createMcpHandler(
                 annotations: LibAnn.ReadOnly,
                 description:
                     "Fetch a single library item by ID. Read-only; returns not-found text when the ID does not exist for the user.",
-                inputSchema: McpGetLibraryItemInputSchema.shape,
-                outputSchema: McpLibraryItemSchema.shape,
+                inputSchema: McpGetLibraryItemInputSchema,
+                outputSchema: McpLibraryItemSchema,
                 title: "Get Library Item",
             },
             handleGetLibraryItem
@@ -459,7 +446,7 @@ const baseHandler = createMcpHandler(
                 description:
                     "Save a new item to the user's library. Two shapes are accepted (the schema is `oneOf`): provide `{ url, caption? }` to save a bookmark (dedupes by URL so re-saving is safe), or `{ noteContentText }` to save a note. Sending both or neither is rejected at validation time.",
                 inputSchema: McpAddLibraryItemInputSchema,
-                outputSchema: McpLibraryItemSchema.shape,
+                outputSchema: McpLibraryItemSchema,
                 title: "Add Library Item",
             },
             handleAddLibraryItem
@@ -474,8 +461,8 @@ const baseHandler = createMcpHandler(
                 },
                 description:
                     "Delete a library item by ID. Idempotent — calling on an already-deleted item returns ok.",
-                inputSchema: McpDeleteLibraryItemInputSchema.shape,
-                outputSchema: McpDeleteLibraryItemOutputSchema.shape,
+                inputSchema: McpDeleteLibraryItemInputSchema,
+                outputSchema: McpDeleteLibraryItemOutputSchema,
                 title: "Delete Library Item",
             },
             handleDeleteLibraryItem
@@ -487,8 +474,8 @@ const baseHandler = createMcpHandler(
                 annotations: LibAnn.ReadOnly,
                 description:
                     "List the authenticated user's collections with item counts. Read-only; idempotent.",
-                inputSchema: EMPTY_INPUT_SCHEMA.shape,
-                outputSchema: McpCollectionListOutputSchema.shape,
+                inputSchema: EMPTY_INPUT_SCHEMA,
+                outputSchema: McpCollectionListOutputSchema,
                 title: "List Collections",
             },
             handleListCollections

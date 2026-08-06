@@ -1,4 +1,5 @@
 import "@/lib/dayjs/locales";
+import "../globals.css";
 
 import { ConsoleBanner } from "@/components/ui/console-banner";
 import { ShortcutsProvider } from "@/components/ui/shortcuts";
@@ -7,23 +8,19 @@ import { ThemeSync } from "@/hooks/use-theme";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/common/theme";
 import { INTEGRATIONS } from "@/lib/integrations/support";
+import packageJson from "@/package.json" with { type: "json" };
 import { GTProvider, getLocales } from "gt-next";
 import { getGT, getLocale } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import type * as React from "react";
-import packageJson from "../../package.json" with { type: "json" };
-import "../globals.css";
 
 export function generateStaticParams() {
     return getLocales().map((locale) => ({ locale }));
 }
 
-export async function generateMetadata(props: {
-    params: Promise<{ locale?: string }>;
-}): Promise<Metadata> {
-    const { locale: localeParam } = await props.params;
-    const locale = localeParam ?? (await getLocale());
+export async function generateMetadata(): Promise<Metadata> {
+    const locale = await getLocale();
     const gt = await getGT();
 
     return {
@@ -85,11 +82,8 @@ const inter = Inter({
     variable: "--font-inter",
 });
 
-export default async function LocaleLayout(props: {
-    children: React.ReactNode;
-    params: Promise<{ locale: string }>;
-}) {
-    const { locale } = await props.params;
+export default async function LocaleLayout(props: React.PropsWithChildren) {
+    const locale = await getLocale();
 
     return (
         <html

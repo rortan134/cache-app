@@ -43,8 +43,8 @@ const nextConfig: NextConfig = {
             // 413-reject every nontrivial batch before the action runs.
             bodySizeLimit: "8mb",
         },
+        turbopackRustReactCompiler: true,
         useOffline: true,
-        useTypeScriptCli: true,
     },
     async headers() {
         return [
