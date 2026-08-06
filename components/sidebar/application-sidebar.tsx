@@ -1,3 +1,4 @@
+import { OfflineBadge } from "@/components/auth/offline-badge";
 import {
     UserMenu,
     UserMenuContent,
@@ -42,6 +43,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                             <UserMenuFooter />
                         </UserMenuPopup>
                     </UserMenu>
+                    <OfflineBadge />
                     <SidebarTrigger />
                 </div>
                 <SidebarGroup>
