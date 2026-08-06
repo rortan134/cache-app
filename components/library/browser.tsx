@@ -1793,7 +1793,7 @@ function PaletteChip({
     });
 
     return (
-        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
+        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
             <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
@@ -3864,7 +3864,7 @@ function CollectionComboboxPicker({
                     render ?? (
                         <Button
                             aria-label={defaultTriggerAriaLabel}
-                            size="icon-sm"
+                            size="icon-xs"
                             variant="ghost"
                         />
                     )
@@ -5390,7 +5390,7 @@ function MediaCardActions() {
     });
 
     return (
-        <div className="flex items-center py-1.5 pr-1">
+        <div className="flex items-center py-1.5">
             <CollectionComboboxPicker
                 collections={collections}
                 items={[item]}
