@@ -27,6 +27,7 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
         return (
             <>
                 <Button
+                    nativeButton={false}
                     render={
                         <Link href="/library">
                             Go to my library

@@ -145,6 +145,7 @@ export function SessionHint({ serverSession }: SessionHintProps) {
                 {session.user.email ?? <Skeleton>Placeholder</Skeleton>}
                 <Button
                     isLoading={isPending}
+                    nativeButton={false}
                     render={
                         <Link href="/logout" prefetch={false}>
                             Log out

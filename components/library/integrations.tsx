@@ -577,6 +577,7 @@ function IntegrationsListPrivacyDisclaimer() {
                     or{" "}
                     <Button
                         className="h-fit! px-0 leading-tight sm:text-[11px]"
+                        nativeButton={false}
                         render={
                             <Link
                                 href="/legal/privacy-policy"

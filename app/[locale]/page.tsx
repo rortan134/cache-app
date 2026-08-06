@@ -248,6 +248,7 @@ export default async function Home() {
                             </p>
                             <Button
                                 className="mt-0.5 text-muted-foreground"
+                                nativeButton={false}
                                 render={
                                     <a
                                         aria-label="GitHub Repository"
@@ -862,6 +863,7 @@ export default async function Home() {
                                         <Button
                                             aria-label={`Ask about Cache on ${label}`}
                                             key={label}
+                                            nativeButton={false}
                                             render={
                                                 <a
                                                     href={url}

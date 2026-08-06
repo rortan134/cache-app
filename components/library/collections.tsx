@@ -103,8 +103,8 @@ import {
     type TemplateValue,
 } from "@/lib/collections/templates";
 import {
-    itemPreviewImageUrl,
     buildItemsCsv,
+    itemPreviewImageUrl,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
     type LibraryItemWithCollections,
@@ -3374,7 +3374,7 @@ function CollectionsListClearFilterButton({
 
     const onClick = useStableCallback(onClickProp);
     const handleClick = useStableCallback(
-        (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {
             onClick?.(event);
             onClearCollectionFilters();
         }
@@ -3565,7 +3565,7 @@ function CollectionsListCreateButton({
 
     const onClick = useStableCallback(onClickProp);
     const handleClick = useStableCallback(
-        (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {
             onClick?.(event);
             openCreateDialog();
         }

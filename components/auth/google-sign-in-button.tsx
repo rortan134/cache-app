@@ -1,9 +1,9 @@
 "use client";
 
+import { AuthErrorMessage } from "@/components/auth/auth-error-message";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
-import { AuthErrorMessage } from "@/components/auth/auth-error-message";
 import { cn } from "@/lib/common/cn";
 import { getErrorMessage } from "@/lib/common/error";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";

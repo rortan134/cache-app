@@ -9,6 +9,7 @@ import {
 } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/keyboard";
 import { mergeProps } from "@base-ui/react/merge-props";
+import type { BaseUIEvent } from "@base-ui/react/types";
 import { useRender } from "@base-ui/react/use-render";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -205,7 +206,7 @@ export function SidebarTrigger({
     const { open, toggleSidebar } = useSidebar();
 
     const handleClick = useStableCallback(
-        (event: React.MouseEvent<HTMLButtonElement>) => {
+        (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {
             onClick?.(event);
             if (event.defaultPrevented) {
                 return;

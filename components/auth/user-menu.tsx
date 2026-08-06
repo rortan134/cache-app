@@ -324,6 +324,7 @@ export function UserMenuFooter() {
                 {FOOTER_LINKS.map(({ href, label }) => (
                     <Button
                         key={href}
+                        nativeButton={false}
                         render={
                             <Link
                                 href={href}

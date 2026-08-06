@@ -2,13 +2,11 @@
 
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
-import type * as React from "react";
 
 export const buttonVariants = cva(
-    "relative inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2 text-nowrap rounded-lg border font-medium text-base outline-none transition-shadow before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] pointer-coarse:after:absolute pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-64 data-loading:select-none data-loading:text-transparent sm:text-sm [&_svg:not([class*='opacity-'])]:opacity-80 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg:not([data-slot=spinner])]:-mx-0.5 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+    "relative inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2 text-nowrap rounded-lg border font-medium text-base outline-none transition-shadow before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] pointer-coarse:after:absolute pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background data-disabled:pointer-events-none data-loading:text-transparent data-disabled:opacity-64 sm:text-sm [&_svg:not([class*='opacity-'])]:opacity-80 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg:not([data-slot=spinner])]:-mx-0.5 [&_svg]:pointer-events-none [&_svg]:shrink-0",
     {
         defaultVariants: {
             size: "default",
@@ -31,15 +29,15 @@ export const buttonVariants = cva(
             },
             variant: {
                 default:
-                    "not-disabled:inset-shadow-[0_1px_--theme(--color-white/16%)] border-primary bg-primary text-primary-foreground shadow-primary/24 shadow-xs hover:bg-primary/90 data-pressed:bg-primary/90 *:data-[slot=spinner]:text-primary-foreground [:active,[data-pressed]]:inset-shadow-[0_1px_--theme(--color-black/8%)] [:disabled,:active,[data-pressed]]:shadow-none",
+                    "not-data-disabled:inset-shadow-[0_1px_--theme(--color-white/16%)] border-primary bg-primary text-primary-foreground shadow-primary/24 shadow-xs hover:bg-primary/90 data-pressed:bg-primary/90 *:data-[slot=spinner]:text-primary-foreground [:active,[data-pressed]]:inset-shadow-[0_1px_--theme(--color-black/8%)] [[data-disabled],:active,[data-pressed]]:shadow-none",
                 destructive:
-                    "not-disabled:inset-shadow-[0_1px_--theme(--color-white/16%)] border-none bg-destructive/10 text-destructive hover:bg-destructive/15 data-pressed:bg-destructive/15 *:data-[slot=spinner]:text-destructive [:active,[data-pressed]]:inset-shadow-[0_1px_--theme(--color-black/8%)] [:disabled,:active,[data-pressed]]:shadow-none",
+                    "not-data-disabled:inset-shadow-[0_1px_--theme(--color-white/16%)] border-none bg-destructive/10 text-destructive hover:bg-destructive/15 data-pressed:bg-destructive/15 *:data-[slot=spinner]:text-destructive [:active,[data-pressed]]:inset-shadow-[0_1px_--theme(--color-black/8%)] [[data-disabled],:active,[data-pressed]]:shadow-none",
                 "destructive-outline":
-                    "border-input bg-popover not-dark:bg-clip-padding text-destructive-foreground shadow-xs/5 not-disabled:not-active:not-data-pressed:before:shadow-[0_1px_--theme(--color-black/4%)] hover:border-destructive/32 hover:bg-destructive/4 data-pressed:border-destructive/32 data-pressed:bg-destructive/4 *:data-[slot=spinner]:text-foreground dark:bg-input/32 dark:not-disabled:before:shadow-[0_-1px_--theme(--color-white/2%)] dark:not-disabled:not-active:not-data-pressed:before:shadow-[0_-1px_--theme(--color-white/6%)] [:disabled,:active,[data-pressed]]:shadow-none",
+                    "border-input bg-popover not-dark:bg-clip-padding text-destructive-foreground shadow-xs/5 not-data-disabled:not-active:not-data-pressed:before:shadow-[0_1px_--theme(--color-black/4%)] hover:border-destructive/32 hover:bg-destructive/4 data-pressed:border-destructive/32 data-pressed:bg-destructive/4 *:data-[slot=spinner]:text-foreground dark:bg-input/32 dark:not-data-disabled:before:shadow-[0_-1px_--theme(--color-white/2%)] dark:not-data-disabled:not-active:not-data-pressed:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],:active,[data-pressed]]:shadow-none",
                 ghost: "border-transparent text-foreground hover:bg-accent data-pressed:bg-accent *:data-[slot=spinner]:text-foreground",
                 link: "border-transparent text-foreground underline-offset-2 hover:underline data-pressed:underline *:data-[slot=spinner]:text-foreground",
                 outline:
-                    "border-input bg-popover not-dark:bg-clip-padding text-foreground shadow-xs/5 not-disabled:not-active:not-data-pressed:before:shadow-[0_1px_--theme(--color-black/4%)] hover:bg-accent/50 data-pressed:bg-accent/50 *:data-[slot=spinner]:text-foreground dark:bg-input/32 dark:data-pressed:bg-input/64 dark:hover:bg-input/64 dark:not-disabled:before:shadow-[0_-1px_--theme(--color-white/2%)] dark:not-disabled:not-active:not-data-pressed:before:shadow-[0_-1px_--theme(--color-white/6%)] [:disabled,:active,[data-pressed]]:shadow-none",
+                    "border-input bg-popover not-dark:bg-clip-padding text-foreground shadow-xs/5 not-data-disabled:not-active:not-data-pressed:before:shadow-[0_1px_--theme(--color-black/4%)] hover:bg-accent/50 data-pressed:bg-accent/50 *:data-[slot=spinner]:text-foreground dark:bg-input/32 dark:data-pressed:bg-input/64 dark:hover:bg-input/64 dark:not-data-disabled:before:shadow-[0_-1px_--theme(--color-white/2%)] dark:not-data-disabled:not-active:not-data-pressed:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],:active,[data-pressed]]:shadow-none",
                 secondary:
                     "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/90 data-pressed:bg-secondary/90 *:data-[slot=spinner]:text-secondary-foreground [:active,[data-pressed]]:bg-secondary/80",
             },
@@ -47,46 +45,35 @@ export const buttonVariants = cva(
     }
 );
 
-export interface ButtonProps extends useRender.ComponentProps<"button"> {
+export interface ButtonProps
+    extends ButtonPrimitive.Props,
+        VariantProps<typeof buttonVariants> {
     isLoading?: boolean;
-    size?: VariantProps<typeof buttonVariants>["size"];
-    variant?: VariantProps<typeof buttonVariants>["variant"];
 }
 
 export function Button({
     className,
     variant,
     size,
-    render,
     children,
     isLoading = false,
-    disabled: disabledProp,
+    disabled,
+    focusableWhenDisabled,
     ...props
 }: ButtonProps) {
-    const isDisabled = Boolean(isLoading || disabledProp);
-    const typeValue: React.ButtonHTMLAttributes<HTMLButtonElement>["type"] =
-        render ? undefined : "button";
-
-    const defaultProps = {
-        "aria-disabled": isLoading || undefined,
-        children: (
-            <>
-                {children}
-                {isLoading ? (
-                    <Spinner className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                ) : null}
-            </>
-        ),
-        className: cn(buttonVariants({ className, size, variant })),
-        "data-loading": isLoading ? "" : undefined,
-        "data-slot": "button",
-        disabled: isDisabled,
-        type: typeValue,
-    };
-
-    return useRender({
-        defaultTagName: "button",
-        props: mergeProps<"button">(defaultProps, props),
-        render,
-    });
+    return (
+        <ButtonPrimitive
+            {...props}
+            className={cn(buttonVariants({ className, size, variant }))}
+            data-loading={isLoading ? "" : undefined}
+            data-slot="button"
+            disabled={Boolean(isLoading || disabled)}
+            focusableWhenDisabled={focusableWhenDisabled ?? isLoading}
+        >
+            {children}
+            {isLoading ? (
+                <Spinner className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            ) : null}
+        </ButtonPrimitive>
+    );
 }

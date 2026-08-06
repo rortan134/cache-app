@@ -830,6 +830,7 @@ function QuickLookDrawerLinkButton({
     return (
         <Button
             {...props}
+            nativeButton={false}
             render={<a href={href} rel="noopener noreferrer" target="_blank" />}
         />
     );
