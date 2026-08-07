@@ -471,8 +471,11 @@ export function ComposerSuggestionsList({
     ...props
 }: ComposerSuggestionsListProps) {
     const [isInternalOpen, setInternalOpen] = React.useState(true);
-    const isOpen = openProp ?? isInternalOpen;
-    const setIsOpen = onOpenChangeProp ?? setInternalOpen;
+    const isOpen = openProp === undefined ? isInternalOpen : openProp;
+    const setIsOpen = useStableCallback((next: boolean) => {
+        setInternalOpen(next);
+        onOpenChangeProp?.(next);
+    });
 
     const handleDismiss = useStableCallback(() => setIsOpen(false));
 
