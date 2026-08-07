@@ -1,4 +1,5 @@
 import { clamp } from "@/lib/common/numbers";
+import { djb2Hash } from "@/lib/common/strings";
 import { clampChroma, converter, formatHex, parse } from "culori";
 import * as z from "zod";
 
@@ -115,7 +116,6 @@ export const parseToRgb = (color: string) => {
     return converter("rgb")(parsed);
 };
 
-const DJB2_HASH_INIT = 5381;
 const RGB_MAX = 255;
 const HUE_DEFAULT = 272;
 const HUE_SECTOR_DEGREES = 60;
@@ -138,22 +138,6 @@ const GRADIENT_LIGHTNESS_LIGHT = 97;
 const GRADIENT_LIGHTNESS_DARK = 22;
 const GRADIENT_HUE_OFFSET = 10;
 const GRADIENT_ANGLE = "90deg";
-
-/**
- * Generates a hash for a given string using the DJB2 algorithm.
- * @param value - The string to hash.
- * @returns A non-negative hash value.
- * @internal
- */
-export function djb2Hash(value: string): number {
-    let hash = DJB2_HASH_INIT;
-    const len = value.length;
-    for (let i = 0; i < len; i += 1) {
-        hash = (hash << 5) + hash + value.charCodeAt(i);
-        hash |= 0; // Convert to unsigned 32-bit integer
-    }
-    return Math.abs(hash);
-}
 
 /**
  * Computes an index for a color based on a given string.

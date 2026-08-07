@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { formatPercent } from "@/lib/common/numbers";
+import { formatSharePercent } from "@/lib/common/numbers";
 import type * as React from "react";
 
 export interface StackedBarChartSegment {
@@ -16,8 +16,11 @@ export function StackedBarChart({
     segments,
     ...props
 }: StackedBarChartProps) {
-    const total = segments.reduce((sum, segment) => sum + segment.value, 0);
     const visibleSegments = segments.filter((segment) => segment.value > 0);
+    const total = visibleSegments.reduce(
+        (sum, segment) => sum + segment.value,
+        0
+    );
 
     if (visibleSegments.length === 0) {
         return (
@@ -45,7 +48,6 @@ export function StackedBarChart({
             role="img"
         >
             {visibleSegments.map((segment, index) => {
-                const widthPercent = (segment.value / total) * 100;
                 const isFirst = index === 0;
                 const isLast = index === visibleSegments.length - 1;
 
@@ -62,7 +64,7 @@ export function StackedBarChart({
                             flexBasis: 0,
                             flexGrow: segment.value,
                         }}
-                        title={`${segment.label}: ${segment.value} (${formatPercent(widthPercent)})`}
+                        title={`${segment.label}: ${segment.value} (${formatSharePercent(segment.value, total)})`}
                     />
                 );
             })}
@@ -80,7 +82,7 @@ function buildStackedBarAriaLabel(
 ): string {
     return segments
         .map((segment) => {
-            const percent = formatPercent((segment.value / total) * 100);
+            const percent = formatSharePercent(segment.value, total);
             return `${segment.label} ${segment.value} (${percent})`;
         })
         .join(", ");

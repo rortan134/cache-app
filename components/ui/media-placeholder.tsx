@@ -1,14 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { djb2Hash } from "@/lib/common/colors";
+import { djb2Hash } from "@/lib/common/strings";
 import { GlobeX } from "lucide-react";
 import * as React from "react";
 
 export function MediaPlaceholder({
     className,
     children,
-    style: styleProp,
+    style,
     ...props
 }: React.ComponentProps<"div">) {
     const id = React.useId();
@@ -27,7 +27,7 @@ export function MediaPlaceholder({
                 className
             )}
             data-slot="media-placeholder"
-            style={{ ...textureStyle, ...styleProp }}
+            style={{ ...textureStyle, ...style }}
         >
             {children ?? (
                 <GlobeX className="size-6 text-muted-foreground opacity-50" />

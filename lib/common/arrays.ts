@@ -17,7 +17,7 @@ export function toggleValue<T>(values: T[], next: T): T[] {
 }
 
 export function updateById<T extends { id: string }>(
-    items: T[],
+    items: readonly T[],
     id: string,
     updater: (item: T) => T
 ): T[] {
@@ -53,6 +53,20 @@ export function keyBy<T, K extends PropertyKey>(
         map.set(getKey(item), item);
     }
     return map;
+}
+
+export function mergeById<T extends { id: string }>(
+    current: readonly T[],
+    incoming: readonly T[]
+): T[] {
+    const incomingById = keyBy(incoming, (item) => item.id);
+    const currentIdSet = new Set(current.map((item) => item.id));
+    return [
+        ...Array.from(incoming.values()).filter(
+            (item) => !currentIdSet.has(item.id)
+        ),
+        ...current.map((item) => incomingById.get(item.id) ?? item),
+    ];
 }
 
 export async function mapConcurrent<T, R>(
