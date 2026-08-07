@@ -7,15 +7,13 @@ import {
     HAS_GOOGLE_ONE_TAP_CLIENT_ID,
     useSession,
 } from "@/lib/auth/client";
-import type { auth } from "@/lib/auth/server";
+import type { Session } from "@/lib/auth/session";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { Info } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
 const log = createLogger("auth-session");
-
-type Session = typeof auth.$Infer.Session;
 
 /**
  * Mount once on public entry points. Repeated mounts may initialize Google's

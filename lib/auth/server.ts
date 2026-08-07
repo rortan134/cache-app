@@ -396,14 +396,14 @@ export const auth = betterAuth({
             create: {
                 after: async (user) => {
                     try {
-                        const { seedBuiltInAutomationsForUser } = await import(
+                        const { seedDefaultUserAutomations } = await import(
                             "@/lib/intelligence/automations/service"
                         );
-                        await seedBuiltInAutomationsForUser(user.id);
+                        await seedDefaultUserAutomations(user.id);
                     } catch (error) {
                         log.error("Failed to seed built-in automations", {
                             error,
-                            operation: "seedBuiltInAutomationsForUser",
+                            operation: "seedDefaultUserAutomations",
                             userId: user.id,
                         });
                     }

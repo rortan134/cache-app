@@ -32,7 +32,7 @@ import { KeyboardShortcutsDialogTrigger } from "@/components/ui/shortcuts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeSelector } from "@/components/ui/theme-selector";
 import { authClient, useSession } from "@/lib/auth/client";
-import type { auth } from "@/lib/auth/server";
+import type { Session } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
 import { ACTION_STATUS } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -67,7 +67,6 @@ import useSWR from "swr";
 
 const log = createLogger("auth-user-menu");
 
-type Session = typeof auth.$Infer.Session;
 type AccountMenuError = "add" | "load" | "switch";
 
 type AccountUser = NonNullable<Session>["user"];
@@ -219,6 +218,7 @@ export function UserMenuContent() {
                 <UnsubscribedOnly>
                     <SubscriptionUpgradeButton
                         className="w-full justify-start font-normal"
+                        nativeButton={false}
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Upgrade to premium</T>

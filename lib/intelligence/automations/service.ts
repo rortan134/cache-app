@@ -95,7 +95,7 @@ export interface AutomationInput {
 
 export type AutomationListItem = ReturnType<typeof toAutomationListItem>;
 
-export async function seedBuiltInAutomationsForUser(userId: string) {
+export async function seedDefaultUserAutomations(userId: string) {
     await prisma.$transaction(async (tx) => {
         for (const definition of AUTOMATION_TEMPLATE_DEFINITIONS) {
             await tx.automation.upsert({

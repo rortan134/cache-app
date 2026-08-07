@@ -13,11 +13,13 @@ export function OfflineBadge() {
 
     return (
         <Badge
+            aria-live="assertive"
+            role="alert"
             title="You are offline. Any changes you make may be lost until you regain connectivity."
             variant="outline"
         >
             <RadioOff aria-hidden className="size-4" focusable="false" />
-            Offline
+            <span data-sidebar-collapsible="">Offline</span>
         </Badge>
     );
 }

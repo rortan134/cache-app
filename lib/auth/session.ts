@@ -10,6 +10,8 @@ import { cache } from "react";
 
 const log = createLogger("Auth:session");
 
+export type Session = typeof auth.$Infer.Session;
+
 export const getServerSession = cache(async () =>
     auth.api.getSession({ headers: await headers() })
 );
@@ -19,9 +21,7 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
     return session?.user?.id ?? null;
 });
 
-export type Session = Awaited<ReturnType<typeof getServerSession>>;
-
-type WithSessionCallback<T> = (session: Session) => Promise<T> | T;
+type WithSessionCallback<T> = (session: Session | null) => Promise<T> | T;
 
 /**
  * Executes a callback with the current session, normalizing failures to a named error.

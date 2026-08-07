@@ -1,5 +1,5 @@
 import { authClient } from "@/lib/auth/client";
-import { isActiveSubscriptionStatus } from "./subscription-status";
+import { findActiveSubscription } from "./subscription-status";
 
 /**
  * Retrieves the currently active or trialing subscription for the user.
@@ -14,8 +14,5 @@ export async function getActiveSubscription() {
         throw new Error(error.message);
     }
 
-    return (
-        subscriptions?.find((sub) => isActiveSubscriptionStatus(sub.status)) ??
-        null
-    );
+    return findActiveSubscription(subscriptions);
 }
