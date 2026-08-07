@@ -26,9 +26,7 @@ const SWIPE_DIRECTION_BY_POSITION: Record<
 };
 
 const DrawerContext: React.Context<DrawerContextValue> =
-    React.createContext<DrawerContextValue>({
-        position: "bottom",
-    });
+    React.createContext<DrawerContextValue>({ position: "bottom" });
 
 export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
     DrawerPrimitive.createHandle;
@@ -53,15 +51,9 @@ export function Drawer<Payload = unknown>({
     );
 }
 
-export function DrawerTrigger<Payload = unknown>(
-    props: DrawerPrimitive.Trigger.Props<Payload>
-) {
-    return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
-}
+export const DrawerTrigger = DrawerPrimitive.Trigger;
 
-export function DrawerClose(props: DrawerPrimitive.Close.Props) {
-    return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
-}
+export const DrawerClose = DrawerPrimitive.Close;
 
 export function DrawerViewport({
     className,
@@ -83,6 +75,7 @@ export function DrawerViewport({
         <DrawerPortal {...portalProps}>
             {shouldShowBackdrop ? <DrawerBackdrop /> : null}
             <DrawerPrimitive.Viewport
+                {...props}
                 className={cn(
                     "fixed inset-0 z-50 [--bleed:--spacing(12)] [--inset:--spacing(0)]",
                     "touch-none",
@@ -99,7 +92,6 @@ export function DrawerViewport({
                     className
                 )}
                 data-slot="drawer-viewport"
-                {...props}
             />
         </DrawerPortal>
     );
@@ -246,12 +238,12 @@ export function DrawerTitle({
 }: DrawerPrimitive.Title.Props) {
     return (
         <DrawerPrimitive.Title
+            {...props}
             className={cn(
                 "font-heading font-semibold text-xl leading-none",
                 className
             )}
             data-slot="drawer-title"
-            {...props}
         />
     );
 }
@@ -262,9 +254,9 @@ export function DrawerDescription({
 }: DrawerPrimitive.Description.Props) {
     return (
         <DrawerPrimitive.Description
+            {...props}
             className={cn("text-muted-foreground text-sm", className)}
             data-slot="drawer-description"
-            {...props}
         />
     );
 }

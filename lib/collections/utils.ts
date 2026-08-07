@@ -34,7 +34,6 @@ export function isRecentlySmartCollected(
     if (!collectedAt) {
         return false;
     }
-
     const ageMs = nowMs - collectedAt.getTime();
     return ageMs >= 0 && ageMs < SMART_COLLECTED_RECENT_WINDOW_MS;
 }

@@ -1,5 +1,5 @@
-import { getCollectionRecommendations } from "@/lib/intelligence/actions";
 import type { CollectionTemplateOption } from "@/lib/collections/templates";
+import { getCollectionRecommendations } from "@/lib/intelligence/actions";
 import useSWR from "swr";
 
 const COLLECTION_RECOMMENDATIONS_KEY = "collection-recommendations";
@@ -20,7 +20,7 @@ export function useCollectionRecommendations() {
     const { data, error, isLoading, mutate } = useSWR(
         COLLECTION_RECOMMENDATIONS_KEY,
         fetchCollectionRecommendations,
-        { keepPreviousData: true }
+        { dedupingInterval: 60_000, keepPreviousData: true }
     );
 
     return {

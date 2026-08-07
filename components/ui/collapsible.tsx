@@ -23,7 +23,7 @@ export function CollapsibleTrigger({
     return (
         <CollapsiblePrimitive.Trigger
             {...props}
-            className={cn("group w-full", className)}
+            className={cn("group w-full text-nowrap", className)}
             data-slot="collapsible-trigger"
         />
     );
