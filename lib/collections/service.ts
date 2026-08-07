@@ -9,7 +9,6 @@ import {
     toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
     toLibraryItemWithCollections,
-    itemPreviewImageUrl,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
     type LibraryCollectionTagRecord,
@@ -37,7 +36,6 @@ import type {
 import { LibraryCollectionError } from "./error";
 
 const COLLECTION_LIST_LIMIT_MAX = 9999;
-const COLLECTION_CARD_PREVIEW_LIMIT = 4;
 const LIBRARY_ITEMS_PAGE_LIMIT_DEFAULT = 9999;
 const LIBRARY_ITEMS_PAGE_LIMIT_MAX = 9999;
 const LIBRARY_ITEM_TRASH_WINDOW_MS =
@@ -1479,94 +1477,6 @@ export async function listCollections(
     });
 
     return collections.map(toLibraryCollectionSummary);
-}
-
-export interface CollectionPreview {
-    description: string | null;
-    id: string;
-    itemCount: number;
-    name: string;
-    previewImageUrls: string[];
-}
-
-/**
- * Lists every collection the user owns, each paired with up to four preview
- * image URLs drawn from its live, non-folder bookmark items. The previews are
- * deterministically ordered by a stable hash of `collectionId:itemId` so the
- * same four thumbnails surface on every render without storing any ordering.
- * Fewer than four URLs means the collection has fewer previewable items.
- */
-export async function listCollectionsWithPreviews(args: {
-    userId: string;
-}): Promise<CollectionPreview[]> {
-    const collections = await prisma.collection.findMany({
-        orderBy: { name: SORT_ASC },
-        select: {
-            _count: {
-                select: {
-                    items: {
-                        where: {
-                            deletedAt: null,
-                            kind: { not: ITEM_KIND_FOLDER },
-                        },
-                    },
-                },
-            },
-            description: true,
-            id: true,
-            items: {
-                select: { id: true, kind: true, url: true },
-                where: {
-                    deletedAt: null,
-                    kind: { not: ITEM_KIND_FOLDER },
-                },
-            },
-            name: true,
-        },
-        take: COLLECTION_LIST_LIMIT_MAX,
-        where: { userId: args.userId },
-    });
-
-    return collections.map((collection) => ({
-        description: collection.description,
-        id: collection.id,
-        itemCount: collection._count.items,
-        name: collection.name,
-        previewImageUrls: collectionPreviewImageUrls(
-            collection.id,
-            collection.items
-        ),
-    }));
-}
-
-function collectionPreviewImageUrls(
-    collectionId: string,
-    items: Array<{ id: string; kind: string; url: string }>
-): string[] {
-    const candidateUrls = items
-        .map((item) => ({ id: item.id, url: itemPreviewImageUrl(item) }))
-        .filter(
-            (entry): entry is { id: string; url: string } => entry.url !== null
-        )
-        .map((entry) => ({
-            orderSeed: collectionPreviewOrderSeed(
-                `${collectionId}:${entry.id}`
-            ),
-            url: entry.url,
-        }));
-
-    return candidateUrls
-        .sort((left, right) => left.orderSeed - right.orderSeed)
-        .slice(0, COLLECTION_CARD_PREVIEW_LIMIT)
-        .map((entry) => entry.url);
-}
-
-function collectionPreviewOrderSeed(value: string): number {
-    let hash = 0;
-    for (const character of value) {
-        hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
-    }
-    return hash;
 }
 
 /**

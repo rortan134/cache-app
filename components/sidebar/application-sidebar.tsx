@@ -23,7 +23,7 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { T } from "gt-next";
-import { Compass, Ellipsis, History, LayoutGrid, Workflow } from "lucide-react";
+import { Compass, Ellipsis, History, Workflow } from "lucide-react";
 import type * as React from "react";
 
 export function ApplicationSidebar({ children }: React.PropsWithChildren) {
@@ -99,16 +99,6 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                                 </div>
                             </MenuTrigger>
                             <MenuPopup side="right">
-                                <MenuLinkItem href="/collections">
-                                    <LayoutGrid
-                                        aria-hidden
-                                        className="inline-block size-4 shrink-0"
-                                        focusable="false"
-                                    />
-                                    <span className="truncate">
-                                        <T>All collections</T>
-                                    </span>
-                                </MenuLinkItem>
                                 <MenuLinkItem href="/recently-deleted">
                                     <History
                                         aria-hidden

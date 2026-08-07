@@ -122,9 +122,9 @@ const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
-                destination: "https://x.com/gsmmtt",
-                permanent: false,
-                source: "/x",
+                destination: "/library",
+                permanent: true,
+                source: "/collections",
             },
             {
                 destination: "https://github.com/rortan134/cache-app",
