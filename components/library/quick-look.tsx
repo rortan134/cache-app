@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
     Drawer,
     DrawerCreateHandle,
-    DrawerDescription,
-    DrawerFooter,
     DrawerHeader,
     DrawerPanel,
     DrawerPopup,
@@ -15,12 +13,12 @@ import {
     DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
-import { parseDisplayUrl } from "@/lib/common/url";
+import { cn } from "@/lib/common/cn";
+import type { BaseUIEvent } from "@base-ui/react";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { T } from "gt-next";
-import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
+import { AlertCircleIcon, ExternalLinkIcon, XIcon } from "lucide-react";
 import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
@@ -49,31 +47,24 @@ const YOUTUBE_IFRAME_HOSTS = new Set([
     "www.youtube-nocookie.com",
 ]);
 
-type QuickLookDrawerStatus = "blocked" | "loaded" | "loading" | "oembed";
+type OembedStatus = "blocked" | "loaded" | "loading" | "oembed";
 
-// The fetcher's resolution distinguishes the three server outcomes that drive the
-// derived status: a successful oEmbed (`found`), a server-side failure while
-// attempting oEmbed (`not-found`), and a 404 meaning this URL has no oEmbed
-// provider at all (`unsupported`). Only `found` short-circuits the vanilla
-// iframe; `not-found` mirrors the original "failed" path of surfacing blocked
-// immediately, while `unsupported` lets the iframe try.
-type QuickLookOembedResolution =
+type OEmbedResolution =
     | {
-          oembed: QuickLookDrawerOembed;
+          oembed: Oembed;
           resolution: "found";
       }
     | {
           resolution: "not-found" | "unsupported";
       };
 
-interface QuickLookDrawerOembed {
+interface Oembed {
     html: string;
     provider: string;
     title: string | null;
 }
 
-interface QuickLookDrawerProps {
-    children: React.ReactNode;
+interface QuickLookDrawerProps extends React.PropsWithChildren {
     description?: string;
     title?: string;
     url: string;
@@ -95,16 +86,6 @@ interface QuickLookDrawerContextValue {
     triggerId: string;
 }
 
-interface QuickLookDrawerLinkButtonProps
-    extends Omit<React.ComponentProps<typeof Button>, "render"> {
-    href: string;
-}
-
-type QuickLookDrawerTriggerProps = React.ComponentProps<typeof DrawerTrigger>;
-type QuickLookDrawerTriggerClickEvent = Parameters<
-    NonNullable<QuickLookDrawerTriggerProps["onClick"]>
->[0];
-
 interface QuickLookDrawerStore {
     activeIndex: number;
     isOpen: boolean;
@@ -114,6 +95,7 @@ interface QuickLookDrawerStore {
 
 interface QuickLookDrawerActions {
     openWithEntry: (entry: QuickLookDrawerEntry, triggerId: string) => void;
+    removeQueueItem: (index: number) => void;
     selectQueueIndex: (index: number) => void;
 }
 
@@ -125,7 +107,7 @@ interface QuickLookDrawerActions {
 type QuickLookDrawerStanActions = QuickLookDrawerActions &
     Record<string, (...args: never[]) => void>;
 
-function clampQuickLookActiveIndex(index: number, itemsLength: number): number {
+function clampActiveIndex(index: number, itemsLength: number): number {
     if (itemsLength === 0) {
         return 0;
     }
@@ -150,162 +132,69 @@ function addQuickLookQueueEntry(
     };
 }
 
+const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookDrawerEntry>();
+
 const QuickLookDrawerContext =
     React.createContext<QuickLookDrawerContextValue | null>(null);
 
-const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookDrawerEntry>();
-
-const {
-    actions: quickLookDrawerStoreActions,
-    useStore: useQuickLookDrawerStore,
-} = createStore<QuickLookDrawerStore, QuickLookDrawerStanActions>(
-    {
-        activeIndex: storage(0, {
-            storageKey: QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
-        }),
-        isOpen: storage(false, {
-            storageKey: QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY,
-        }),
-        items: storage<QuickLookDrawerEntry[]>([], {
-            storageKey: QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY,
-        }),
-        triggerId: null,
-    },
-    ({ actions, getState }) => ({
-        openWithEntry(entry: QuickLookDrawerEntry, triggerId: string) {
-            const { isOpen, items, activeIndex } = getState();
-            const queue = isOpen
-                ? addQuickLookQueueEntry({ activeIndex, items }, entry)
-                : { activeIndex: 0, items: [entry] };
-
-            // stan-js wraps custom actions in `batchUpdates`, so these four writes
-            // flush as a single update. Do not wrap them in another batch — nesting
-            // `batchUpdates` flushes listeners inside the outer batch and re-flushes
-            // them on the outer `finally`, notifying subscribers twice.
-            actions.setItems(queue.items);
-            actions.setActiveIndex(
-                clampQuickLookActiveIndex(queue.activeIndex, queue.items.length)
-            );
-            actions.setTriggerId(triggerId);
-            actions.setIsOpen(true);
-            QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
+const { actions: quickLookDrawerStoreActions, useStore: useQuickLookStore } =
+    createStore<QuickLookDrawerStore, QuickLookDrawerStanActions>(
+        {
+            activeIndex: storage(0, {
+                storageKey: QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
+            }),
+            isOpen: storage(false, {
+                storageKey: QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY,
+            }),
+            items: storage<QuickLookDrawerEntry[]>([], {
+                storageKey: QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY,
+            }),
+            triggerId: null,
         },
-        selectQueueIndex(index: number) {
-            const { items } = getState();
-            if (index < 0 || index >= items.length) {
-                return;
-            }
-            actions.setActiveIndex(index);
-        },
-    })
-);
+        ({ actions, getState }) => ({
+            openWithEntry(entry: QuickLookDrawerEntry, triggerId: string) {
+                const { isOpen, items, activeIndex } = getState();
+                const queue = isOpen
+                    ? addQuickLookQueueEntry({ activeIndex, items }, entry)
+                    : { activeIndex: 0, items: [entry] };
 
-export function QuickLookDrawer({
-    description,
-    title = DEFAULT_QUICK_LOOK_TITLE,
-    url,
-    children,
-}: QuickLookDrawerProps) {
-    const entry = { description, title, url };
-    const triggerId = `quick-look-drawer-${React.useId()}`;
-
-    return (
-        <QuickLookDrawerContext value={{ entry, triggerId }}>
-            {children}
-        </QuickLookDrawerContext>
+                actions.setItems(queue.items);
+                actions.setActiveIndex(
+                    clampActiveIndex(queue.activeIndex, queue.items.length)
+                );
+                actions.setTriggerId(triggerId);
+                actions.setIsOpen(true);
+                QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
+            },
+            removeQueueItem(index: number) {
+                const { activeIndex, items } = getState();
+                if (index < 0 || index >= items.length) {
+                    return;
+                }
+                const nextItems = items.filter((_, i) => i !== index);
+                actions.setItems(nextItems);
+                // Removing a tab before the active one shifts the active tab
+                // left; removing the active tab hands the slot to its follower.
+                actions.setActiveIndex(
+                    clampActiveIndex(
+                        activeIndex - (index < activeIndex ? 1 : 0),
+                        nextItems.length
+                    )
+                );
+                if (nextItems.length === 0) {
+                    actions.setIsOpen(false);
+                    actions.setTriggerId(null);
+                }
+            },
+            selectQueueIndex(index: number) {
+                const { items } = getState();
+                if (index < 0 || index >= items.length) {
+                    return;
+                }
+                actions.setActiveIndex(index);
+            },
+        })
     );
-}
-
-export function QuickLookDrawerTrigger({
-    onClick,
-    ...props
-}: QuickLookDrawerTriggerProps) {
-    const { entry, triggerId } = useQuickLookDrawerContext();
-
-    const handleClick = useStableCallback(
-        (event: QuickLookDrawerTriggerClickEvent) => {
-            onClick?.(event);
-            if (!event.defaultPrevented) {
-                openQuickLookDrawer(entry, triggerId);
-                event.preventDefault();
-            }
-        }
-    );
-
-    return (
-        <DrawerTrigger
-            {...props}
-            handle={QUICK_LOOK_DRAWER_HANDLE}
-            id={triggerId}
-            onClick={handleClick}
-            payload={entry}
-        />
-    );
-}
-
-export function QuickLookDrawerSurface() {
-    const {
-        activeIndex,
-        isOpen,
-        items,
-        selectQueueIndex,
-        setIsOpen,
-        setTriggerId,
-        triggerId,
-    } = useQuickLookDrawerStore();
-
-    const safeActiveIndex = clampQuickLookActiveIndex(
-        activeIndex,
-        items.length
-    );
-    const activeEntry = items[safeActiveIndex] ?? null;
-
-    const handleOpenChange = useStableCallback((nextIsOpen: boolean) => {
-        setIsOpen(nextIsOpen);
-        if (!nextIsOpen) {
-            setTriggerId(null);
-        }
-    });
-
-    React.useEffect(() => {
-        if (isOpen && items.length === 0) {
-            setIsOpen(false);
-            setTriggerId(null);
-            QUICK_LOOK_DRAWER_HANDLE.close();
-        }
-    }, [isOpen, items.length, setIsOpen, setTriggerId]);
-
-    return (
-        <Drawer
-            handle={QUICK_LOOK_DRAWER_HANDLE}
-            onOpenChange={handleOpenChange}
-            open={isOpen && items.length > 0}
-            position="left"
-            triggerId={triggerId}
-        >
-            <DrawerVirtualKeyboardProvider>
-                {activeEntry && isOpen ? (
-                    <QuickLookDrawerContent
-                        activeEntry={activeEntry}
-                        activeIndex={safeActiveIndex}
-                        items={items}
-                        onSelectQueueIndex={selectQueueIndex}
-                    />
-                ) : null}
-            </DrawerVirtualKeyboardProvider>
-        </Drawer>
-    );
-}
-
-function useQuickLookDrawerContext(): QuickLookDrawerContextValue {
-    const context = React.use(QuickLookDrawerContext);
-    if (!context) {
-        throw new Error(
-            "QuickLookDrawer components must be used inside <QuickLookDrawer>."
-        );
-    }
-    return context;
-}
 
 export function openQuickLookDrawer(
     entry: QuickLookDrawerEntry,
@@ -314,111 +203,18 @@ export function openQuickLookDrawer(
     quickLookDrawerStoreActions.openWithEntry(entry, triggerId);
 }
 
-function useQuickLookStatus(url: string, timeoutMs: number) {
-    // `about:blank` is the synthetic "no preview" URL. There is nothing to embed
-    // or load, so we disable SWR's fetcher with a `null` key and derivation
-    // returns "blocked" directly.
-    const swrKey = url === QUICK_LOOK_BLOCKED_URL ? null : url;
-
-    const { data, error } = useSWR(swrKey, resolveQuickLookOembed, {
-        // oEmbed responses are stable per URL within a session — re-fetching on
-        // focus or reconnect would just re-mount the preview and discard a
-        // working iframe for no observable benefit.
-        revalidateOnFocus: false,
-        revalidateOnReconnect: false,
-        // The endpoint fails fast (5s server-side upper bound). Retrying would
-        // only delay the blocked fallback; recoverability depends on the user
-        // choosing a different URL, not on transient network blips.
-        shouldRetryOnError: false,
-    });
-
-    // SWR owns the oEmbed fetch; the iframe keeps a tiny piece of local state for
-    // its own DOM lifecycle. `<iframe>` onLoad/onError describe a *rendering*
-    // outcome, not a network request — there's no natural SWR model (no key to
-    // de-dupe or revalidate), so a second fetcher would be a fake abstraction.
-    // Composing these two signals in derivation is simpler and keeps each part
-    // honest about what it knows.
-    const [iframeStatus, setIframeStatus] = React.useState<
-        "pending" | "loaded" | "blocked"
-    >("pending");
-
-    const blockedTimeout = useTimeout();
-
-    const markAsBlocked = useStableCallback(() => {
-        setIframeStatus((current) =>
-            // Once loaded, an iframe stays loaded — internal navigation failures
-            // after a successful load are not actionable and would flicker the
-            // blocked view against a working preview. Only route non-loaded
-            // states to blocked, mirroring the original `setStatus` guard.
-            current === "loaded" ? "loaded" : "blocked"
-        );
-    });
-
-    const markAsLoaded = useStableCallback(() => {
-        // Unconditional: a late `onLoad` is allowed to resurrect the preview from
-        // a timeout-induced blocked state, matching the original's behavior where
-        // `markAsLoaded` always wrote "loaded" regardless of prior status.
-        setIframeStatus("loaded");
-    });
-
-    // Reset the iframe lifecycle synchronously on URL change so the very first
-    // render of the new URL never inherits the previous URL's terminal status.
-    // Layout effects run after DOM commit but before paint, guaranteeing the
-    // user never sees a "loaded"/"blocked" leftover from a prior preview.
-    useIsoLayoutEffect(() => {
-        setIframeStatus("pending");
-    }, [url]);
-
-    React.useEffect(() => {
-        if (url === QUICK_LOOK_BLOCKED_URL) {
-            blockedTimeout.clear();
-            return;
-        }
-        // The timeout bounds the *total* wait from the URL change, mirroring the
-        // original 8-second deadline that spanned both the oEmbed fetch and the
-        // iframe load. It can only cause a `pending → blocked` transition — once
-        // the iframe has reached a terminal state, the callback no-ops.
-        blockedTimeout.start(timeoutMs, () => {
-            setIframeStatus((current) =>
-                current === "pending" ? "blocked" : current
-            );
-        });
-        return () => {
-            blockedTimeout.clear();
-        };
-    }, [blockedTimeout, timeoutMs, url]);
-
-    // Once SWR settles on an outcome that bypasses the iframe, the loading
-    // timeout has no useful work left. Clearing avoids a wasteful re-render
-    // (the timer would fire into a status the derivation already ignores).
-    // `unsupported` is the exception: 404 means "no oEmbed provider for this
-    // URL" — the vanilla iframe is still the user's best preview, and the
-    // timeout must keep running to bound its load.
-    React.useEffect(() => {
-        if (
-            data?.resolution === "found" ||
-            data?.resolution === "not-found" ||
-            error
-        ) {
-            blockedTimeout.clear();
-        }
-    }, [blockedTimeout, data, error]);
-
-    return {
-        markAsBlocked,
-        markAsLoaded,
-        oembed: data?.resolution === "found" ? data.oembed : null,
-        status: deriveQuickLookStatus(url, data, error, iframeStatus),
-    };
+export function useIsQuickLookDrawerOpen(): boolean {
+    const { isOpen } = useQuickLookStore();
+    return isOpen;
 }
 
-function deriveQuickLookStatus(
-    url: string,
-    data: QuickLookOembedResolution | undefined,
+function parseOembedStatus(
+    url: string | null,
+    data: OEmbedResolution | undefined,
     error: Error | undefined,
     iframeStatus: "pending" | "loaded" | "blocked"
-): QuickLookDrawerStatus {
-    if (url === QUICK_LOOK_BLOCKED_URL) {
+): OembedStatus {
+    if (url === null || url === QUICK_LOOK_BLOCKED_URL) {
         return "blocked";
     }
 
@@ -459,13 +255,7 @@ function deriveQuickLookStatus(
     return "loading";
 }
 
-async function resolveQuickLookOembed(
-    url: string
-): Promise<QuickLookOembedResolution> {
-    // SWR manages key changes and stale-response discarding internally; the
-    // original AbortController plumbing is no longer needed here. SWR will not
-    // abort the underlying fetch on key change, but the server endpoint caps
-    // itself at 5s, so abandoned requests do not accumulate indefinitely.
+async function resolveOembed(url: string): Promise<OEmbedResolution> {
     const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
         headers: { Accept: "application/json" },
     });
@@ -476,13 +266,13 @@ async function resolveQuickLookOembed(
         return { resolution: "not-found" };
     }
     const data: unknown = await response.json();
-    const oembed = parseQuickLookOembed(data);
+    const oembed = parseOembed(data);
     return oembed
         ? { oembed, resolution: "found" }
         : { resolution: "not-found" };
 }
 
-function parseQuickLookOembed(data: unknown): QuickLookDrawerOembed | null {
+function parseOembed(data: unknown): Oembed | null {
     if (
         data &&
         typeof data === "object" &&
@@ -501,6 +291,20 @@ function parseQuickLookOembed(data: unknown): QuickLookDrawerOembed | null {
         };
     }
     return null;
+}
+
+function getOembedIframeSrc(oembed: Oembed): string | null {
+    const doc = new DOMParser().parseFromString(oembed.html, "text/html");
+    const src = doc.querySelector("iframe")?.getAttribute("src");
+    if (!src) {
+        return null;
+    }
+    try {
+        const url = new URL(src);
+        return isAllowedOembedIframeUrl(url, oembed.provider) ? url.href : null;
+    } catch {
+        return null;
+    }
 }
 
 function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
@@ -530,21 +334,7 @@ function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
     }
 }
 
-function getOembedIframeSrc(oembed: QuickLookDrawerOembed): string | null {
-    const doc = new DOMParser().parseFromString(oembed.html, "text/html");
-    const src = doc.querySelector("iframe")?.getAttribute("src");
-    if (!src) {
-        return null;
-    }
-    try {
-        const url = new URL(src);
-        return isAllowedOembedIframeUrl(url, oembed.provider) ? url.href : null;
-    } catch {
-        return null;
-    }
-}
-
-function buildOembedSrcDoc(html: string): string {
+function buildOembedSrcDocument(html: string): string {
     return `<!doctype html>
 <html>
 <head>
@@ -586,167 +376,364 @@ blockquote {
 </html>`;
 }
 
-function QuickLookDrawerContent({
-    activeEntry,
-    activeIndex,
-    items,
-    onSelectQueueIndex,
-}: {
-    activeEntry: QuickLookDrawerEntry;
-    activeIndex: number;
-    items: QuickLookDrawerEntry[];
-    onSelectQueueIndex: (index: number) => void;
-}) {
-    const { description, title, url } = activeEntry;
-    const { markAsBlocked, markAsLoaded, oembed, status } = useQuickLookStatus(
-        url,
-        DEFAULT_QUICK_LOOK_TIMEOUT_MS
-    );
-    const canOpenUrlExternally = url !== QUICK_LOOK_BLOCKED_URL;
-    const shouldRenderPreview =
-        canOpenUrlExternally && status !== "blocked" && status !== "oembed";
+function useQuickLookDrawerContext(): QuickLookDrawerContextValue {
+    const context = React.use(QuickLookDrawerContext);
+    if (!context) {
+        throw new Error(
+            "QuickLookDrawer components must be used inside <QuickLookDrawer>."
+        );
+    }
+    return context;
+}
+
+function useQuickLookStatus(url: string | null, timeoutMs: number) {
+    const getterKey =
+        url === null || url === QUICK_LOOK_BLOCKED_URL ? null : url;
+
+    const { data, error } = useSWR(getterKey, resolveOembed, {
+        revalidateOnFocus: false,
+        revalidateOnReconnect: false,
+        shouldRetryOnError: false,
+    });
+
+    const [iframeStatus, setIframeStatus] = React.useState<
+        "pending" | "loaded" | "blocked"
+    >("pending");
+
+    const timeout = useTimeout();
+
+    const markAsBlocked = useStableCallback(() => {
+        setIframeStatus((current) =>
+            // Once loaded, an iframe stays loaded — internal navigation failures
+            // after a successful load are not actionable and would flicker the
+            // blocked view against a working preview. Only route non-loaded
+            // states to blocked, mirroring the original `setStatus` guard.
+            current === "loaded" ? "loaded" : "blocked"
+        );
+    });
+
+    const markAsLoaded = useStableCallback(() => {
+        // Unconditional: a late `onLoad` is allowed to resurrect the preview from
+        // a timeout-induced blocked state, matching the original's behavior where
+        // `markAsLoaded` always wrote "loaded" regardless of prior status.
+        setIframeStatus("loaded");
+    });
+
+    // Reset the iframe lifecycle synchronously on URL change so the very first
+    // render of the new URL never inherits the previous URL's terminal status.
+    // Layout effects run after DOM commit but before paint, guaranteeing the
+    // user never sees a "loaded"/"blocked" leftover from a prior preview.
+    useIsoLayoutEffect(() => {
+        setIframeStatus("pending");
+    }, [url]);
+
+    React.useEffect(() => {
+        if (url === null || url === QUICK_LOOK_BLOCKED_URL) {
+            timeout.clear();
+            return;
+        }
+        // The timeout bounds the *total* wait from the URL change, mirroring the
+        // original 8-second deadline that spanned both the oEmbed fetch and the
+        // iframe load. It can only cause a `pending → blocked` transition — once
+        // the iframe has reached a terminal state, the callback no-ops.
+        timeout.start(timeoutMs, () => {
+            setIframeStatus((current) =>
+                current === "pending" ? "blocked" : current
+            );
+        });
+        return () => {
+            timeout.clear();
+        };
+    }, [timeout, timeoutMs, url]);
+
+    // Once SWR settles on an outcome that bypasses the iframe, the loading
+    // timeout has no useful work left. Clearing avoids a wasteful re-render
+    // (the timer would fire into a status the derivation already ignores).
+    // `unsupported` is the exception: 404 means "no oEmbed provider for this
+    // URL" — the vanilla iframe is still the user's best preview, and the
+    // timeout must keep running to bound its load.
+    React.useEffect(() => {
+        if (
+            data?.resolution === "found" ||
+            data?.resolution === "not-found" ||
+            error
+        ) {
+            timeout.clear();
+        }
+    }, [timeout, data, error]);
+
+    const oembed = data?.resolution === "found" ? data.oembed : null;
+    const status = parseOembedStatus(url, data, error, iframeStatus);
+
+    return {
+        markAsBlocked,
+        markAsLoaded,
+        oembed,
+        status,
+    };
+}
+
+export function QuickLookDrawer({
+    description,
+    title = DEFAULT_QUICK_LOOK_TITLE,
+    url,
+    children,
+}: QuickLookDrawerProps) {
+    const entry = { description, title, url };
+    const triggerId = `quick-look-drawer-${React.useId()}`;
 
     return (
-        <DrawerViewport>
-            <DrawerPopup
-                className="sm:max-w-[min(96vw,78rem)]"
-                shouldShowCloseButton
-            >
-                <DrawerHeader>
-                    <DrawerTitle>{title}</DrawerTitle>
-                    <DrawerDescription>
-                        {description ?? parseDisplayUrl(url)}
-                        <span className="ml-2">·</span>
-                        <QuickLookDrawerLinkButton
-                            href={url}
-                            size="sm"
-                            variant="link"
-                        >
-                            <GlobeIcon className="size-4" />
-                            <T>Open in new tab</T>
-                        </QuickLookDrawerLinkButton>
-                    </DrawerDescription>
-                </DrawerHeader>
-                <DrawerPanel
-                    allowSelection={false}
-                    className="flex min-h-full flex-col p-0"
-                    isScrollable={false}
+        <QuickLookDrawerContext value={{ entry, triggerId }}>
+            {children}
+        </QuickLookDrawerContext>
+    );
+}
+
+export function QuickLookDrawerTrigger({
+    onClick: onClickProp,
+    ...props
+}: React.ComponentProps<typeof DrawerTrigger>) {
+    const { entry, triggerId } = useQuickLookDrawerContext();
+
+    const handleClick = useStableCallback(
+        (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {
+            onClickProp?.(event);
+            if (!event.defaultPrevented) {
+                openQuickLookDrawer(entry, triggerId);
+                event.preventDefault();
+            }
+        }
+    );
+
+    return (
+        <DrawerTrigger
+            {...props}
+            handle={QUICK_LOOK_DRAWER_HANDLE}
+            id={triggerId}
+            onClick={handleClick}
+            payload={entry}
+        />
+    );
+}
+
+export function QuickLookDrawerContent({
+    container,
+}: {
+    container: HTMLDivElement | React.RefObject<HTMLDivElement | null> | null;
+}) {
+    const {
+        activeIndex,
+        isOpen,
+        items,
+        removeQueueItem,
+        selectQueueIndex,
+        setIsOpen,
+        setTriggerId,
+        triggerId,
+    } = useQuickLookStore();
+
+    const safeActiveIndex = clampActiveIndex(activeIndex, items.length);
+    const activeEntry = items[safeActiveIndex] ?? null;
+
+    const handleOpenChange = useStableCallback((nextIsOpen: boolean) => {
+        setIsOpen(nextIsOpen);
+        if (!nextIsOpen) {
+            setTriggerId(null);
+        }
+    });
+
+    return (
+        <Drawer
+            disablePointerDismissal
+            handle={QUICK_LOOK_DRAWER_HANDLE}
+            modal={false}
+            onOpenChange={handleOpenChange}
+            open={isOpen}
+            position="right"
+            swipeDirection="right"
+            triggerId={triggerId}
+        >
+            <DrawerVirtualKeyboardProvider>
+                <DrawerViewport
+                    className="overscroll-contain lg:relative lg:h-full"
+                    portalProps={{
+                        className: "lg:flex-1",
+                        container,
+                    }}
+                    shouldShowBackdrop={false}
                 >
-                    <div
-                        aria-busy={status === "loading"}
-                        className="relative flex size-full min-h-0"
-                    >
-                        {status === "loading" ? (
-                            <QuickLookDrawerLoadingState />
-                        ) : null}
+                    <DrawerPopup className="max-w-2xl" variant="straight">
+                        <DrawerHeader className="p-2 pb-1!">
+                            <DrawerTitle className="sr-only">
+                                Quick Look
+                            </DrawerTitle>
+                            <QuickLookDrawerList items={items}>
+                                {(item, index) => (
+                                    <QuickLookDrawerListItem
+                                        index={index}
+                                        isActive={index === safeActiveIndex}
+                                        item={item}
+                                        key={item.url}
+                                        onRemove={removeQueueItem}
+                                        onSelect={selectQueueIndex}
+                                    />
+                                )}
+                            </QuickLookDrawerList>
+                        </DrawerHeader>
+                        <QuickLookDrawerPanel activeEntry={activeEntry} />
+                    </DrawerPopup>
+                </DrawerViewport>
+            </DrawerVirtualKeyboardProvider>
+        </Drawer>
+    );
+}
+
+function QuickLookDrawerPanel({
+    activeEntry,
+}: {
+    activeEntry: QuickLookDrawerEntry | null;
+}) {
+    const { markAsBlocked, markAsLoaded, oembed, status } = useQuickLookStatus(
+        activeEntry?.url ?? null,
+        DEFAULT_QUICK_LOOK_TIMEOUT_MS
+    );
+    const isLoading = status === "loading";
+
+    return (
+        <DrawerPanel className="p-0" isScrollable={false}>
+            <div
+                aria-busy={isLoading}
+                className="relative flex size-full min-h-0"
+            >
+                {activeEntry ? (
+                    <>
+                        {isLoading ? <QuickLookDrawerLoading /> : null}
                         {status === "blocked" ? (
-                            <QuickLookDrawerBlockedState
-                                canOpenUrlExternally={canOpenUrlExternally}
-                                url={url}
+                            <QuickLookDrawerBlocked
+                                canOpenUrlExternally={
+                                    activeEntry.url !== QUICK_LOOK_BLOCKED_URL
+                                }
+                                url={activeEntry.url}
                             />
                         ) : null}
                         {status === "oembed" && oembed ? (
                             <QuickLookDrawerOembedPreview oembed={oembed} />
                         ) : null}
-                        {shouldRenderPreview ? (
+                        {status !== "blocked" &&
+                        status !== "oembed" &&
+                        activeEntry.url !== QUICK_LOOK_BLOCKED_URL ? (
                             <iframe
                                 className="size-full border-0 bg-background"
-                                key={url}
+                                key={activeEntry.url}
                                 onError={markAsBlocked}
                                 onLoad={markAsLoaded}
                                 referrerPolicy="strict-origin-when-cross-origin"
                                 sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-                                src={url}
-                                title={`Preview of ${title}`}
+                                src={activeEntry.url}
+                                title={`Preview of ${activeEntry.title}`}
                             />
                         ) : null}
-                    </div>
-                </DrawerPanel>
-                {items.length > 1 ? (
-                    <QuickLookDrawerQueueFooter
-                        activeIndex={activeIndex}
-                        items={items}
-                        onSelect={onSelectQueueIndex}
-                    />
+                    </>
                 ) : null}
-            </DrawerPopup>
-        </DrawerViewport>
-    );
-}
-
-function QuickLookDrawerQueueFooter({
-    activeIndex,
-    items,
-    onSelect,
-}: {
-    activeIndex: number;
-    items: QuickLookDrawerEntry[];
-    onSelect: (index: number) => void;
-}) {
-    return (
-        <DrawerFooter
-            allowSelection={false}
-            className="flex-col items-stretch gap-2 px-4 sm:flex-col sm:justify-start"
-        >
-            <div className="flex items-center justify-between gap-3 text-muted-foreground text-xs">
-                <span className="font-medium uppercase">Quick look</span>
-                <span className="tabular-nums">
-                    {activeIndex + 1}/{items.length}
-                </span>
             </div>
-            <ul className="flex gap-2 overflow-x-auto pb-1">
-                {items.map((item, index) => (
-                    <QuickLookDrawerQueueItem
-                        index={index}
-                        isActive={index === activeIndex}
-                        item={item}
-                        key={item.url}
-                        onSelect={onSelect}
-                    />
-                ))}
-            </ul>
-        </DrawerFooter>
+        </DrawerPanel>
     );
 }
 
-function QuickLookDrawerQueueItem({
+function QuickLookDrawerOembedPreview({ oembed }: { oembed: Oembed }) {
+    const iframeSrc = getOembedIframeSrc(oembed);
+
+    return (
+        <iframe
+            allow={iframeSrc ? OEMBED_IFRAME_ALLOW : undefined}
+            allowFullScreen={!!iframeSrc}
+            className="size-full border-0 bg-background"
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox={
+                iframeSrc ? OEMBED_DIRECT_IFRAME_SANDBOX : OEMBED_IFRAME_SANDBOX
+            }
+            src={iframeSrc ?? undefined}
+            srcDoc={iframeSrc ? undefined : buildOembedSrcDocument(oembed.html)}
+            title={oembed.title ?? `${oembed.provider} preview`}
+        />
+    );
+}
+
+interface QuickLookDrawerListProps<T>
+    extends Omit<React.ComponentProps<"ul">, "children"> {
+    children: (item: T, index: number) => React.ReactNode;
+    items: QuickLookDrawerEntry[];
+}
+
+function QuickLookDrawerList({
+    items,
+    className,
+    children,
+    ...props
+}: QuickLookDrawerListProps<QuickLookDrawerEntry>) {
+    return (
+        <ul
+            {...props}
+            className={cn("flex max-w-full items-center gap-2", className)}
+        >
+            {items.map(children)}
+        </ul>
+    );
+}
+
+function QuickLookDrawerListItem({
     index,
     isActive,
     item,
+    onRemove,
     onSelect,
 }: {
     index: number;
     isActive: boolean;
     item: QuickLookDrawerEntry;
+    onRemove: (index: number) => void;
     onSelect: (index: number) => void;
 }) {
     const handleClick = useStableCallback(() => {
         onSelect(index);
     });
 
+    const handleRemove = useStableCallback(() => {
+        onRemove(index);
+    });
+
     return (
-        <li>
+        <li
+            className={cn(
+                "flex h-fit w-full min-w-0 max-w-48 items-center rounded-lg",
+                isActive ? "bg-secondary" : "hover:bg-accent"
+            )}
+        >
             <Button
                 aria-current={isActive ? "page" : undefined}
-                className="h-auto min-w-44 max-w-64 justify-start px-3 py-2 text-left"
+                className="min-w-0 flex-1 hover:bg-transparent"
                 onClick={handleClick}
                 size="sm"
-                variant={isActive ? "secondary" : "ghost"}
+                variant="ghost"
             >
-                <span className="flex min-w-0 flex-col items-start gap-0.5">
-                    <span className="max-w-full truncate font-medium">
-                        {item.title}
-                    </span>
-                    <span className="max-w-full truncate text-muted-foreground text-xs">
-                        {item.description ?? parseDisplayUrl(item.url)}
-                    </span>
+                <span className="min-w-0 truncate font-medium">
+                    {item.title}
                 </span>
+            </Button>
+            <Button
+                aria-label={`Close ${item.title}`}
+                onClick={handleRemove}
+                size="icon-sm"
+                title={`Close ${item.title}`}
+                variant="ghost"
+            >
+                <XIcon className="size-3.5 shrink-0" />
             </Button>
         </li>
     );
 }
 
-function QuickLookDrawerLoadingState() {
+function QuickLookDrawerLoading() {
     return (
         <div
             aria-live="polite"
@@ -766,30 +753,7 @@ function QuickLookDrawerLoadingState() {
     );
 }
 
-function QuickLookDrawerOembedPreview({
-    oembed,
-}: {
-    oembed: QuickLookDrawerOembed;
-}) {
-    const iframeSrc = getOembedIframeSrc(oembed);
-
-    return (
-        <iframe
-            allow={iframeSrc ? OEMBED_IFRAME_ALLOW : undefined}
-            allowFullScreen={!!iframeSrc}
-            className="size-full border-0 bg-background"
-            referrerPolicy="strict-origin-when-cross-origin"
-            sandbox={
-                iframeSrc ? OEMBED_DIRECT_IFRAME_SANDBOX : OEMBED_IFRAME_SANDBOX
-            }
-            src={iframeSrc ?? undefined}
-            srcDoc={iframeSrc ? undefined : buildOembedSrcDoc(oembed.html)}
-            title={oembed.title ?? `${oembed.provider} preview`}
-        />
-    );
-}
-
-function QuickLookDrawerBlockedState({
+function QuickLookDrawerBlocked({
     canOpenUrlExternally,
     url,
 }: {
@@ -814,24 +778,21 @@ function QuickLookDrawerBlockedState({
                 </p>
             </div>
             {canOpenUrlExternally ? (
-                <QuickLookDrawerLinkButton href={url} size="sm">
+                <Button
+                    nativeButton={false}
+                    render={
+                        <a
+                            href={url}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                        />
+                    }
+                    size="sm"
+                >
                     <ExternalLinkIcon className="size-4" />
                     Open in new tab
-                </QuickLookDrawerLinkButton>
+                </Button>
             ) : null}
         </div>
-    );
-}
-
-function QuickLookDrawerLinkButton({
-    href,
-    ...props
-}: QuickLookDrawerLinkButtonProps) {
-    return (
-        <Button
-            {...props}
-            nativeButton={false}
-            render={<a href={href} rel="noopener noreferrer" target="_blank" />}
-        />
     );
 }

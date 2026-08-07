@@ -429,9 +429,9 @@ export function MarkdownImportDialog() {
                 placeholder='e.g. "Obsidian vault"'
                 value={newImportName}
             />
-            {errorMessage !== null && (
+            {errorMessage ? (
                 <DialogFieldError>{errorMessage}</DialogFieldError>
-            )}
+            ) : null}
             <Button
                 disabled={isLoading || !newImportName.trim()}
                 isLoading={isLoading}
@@ -448,9 +448,9 @@ export function MarkdownImportDialog() {
             <Button onClick={handlePickFiles} size="sm">
                 Choose folder or files
             </Button>
-            {errorMessage !== null && (
+            {errorMessage ? (
                 <DialogFieldError>{errorMessage}</DialogFieldError>
-            )}
+            ) : null}
         </div>
     );
 

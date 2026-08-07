@@ -12,6 +12,7 @@ import * as React from "react";
 
 interface DisclosureListVerticalProps extends React.ComponentProps<"div"> {
     maxVisible?: number;
+    triggerProps?: Omit<DisclosureListHiddenProps, "items">;
 }
 
 const MAX_VISIBLE_VERTICAL_DEFAULT = 15;
@@ -20,6 +21,7 @@ export function DisclosureListVertical({
     maxVisible = MAX_VISIBLE_VERTICAL_DEFAULT,
     children,
     className,
+    triggerProps,
     ...props
 }: DisclosureListVerticalProps) {
     const childrenArray = React.Children.toArray(children);
@@ -38,21 +40,34 @@ export function DisclosureListVertical({
             data-slot="disclosure-list"
         >
             {visible}
-            {hidden.length > 0 ? <DisclosureListHidden items={hidden} /> : null}
+            {hidden.length > 0 ? (
+                <DisclosureListOverflow {...triggerProps} items={hidden} />
+            ) : null}
         </div>
     );
 }
 
-interface DisclosureListHiddenProps {
+interface DisclosureListHiddenProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
     items: React.ReactNode[];
 }
 
-function DisclosureListHidden({ items }: DisclosureListHiddenProps) {
+function DisclosureListOverflow({
+    items,
+    className,
+    ...props
+}: DisclosureListHiddenProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
     return (
         <Collapsible onOpenChange={setIsOpen} open={isOpen}>
-            <CollapsibleTrigger className="flex w-full items-center p-1.5 text-muted-foreground text-xs hover:text-foreground">
+            <CollapsibleTrigger
+                {...props}
+                className={cn(
+                    "flex items-center p-1.5 text-muted-foreground text-xs hover:text-foreground",
+                    className
+                )}
+            >
                 {isOpen ? "Show less" : `Show ${items.length} more`}
             </CollapsibleTrigger>
             <CollapsiblePanel>{items}</CollapsiblePanel>

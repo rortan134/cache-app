@@ -9,8 +9,6 @@ import {
     buildCollectionItemIndexes,
     CollectionsProvider,
     LibraryItemsContext,
-    mergeImportedItems,
-    NAME_COLLATOR,
     reconcileCollectionTags,
     replaceMultipleItemCollections,
     sortCollections,
@@ -21,9 +19,8 @@ import {
     Composer,
     ComposerActionMetrics,
     ComposerActionNew,
-    ComposerActionOnboarding,
     ComposerActionRemoveDuplicates,
-    ComposerActions,
+    ComposerActionsList,
     ComposerInput,
     ComposerSuggestionsList,
     type CommandPaletteGroup,
@@ -40,11 +37,13 @@ import {
     useNoteContext,
     type NoteDraft,
 } from "@/components/library/new";
+import { OnboardingMenu } from "@/components/library/onboarding";
 import {
     openQuickLookDrawer,
     QuickLookDrawer,
-    QuickLookDrawerSurface,
+    QuickLookDrawerContent,
     QuickLookDrawerTrigger,
+    useIsQuickLookDrawerOpen,
 } from "@/components/library/quick-look";
 import {
     Attachment,
@@ -105,6 +104,7 @@ import {
     DrawerPopup,
     DrawerTitle,
     DrawerViewport,
+    DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -174,7 +174,12 @@ import {
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { removeValue, toggleValue, updateById } from "@/lib/common/arrays";
+import {
+    mergeById,
+    removeValue,
+    toggleValue,
+    updateById,
+} from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import {
@@ -320,6 +325,11 @@ const COBALT_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.x_bookmarks,
     LibraryItemSource.youtube_watch_later,
 ]);
+
+const NAME_COLLATOR = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: "base",
+});
 
 const MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000;
 
@@ -2471,6 +2481,24 @@ function BrowserGroupAIOverviewContent() {
 
 const getBrowserMasonryItemKey = (item: LibraryItemWithCollections) => item.id;
 
+const BrowserMasonryChildrenContext = React.createContext<
+    | ((data: LibraryItemWithCollections, index: number) => React.ReactNode)
+    | null
+>(null);
+
+function MasonryItem({
+    data,
+    index,
+}: MasonryRenderComponentProps<LibraryItemWithCollections>) {
+    const children = React.use(BrowserMasonryChildrenContext);
+    if (!children) {
+        throw new Error(
+            "MasonryItem must be rendered inside <BrowserMasonry>."
+        );
+    }
+    return children(data, index);
+}
+
 interface BrowserMasonryProps {
     children: (
         data: LibraryItemWithCollections,
@@ -2498,15 +2526,11 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
         setOpenPickerItemId,
     } = useBrowserContext();
     const { state: sidebarState } = useSidebar();
-    const sidebarStateDeferred = useDebouncedValue(sidebarState, 400);
-
-    const renderMasonryItem = React.useCallback(
-        ({
-            data,
-            index,
-        }: MasonryRenderComponentProps<LibraryItemWithCollections>) =>
-            children(data, index),
-        [children]
+    const isQuickLookDrawerOpen = useIsQuickLookDrawerOpen();
+    const sidebarStateDeferred = useDebouncedValue(sidebarState, 300);
+    const quickLookDrawerOpenDeferred = useDebouncedValue(
+        isQuickLookDrawerOpen,
+        300
     );
 
     const value: MediaCardEnvironment = {
@@ -2526,26 +2550,30 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
         setOpenPickerItemId,
     };
 
+    const rootKey = `${sidebarStateDeferred}-${quickLookDrawerOpenDeferred}-${items.length}`;
+
     if (collapsed || items.length === 0) {
         return null;
     }
 
     return (
         <MediaCardEnvironmentContext value={value}>
-            <Masonry
-                columnCount={columnCount}
-                columnGutter={16}
-                itemAs="article"
-                itemKey={getBrowserMasonryItemKey}
-                itemStyle={{ contain: "layout style" }}
-                items={items}
-                key={`${sidebarStateDeferred}-${items.length}`}
-                maxColumnCount={7}
-                render={renderMasonryItem}
-                rowGutter={16}
-                scrollFps={16}
-                tabIndex={-1}
-            />
+            <BrowserMasonryChildrenContext value={children}>
+                <Masonry
+                    columnCount={columnCount}
+                    columnGutter={16}
+                    itemAs="article"
+                    itemKey={getBrowserMasonryItemKey}
+                    itemStyle={{ contain: "layout style" }}
+                    items={items}
+                    key={rootKey}
+                    maxColumnCount={7}
+                    render={MasonryItem}
+                    rowGutter={16}
+                    scrollFps={16}
+                    tabIndex={-1}
+                />
+            </BrowserMasonryChildrenContext>
         </MediaCardEnvironmentContext>
     );
 }
@@ -4549,7 +4577,7 @@ function MediaCardMenuDetails() {
                 className="max-w-56"
                 render={
                     <Button
-                        className="max-w-full justify-between rounded-xl"
+                        className="justify-between rounded-xl"
                         variant="ghost"
                     />
                 }
@@ -5519,27 +5547,29 @@ function NoteDrawerContent({
             position="right"
             swipeDirection="right"
         >
-            <DrawerViewport>
-                <DrawerPopup
-                    className="max-w-2xl"
-                    initialFocus={contentEditableRef}
-                    variant="straight"
-                >
-                    <DrawerHeader
-                        allowSelection
-                        className="flex-row items-center justify-between"
+            <DrawerVirtualKeyboardProvider>
+                <DrawerViewport>
+                    <DrawerPopup
+                        className="max-w-2xl"
+                        initialFocus={contentEditableRef}
+                        variant="straight"
                     >
-                        <DrawerTitle className="sr-only">
-                            <NoteTitle />
-                        </DrawerTitle>
-                        <NoteHeader />
-                    </DrawerHeader>
-                    <DrawerPanel allowSelection>
-                        <NoteEditor />
-                        <NoteMetrics />
-                    </DrawerPanel>
-                </DrawerPopup>
-            </DrawerViewport>
+                        <DrawerHeader
+                            allowSelection
+                            className="flex-row items-center justify-between"
+                        >
+                            <DrawerTitle className="sr-only">
+                                <NoteTitle />
+                            </DrawerTitle>
+                            <NoteHeader />
+                        </DrawerHeader>
+                        <DrawerPanel allowSelection>
+                            <NoteEditor />
+                            <NoteMetrics />
+                        </DrawerPanel>
+                    </DrawerPopup>
+                </DrawerViewport>
+            </DrawerVirtualKeyboardProvider>
         </Drawer>
     );
 }
@@ -7137,7 +7167,7 @@ function BrowserContent({
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !shouldShowEmptyLibraryPeek;
 
-    const libraryMetrics = buildLibraryMetrics({
+    const metrics = buildLibraryMetrics({
         getSourceLabel: sourceLabel,
         items: filteredItems,
         libraryItemCount: isPreviewOnly ? totalItemCount : items.length,
@@ -7762,8 +7792,13 @@ function BrowserContent({
     const handleCloseNoteDrawer = useStableCallback(() => setActiveNote(null));
 
     const mergeImportedLibraryItems = useStableCallback(
-        (importedItems: LibraryItemWithCollections[]) => {
-            setItems((current) => mergeImportedItems(current, importedItems));
+        (imported: LibraryItemWithCollections[]) => {
+            setItems((current) => {
+                if (imported.length === 0) {
+                    return current;
+                }
+                return mergeById(current, imported);
+            });
         }
     );
 
@@ -7815,128 +7850,145 @@ function BrowserContent({
             isUnreachableProbePending && filteredItems.length === 0,
     };
 
+    const [containerElement, setContainerElement] =
+        React.useState<HTMLDivElement | null>(null);
+
     return (
         <LibraryItemsContext value={libraryItemsContextValue}>
             <BrowserContext value={browserContextValue}>
                 {children}
                 <div
-                    className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
-                    style={sectionStyle}
+                    className="flex flex-1 items-stretch"
+                    ref={setContainerElement}
                 >
-                    <Composer>
-                        <ComposerInput
-                            containerRef={commandPanelContainerRef}
-                            groups={paletteGroups}
-                            isOpen={isCommandOpen}
-                            onKeyDown={handlePaletteInputKeyDown}
-                            onOpenChange={handleCommandOpenChange}
-                            onValueChange={handleCommandInputChange}
-                            placeholder={placeholder}
-                            query={query}
-                            ref={inputRef}
-                            stackEntries={paletteStackEntries}
-                        />
-                        <ComposerActions
-                            canClear={canClear}
-                            connectedIntegrationCount={
-                                connectedIntegrationCount
-                            }
-                            duplicatesFilterEnabled={duplicatesFilterEnabled}
-                            groupBy={groupBy}
-                            metrics={libraryMetrics}
-                            onClearPalette={clearLibraryPalette}
-                            onCreateCollection={requestCreate}
-                            onCreateNote={handleCreateNote}
-                            onOpenCommandFromOnboarding={
-                                handleOpenCommandFromOnboarding
-                            }
-                            onRemoveDuplicates={handleRequestRemoveDuplicates}
-                            removableDuplicateCount={
-                                removableDuplicateIds.length
-                            }
-                            resultsSummary={resultsSummary}
-                            sectionsLength={groups.length}
-                        >
-                            <ComposerActionNew />
-                            <ComposerActionMetrics />
-                            <ComposerActionOnboarding />
-                            <ComposerActionRemoveDuplicates />
-                        </ComposerActions>
-                    </Composer>
-                    <ComposerSuggestionsList
-                        onOpenChange={setIsSuggestionsOpen}
-                        open={isSuggestionsOpen}
-                        suggestions={suggestions}
+                    <div
+                        className="z-0 flex min-w-0 flex-1 flex-col gap-4 p-8"
+                        style={sectionStyle}
                     >
-                        {(suggestion, index) => (
-                            <Button
-                                className="text-muted-foreground transition-transform duration-100 ease-out active:scale-[0.97]"
-                                key={suggestion.label}
-                                onClick={suggestion.onSelect}
-                                size="xs"
-                                variant="ghost"
+                        <Composer>
+                            <ComposerInput
+                                containerRef={commandPanelContainerRef}
+                                groups={paletteGroups}
+                                isOpen={isCommandOpen}
+                                onKeyDown={handlePaletteInputKeyDown}
+                                onOpenChange={handleCommandOpenChange}
+                                onValueChange={handleCommandInputChange}
+                                placeholder={placeholder}
+                                query={query}
+                                ref={inputRef}
+                                stackEntries={paletteStackEntries}
+                            />
+                            <ComposerActionsList
+                                canClear={canClear}
+                                duplicatesFilterEnabled={
+                                    duplicatesFilterEnabled
+                                }
+                                groupBy={groupBy}
+                                metrics={metrics}
+                                onClearPalette={clearLibraryPalette}
+                                onCreateNote={handleCreateNote}
+                                onRemoveDuplicates={
+                                    handleRequestRemoveDuplicates
+                                }
+                                removableDuplicateCount={
+                                    removableDuplicateIds.length
+                                }
+                                resultsSummary={resultsSummary}
+                                sectionsLength={groups.length}
                             >
-                                {suggestion.icon}
-                                &nbsp;
-                                {suggestion.label}
-                                <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
-                                    <CmdKbd />
-                                    {index + 1}
-                                </Kbd>
-                            </Button>
-                        )}
-                    </ComposerSuggestionsList>
-                    {isPreviewOnly ? <InlinePaywallBanner /> : null}
-                    <BrowserEmpty />
-                    <BrowserEmptyWithFilters />
-                    <BrowserUnreachableProbePending />
-                    <BrowserGroupList groups={groups}>
-                        {(section) => (
-                            <BrowserGroup>
-                                {enableSectionCollapse ? (
-                                    <>
-                                        <BrowserGroupHeader />
-                                        {section.title ? null : (
-                                            <BrowserGroupAIOverview>
-                                                <BrowserGroupAIOverviewContent />
-                                            </BrowserGroupAIOverview>
-                                        )}
-                                        <BrowserGroupEmpty>
-                                            No items were found in this section.
-                                        </BrowserGroupEmpty>
-                                    </>
-                                ) : null}
-                                <BrowserMasonry>
-                                    {(data) => (
-                                        <MediaCardDataProvider data={data}>
-                                            <MediaCardInteractionProvider>
-                                                <MediaCardContextMenuSurface>
-                                                    <MediaCardOpenTarget />
-                                                    <MediaCardActions />
-                                                </MediaCardContextMenuSurface>
-                                            </MediaCardInteractionProvider>
-                                        </MediaCardDataProvider>
-                                    )}
-                                </BrowserMasonry>
-                            </BrowserGroup>
-                        )}
-                    </BrowserGroupList>
-                    {shouldShowLockedPreview ? (
-                        <div className="relative isolate flex flex-col gap-8">
-                            <BlockPaywallBanner length={totalItemCount} />
-                            <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
-                            <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                                <Masonry
-                                    columnCount={resolvedColumnCount}
-                                    columnGutter={16}
-                                    items={LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS}
-                                    maxColumnCount={7}
-                                    render={LockedPreviewCard}
-                                    rowGutter={16}
+                                <ComposerActionNew />
+                                <ComposerActionMetrics />
+                                <OnboardingMenu
+                                    connectedIntegrationCount={
+                                        connectedIntegrationCount
+                                    }
+                                    onCreateCollection={requestCreate}
+                                    onCreateNote={handleCreateNote}
+                                    onOpenCommand={
+                                        handleOpenCommandFromOnboarding
+                                    }
                                 />
+                                <ComposerActionRemoveDuplicates />
+                            </ComposerActionsList>
+                        </Composer>
+                        <ComposerSuggestionsList
+                            onOpenChange={setIsSuggestionsOpen}
+                            open={isSuggestionsOpen}
+                            suggestions={suggestions}
+                        >
+                            {(suggestion, index) => (
+                                <Button
+                                    className="text-muted-foreground"
+                                    key={suggestion.label}
+                                    onClick={suggestion.onSelect}
+                                    size="xs"
+                                    variant="ghost"
+                                >
+                                    {suggestion.icon}
+                                    &nbsp;
+                                    {suggestion.label}
+                                    <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
+                                        <CmdKbd />
+                                        {index + 1}
+                                    </Kbd>
+                                </Button>
+                            )}
+                        </ComposerSuggestionsList>
+                        {isPreviewOnly ? <InlinePaywallBanner /> : null}
+                        <BrowserEmpty />
+                        <BrowserEmptyWithFilters />
+                        <BrowserUnreachableProbePending />
+                        <BrowserGroupList groups={groups}>
+                            {(section) => (
+                                <BrowserGroup>
+                                    {enableSectionCollapse ? (
+                                        <>
+                                            <BrowserGroupHeader />
+                                            {section.title ? null : (
+                                                <BrowserGroupAIOverview>
+                                                    <BrowserGroupAIOverviewContent />
+                                                </BrowserGroupAIOverview>
+                                            )}
+                                            <BrowserGroupEmpty>
+                                                No items were found in this
+                                                section.
+                                            </BrowserGroupEmpty>
+                                        </>
+                                    ) : null}
+                                    <BrowserMasonry>
+                                        {(data) => (
+                                            <MediaCardDataProvider data={data}>
+                                                <MediaCardInteractionProvider>
+                                                    <MediaCardContextMenuSurface>
+                                                        <MediaCardOpenTarget />
+                                                        <MediaCardActions />
+                                                    </MediaCardContextMenuSurface>
+                                                </MediaCardInteractionProvider>
+                                            </MediaCardDataProvider>
+                                        )}
+                                    </BrowserMasonry>
+                                </BrowserGroup>
+                            )}
+                        </BrowserGroupList>
+                        {shouldShowLockedPreview ? (
+                            <div className="relative isolate flex flex-col gap-8">
+                                <BlockPaywallBanner length={totalItemCount} />
+                                <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
+                                <div className="select-none opacity-70 blur-[1.5px] saturate-75">
+                                    <Masonry
+                                        columnCount={resolvedColumnCount}
+                                        columnGutter={16}
+                                        items={
+                                            LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS
+                                        }
+                                        maxColumnCount={7}
+                                        render={LockedPreviewCard}
+                                        rowGutter={16}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    ) : null}
+                        ) : null}
+                    </div>
                     <NoteDrawer
                         activeNote={activeNote}
                         handlePasteUrlIntoLibrary={handlePasteUrlIntoLibrary}
@@ -7945,51 +7997,47 @@ function BrowserContent({
                         isSavingPastedUrl={isSavingPastedUrl}
                         onNoteDrawerClose={handleCloseNoteDrawer}
                     />
-                    <QuickLookDrawerSurface />
-                    <DeleteItemDialog
-                        isDeletePending={isDeletePending}
-                        onConfirmDelete={handleConfirmDelete}
-                        onOpenChange={handleDeleteDialogOpenChange}
-                        open={pendingDeleteItem !== null}
-                        pendingDeleteItem={pendingDeleteItem}
-                    />
-                    <RemoveDuplicatesDialog
-                        count={pendingRemoveDuplicateIds.length}
-                        isRemoving={isRemovingDuplicates}
-                        onConfirm={handleConfirmRemoveDuplicates}
-                        onOpenChange={handleRemoveDuplicatesDialogOpenChange}
-                        open={isRemoveDuplicatesDialogOpen}
-                    />
-                    <CreateResultsCollectionDialog
-                        collections={collections}
-                        createResultsDescriptionDraft={
-                            createResultsDescriptionDraft
-                        }
-                        createResultsDescriptionId={createResultsDescriptionId}
-                        createResultsError={createResultsError}
-                        createResultsNameDraft={createResultsNameDraft}
-                        createResultsNameInputId={createResultsNameInputId}
-                        isCreatingResultsCollection={
-                            isCreatingResultsCollection
-                        }
-                        onCreateCollectionFromResultsSubmit={
-                            handleCreateCollectionFromResultsSubmit
-                        }
-                        onOpenChange={handleCreateResultsDialogOpenChange}
-                        onUpdateCreateResultsDescriptionDraft={
-                            setCreateResultsDescriptionDraft
-                        }
-                        onUpdateCreateResultsError={setCreateResultsError}
-                        onUpdateCreateResultsNameDraft={
-                            setCreateResultsNameDraft
-                        }
-                        onUpdateItemCollections={handleUpdateItemCollections}
-                        onUpdateItemsCollections={handleUpdateItemsCollections}
-                        open={isCreateResultsDialogOpen}
-                        resultItemCount={resultCollectionItemIds.length}
-                        visibleResultItems={visibleResultItems}
-                    />
+                    <QuickLookDrawerContent container={containerElement} />
                 </div>
+                <DeleteItemDialog
+                    isDeletePending={isDeletePending}
+                    onConfirmDelete={handleConfirmDelete}
+                    onOpenChange={handleDeleteDialogOpenChange}
+                    open={pendingDeleteItem !== null}
+                    pendingDeleteItem={pendingDeleteItem}
+                />
+                <RemoveDuplicatesDialog
+                    count={pendingRemoveDuplicateIds.length}
+                    isRemoving={isRemovingDuplicates}
+                    onConfirm={handleConfirmRemoveDuplicates}
+                    onOpenChange={handleRemoveDuplicatesDialogOpenChange}
+                    open={isRemoveDuplicatesDialogOpen}
+                />
+                <CreateResultsCollectionDialog
+                    collections={collections}
+                    createResultsDescriptionDraft={
+                        createResultsDescriptionDraft
+                    }
+                    createResultsDescriptionId={createResultsDescriptionId}
+                    createResultsError={createResultsError}
+                    createResultsNameDraft={createResultsNameDraft}
+                    createResultsNameInputId={createResultsNameInputId}
+                    isCreatingResultsCollection={isCreatingResultsCollection}
+                    onCreateCollectionFromResultsSubmit={
+                        handleCreateCollectionFromResultsSubmit
+                    }
+                    onOpenChange={handleCreateResultsDialogOpenChange}
+                    onUpdateCreateResultsDescriptionDraft={
+                        setCreateResultsDescriptionDraft
+                    }
+                    onUpdateCreateResultsError={setCreateResultsError}
+                    onUpdateCreateResultsNameDraft={setCreateResultsNameDraft}
+                    onUpdateItemCollections={handleUpdateItemCollections}
+                    onUpdateItemsCollections={handleUpdateItemsCollections}
+                    open={isCreateResultsDialogOpen}
+                    resultItemCount={resultCollectionItemIds.length}
+                    visibleResultItems={visibleResultItems}
+                />
             </BrowserContext>
         </LibraryItemsContext>
     );

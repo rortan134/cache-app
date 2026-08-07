@@ -1,6 +1,5 @@
 "use client";
 
-import { OnboardingMenu } from "@/components/library/onboarding";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsiblePanel } from "@/components/ui/collapsible";
@@ -20,8 +19,6 @@ import {
     CommandStatus,
     useCommandFilter,
 } from "@/components/ui/command";
-import { DisclosureListHorizontal } from "@/components/ui/disclosure-list";
-import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     DataList,
     DataListChart,
@@ -31,6 +28,8 @@ import {
     DataListSection,
     DataListTitle,
 } from "@/components/ui/data-list";
+import { DisclosureListHorizontal } from "@/components/ui/disclosure-list";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Popover,
     PopoverClose,
@@ -38,10 +37,11 @@ import {
     PopoverTitle,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { LibraryMetricsSnapshot } from "@/lib/collections/metrics";
 import { cn } from "@/lib/common/cn";
-import { formatPercent } from "@/lib/common/numbers";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { formatSharePercent } from "@/lib/common/numbers";
 import type {
     AutocompleteRootChangeEventDetails,
     BaseUIEvent,
@@ -53,6 +53,8 @@ import { ChevronDown, CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
+
+const log = createLogger("library:composer");
 
 export interface PaletteStackEntry {
     chip: React.ReactNode;
@@ -96,9 +98,157 @@ interface RankedCommandPaletteItem {
 }
 
 type ComposerActionsContextValue = Omit<
-    ComposerActionsProps,
+    ComposerActionsListProps,
     "children" | "className"
 >;
+
+interface ComposerInputProps {
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    groups: CommandPaletteGroup[];
+    isOpen: boolean;
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+    onOpenChange: (
+        nextOpen: boolean,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    onValueChange: (
+        next: string,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    placeholder: string;
+    query: string;
+    ref: React.RefObject<HTMLInputElement | null>;
+    stackEntries: PaletteStackEntry[];
+}
+
+interface ComposerActionsListProps {
+    canClear: boolean;
+    children: React.ReactNode;
+    className?: string;
+    duplicatesFilterEnabled: boolean;
+    groupBy: string;
+    metrics: LibraryMetricsSnapshot;
+    onClearPalette: () => void;
+    onCreateNote: () => void;
+    onRemoveDuplicates: () => void;
+    removableDuplicateCount: number;
+    resultsSummary: string;
+    sectionsLength: number;
+}
+
+interface ComposerSuggestionsListProps
+    extends Omit<React.ComponentProps<typeof CollapsiblePanel>, "children"> {
+    children: (suggestion: CommandSuggestion, index: number) => React.ReactNode;
+    onOpenChange?: (open: boolean) => void;
+    open?: boolean;
+    suggestions: CommandSuggestion[];
+}
+
+function useVisibleGroups({
+    groups,
+    query,
+}: {
+    groups: CommandPaletteGroup[];
+    query: string;
+}): CommandPaletteGroup[] {
+    const filter = useCommandFilter();
+
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length === 0) {
+        return groups;
+    }
+
+    const lowerQuery = normalizedQuery.toLowerCase();
+    const visibleGroups: CommandPaletteGroup[] = [];
+
+    for (const group of groups) {
+        const rankedItems: RankedCommandPaletteItem[] = [];
+
+        for (const [index, item] of group.items.entries()) {
+            const score = getCommandItemScore(
+                filter,
+                item,
+                normalizedQuery,
+                lowerQuery
+            );
+            if (score !== null) {
+                rankedItems.push({
+                    item,
+                    rank: { index, score },
+                });
+            }
+        }
+
+        if (rankedItems.length === 0) {
+            continue;
+        }
+
+        rankedItems.sort(
+            (first, second) =>
+                first.rank.score - second.rank.score ||
+                first.rank.index - second.rank.index
+        );
+
+        visibleGroups.push({
+            ...group,
+            items: rankedItems.map(({ item }) => item),
+        });
+    }
+
+    return visibleGroups;
+}
+
+function getCommandItemScore(
+    filter: ReturnType<typeof useCommandFilter>,
+    item: CommandPaletteItem,
+    query: string,
+    lowerQuery: string
+): number | null {
+    const label = item.label;
+    const value = item.value;
+    const description = item.description ?? "";
+
+    if (label.trim().toLowerCase() === lowerQuery) {
+        return 0;
+    }
+    if (filter.startsWith(label, query)) {
+        return 1;
+    }
+    if (filter.contains(label, query)) {
+        for (const word of label.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN)) {
+            if (filter.startsWith(word, query)) {
+                return 2;
+            }
+        }
+        return 3;
+    }
+    if (filter.startsWith(value, query)) {
+        return 4;
+    }
+    if (filter.contains(value, query)) {
+        return 5;
+    }
+    if (description !== "" && filter.contains(description, query)) {
+        return 6;
+    }
+
+    return null;
+}
+
+function formatShareValue(value: number, total: number): React.ReactNode {
+    if (total <= 0) {
+        return value;
+    }
+    return (
+        <>
+            {value}
+            <span className="text-muted-foreground/50">
+                {" "}
+                · {formatSharePercent(value, total)}
+            </span>
+        </>
+    );
+}
 
 const ComposerActionsContext =
     React.createContext<ComposerActionsContextValue | null>(null);
@@ -121,7 +271,7 @@ export function Composer({
         <Toolbar.Root
             {...props}
             className={cn(
-                "w-full max-w-2xl rounded-t-4xl rounded-b-2xl bg-muted/80",
+                "relative w-full max-w-2xl rounded-t-4xl rounded-b-2xl bg-muted/80",
                 className
             )}
         />
@@ -188,6 +338,7 @@ export function ComposerInput({
                                                 <CommandPaletteItemComponent
                                                     isHorizontal
                                                     item={item}
+                                                    key={item.value}
                                                 />
                                             )}
                                         </CommandCollection>
@@ -196,8 +347,8 @@ export function ComposerInput({
                                     <CommandCollection>
                                         {(item: CommandPaletteItem) => (
                                             <CommandPaletteItemComponent
-                                                isHorizontal={false}
                                                 item={item}
+                                                key={item.value}
                                             />
                                         )}
                                     </CommandCollection>
@@ -211,324 +362,6 @@ export function ComposerInput({
     );
 }
 
-export function ComposerSuggestionsList({
-    children,
-    suggestions,
-    className,
-    open: openProp,
-    onOpenChange: onOpenChangeProp,
-    ...props
-}: ComposerSuggestionsProps) {
-    const [isInternalOpen, setInternalOpen] = React.useState(true);
-    const open = openProp ?? isInternalOpen;
-    const setOpen = onOpenChangeProp ?? setInternalOpen;
-
-    const handleDismiss = useStableCallback(() => setOpen(false));
-
-    if (suggestions.length === 0) {
-        return null;
-    }
-
-    const dismissSuggestion: CommandSuggestion = {
-        label: "Dismiss",
-        onSelect: handleDismiss,
-    };
-
-    return (
-        <Collapsible
-            className="relative -mt-1"
-            onOpenChange={setOpen}
-            open={open}
-        >
-            <CollapsiblePanel {...props} className={cn("px-3", className)}>
-                <ScrollArea className="max-w-full text-nowrap" shouldScrollFade>
-                    <div className="flex w-max flex-nowrap items-center gap-1.5">
-                        {suggestions.map((suggestion, i) => (
-                            <React.Fragment key={suggestion.label}>
-                                {children(suggestion, i)}
-                                <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs">
-                                    ·
-                                </span>
-                            </React.Fragment>
-                        ))}
-                        {children(dismissSuggestion, suggestions.length)}
-                    </div>
-                    <ScrollBar className="hidden" orientation="horizontal" />
-                </ScrollArea>
-            </CollapsiblePanel>
-        </Collapsible>
-    );
-}
-
-export function ComposerActions({
-    children,
-    className,
-    ...value
-}: ComposerActionsProps) {
-    return (
-        <ComposerActionsContext value={value}>
-            <Toolbar.Group
-                className={cn("flex items-center gap-2.5 px-3 py-2", className)}
-            >
-                {children}
-            </Toolbar.Group>
-        </ComposerActionsContext>
-    );
-}
-
-export function ComposerActionNew() {
-    const { onCreateNote } = useComposerActionsContext();
-
-    return (
-        <ActionButton onClick={onCreateNote} title="Add new">
-            <SquarePen className="inline-block size-3.5 shrink-0" />
-            &nbsp;Add new
-        </ActionButton>
-    );
-}
-
-export function ComposerActionSummary({
-    className,
-    ...props
-}: React.ComponentProps<typeof Button>) {
-    const { canClear, groupBy, resultsSummary, sectionsLength } =
-        useComposerActionsContext();
-
-    return (
-        <Button
-            {...props}
-            className={cn("rounded-full", className)}
-            size="xs"
-            variant="ghost"
-        >
-            {canClear ? (
-                <Grid2x2X className="inline-block size-3.5 shrink-0" />
-            ) : (
-                <Grid2x2 className="inline-block size-3.5 shrink-0" />
-            )}
-            <span className="tabular-nums">
-                &nbsp;Showing <Calligraph>{resultsSummary}</Calligraph>
-                {groupBy === "none" ? null : (
-                    <>
-                        , <Calligraph>{sectionsLength}</Calligraph> group
-                        {sectionsLength === 1 ? "" : "s"}
-                    </>
-                )}
-            </span>
-            <ChevronDown className="inline-block size-3.5 shrink-0" />
-        </Button>
-    );
-}
-
-export function ComposerActionMetrics() {
-    const { canClear, metrics, onClearPalette } = useComposerActionsContext();
-
-    return (
-        <Popover>
-            <Toolbar.Button
-                render={
-                    <PopoverTrigger
-                        openOnHover
-                        render={<ComposerActionSummary />}
-                    />
-                }
-            />
-            <PopoverPopup align="start" side="top">
-                <ComposerLibraryMetricsPanel
-                    canClear={canClear}
-                    metrics={metrics}
-                    onClearPalette={onClearPalette}
-                />
-            </PopoverPopup>
-        </Popover>
-    );
-}
-
-export function ComposerActionOnboarding() {
-    const {
-        connectedIntegrationCount,
-        onCreateCollection,
-        onCreateNote,
-        onOpenCommandFromOnboarding,
-    } = useComposerActionsContext();
-
-    return (
-        <OnboardingMenu
-            connectedIntegrationCount={connectedIntegrationCount}
-            onCreateCollection={onCreateCollection}
-            onCreateNote={onCreateNote}
-            onOpenCommand={onOpenCommandFromOnboarding}
-        />
-    );
-}
-
-export function ComposerActionRemoveDuplicates() {
-    const {
-        duplicatesFilterEnabled,
-        onRemoveDuplicates,
-        removableDuplicateCount,
-    } = useComposerActionsContext();
-
-    if (!duplicatesFilterEnabled) {
-        return null;
-    }
-
-    const canRemove = removableDuplicateCount > 0;
-
-    return (
-        <ActionButton
-            disabled={!canRemove}
-            onClick={onRemoveDuplicates}
-            title={
-                canRemove
-                    ? "Remove duplicate bookmarks"
-                    : "No duplicates to remove"
-            }
-        >
-            <CopyX className="inline-block size-3.5 shrink-0" />
-            &nbsp;Remove duplicates
-        </ActionButton>
-    );
-}
-
-interface ComposerInputProps {
-    containerRef: React.RefObject<HTMLDivElement | null>;
-    groups: CommandPaletteGroup[];
-    isOpen: boolean;
-    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-    onOpenChange: (
-        nextOpen: boolean,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    onValueChange: (
-        next: string,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    placeholder: string;
-    query: string;
-    ref: React.RefObject<HTMLInputElement | null>;
-    stackEntries: PaletteStackEntry[];
-}
-
-interface ComposerActionsProps {
-    canClear: boolean;
-    children: React.ReactNode;
-    className?: string;
-    connectedIntegrationCount: number;
-    duplicatesFilterEnabled: boolean;
-    groupBy: string;
-    metrics: LibraryMetricsSnapshot;
-    onClearPalette: () => void;
-    onCreateCollection: () => void;
-    onCreateNote: () => void;
-    onOpenCommandFromOnboarding: () => void;
-    onRemoveDuplicates: () => void;
-    removableDuplicateCount: number;
-    resultsSummary: string;
-    sectionsLength: number;
-}
-
-interface ComposerSuggestionsProps
-    extends Omit<React.ComponentProps<typeof CollapsiblePanel>, "children"> {
-    children: (suggestion: CommandSuggestion, index: number) => React.ReactNode;
-    onOpenChange?: (open: boolean) => void;
-    open?: boolean;
-    suggestions: CommandSuggestion[];
-}
-
-function useVisibleGroups({
-    groups,
-    query,
-}: {
-    groups: CommandPaletteGroup[];
-    query: string;
-}): CommandPaletteGroup[] {
-    const filter = useCommandFilter();
-
-    const normalizedQuery = query.trim();
-    if (normalizedQuery.length === 0) {
-        return groups;
-    }
-
-    const lowerQuery = normalizedQuery.toLowerCase();
-    const visibleGroups: CommandPaletteGroup[] = [];
-
-    for (const group of groups) {
-        const rankedItems: RankedCommandPaletteItem[] = [];
-
-        let index = 0;
-        for (const item of group.items) {
-            const score = getCommandItemScore(
-                filter,
-                item,
-                normalizedQuery,
-                lowerQuery
-            );
-            if (score !== null) {
-                rankedItems.push({
-                    item,
-                    rank: { index, score },
-                });
-            }
-            index += 1;
-        }
-
-        if (rankedItems.length === 0) {
-            continue;
-        }
-
-        rankedItems.sort(
-            (first, second) =>
-                first.rank.score - second.rank.score ||
-                first.rank.index - second.rank.index
-        );
-
-        visibleGroups.push({
-            ...group,
-            items: rankedItems.map(({ item }) => item),
-        });
-    }
-
-    return visibleGroups;
-}
-
-function getCommandItemScore(
-    filter: ReturnType<typeof useCommandFilter>,
-    item: CommandPaletteItem,
-    query: string,
-    lowerQuery: string
-): number | null {
-    const label = item.label;
-    const value = item.value;
-    const description = item.description ?? "";
-
-    if (label.trim().toLowerCase() === lowerQuery) {
-        return 0;
-    }
-    if (filter.startsWith(label, query)) {
-        return 1;
-    }
-    for (const word of label.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN)) {
-        if (filter.startsWith(word, query)) {
-            return 2;
-        }
-    }
-    if (filter.contains(label, query)) {
-        return 3;
-    }
-    if (filter.startsWith(value, query)) {
-        return 4;
-    }
-    if (filter.contains(value, query)) {
-        return 5;
-    }
-    if (description !== "" && filter.contains(description, query)) {
-        return 6;
-    }
-
-    return null;
-}
-
 function ComposerInputEndAddon({
     stackEntries,
 }: {
@@ -536,7 +369,7 @@ function ComposerInputEndAddon({
 }) {
     return (
         <>
-            {stackEntries.length === 0 ? <ComposerInputShortcuts /> : null}
+            {stackEntries.length === 0 ? <ComposerInputShortcut /> : null}
             <DisclosureListHorizontal
                 badgeRender={
                     <Badge
@@ -558,7 +391,7 @@ function ComposerInputEndAddon({
     );
 }
 
-function ComposerInputShortcuts() {
+function ComposerInputShortcut() {
     return (
         <>
             <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
@@ -578,12 +411,24 @@ function ComposerInputShortcuts() {
 
 function CommandPaletteItemComponent({
     item,
-    isHorizontal,
+    isHorizontal = false,
 }: {
     item: CommandPaletteItem;
-    isHorizontal: boolean;
+    isHorizontal?: boolean;
 }) {
-    const onSelect = useStableCallback(item.onSelect);
+    const onSelect = item.onSelect;
+    const handleSelect = useStableCallback(
+        (event: BaseUIEvent<React.MouseEvent>) => {
+            const result = onSelect(event);
+            if (result) {
+                result.catch((error: unknown) => {
+                    log.error("Command palette item failed", error, {
+                        value: item.value,
+                    });
+                });
+            }
+        }
+    );
 
     return (
         <CommandItem
@@ -592,8 +437,7 @@ function CommandPaletteItemComponent({
                     "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
             )}
             disabled={item.disabled}
-            key={item.value}
-            onClick={onSelect}
+            onClick={handleSelect}
             value={item.value}
         >
             {item.render ? (
@@ -618,7 +462,138 @@ function CommandPaletteItemComponent({
     );
 }
 
-function ComposerLibraryMetricsPanel({
+export function ComposerSuggestionsList({
+    children,
+    suggestions,
+    className,
+    open: openProp,
+    onOpenChange: onOpenChangeProp,
+    ...props
+}: ComposerSuggestionsListProps) {
+    const [isInternalOpen, setInternalOpen] = React.useState(true);
+    const isOpen = openProp ?? isInternalOpen;
+    const setIsOpen = onOpenChangeProp ?? setInternalOpen;
+
+    const handleDismiss = useStableCallback(() => setIsOpen(false));
+
+    if (suggestions.length === 0) {
+        return null;
+    }
+
+    const dismissSuggestion: CommandSuggestion = {
+        label: "Dismiss",
+        onSelect: handleDismiss,
+    };
+
+    return (
+        <Collapsible
+            className="relative -mt-1"
+            onOpenChange={setIsOpen}
+            open={isOpen}
+        >
+            <CollapsiblePanel {...props} className={cn("px-3", className)}>
+                <ScrollArea shouldScrollFade>
+                    <div className="flex w-max flex-nowrap items-center gap-1.5 text-nowrap">
+                        {suggestions.map((suggestion, i) => (
+                            <React.Fragment key={suggestion.label}>
+                                {children(suggestion, i)}
+                                <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs">
+                                    ·
+                                </span>
+                            </React.Fragment>
+                        ))}
+                        {children(dismissSuggestion, suggestions.length)}
+                    </div>
+                </ScrollArea>
+            </CollapsiblePanel>
+        </Collapsible>
+    );
+}
+
+export function ComposerActionsList({
+    children,
+    className,
+    ...value
+}: ComposerActionsListProps) {
+    return (
+        <ComposerActionsContext value={value}>
+            <ScrollArea shouldScrollFade>
+                <Toolbar.Group
+                    className={cn(
+                        "flex items-center gap-2.5 text-nowrap px-3 py-2",
+                        className
+                    )}
+                >
+                    {children}
+                </Toolbar.Group>
+            </ScrollArea>
+        </ComposerActionsContext>
+    );
+}
+
+export function ComposerActionNew() {
+    const { onCreateNote } = useComposerActionsContext();
+
+    return (
+        <ComposerActionButton onClick={onCreateNote} title="Add new">
+            <SquarePen className="inline-block size-3.5 shrink-0" />
+            &nbsp;Add new
+        </ComposerActionButton>
+    );
+}
+
+export function ComposerActionMetrics() {
+    const { canClear, metrics, onClearPalette } = useComposerActionsContext();
+
+    return (
+        <Popover>
+            <Toolbar.Button
+                render={
+                    <PopoverTrigger
+                        openOnHover
+                        render={<ComposerActionMetricsTrigger />}
+                    />
+                }
+            />
+            <PopoverPopup align="start" side="top">
+                <ComposerActionMetricsPanel
+                    canClear={canClear}
+                    metrics={metrics}
+                    onClearPalette={onClearPalette}
+                />
+            </PopoverPopup>
+        </Popover>
+    );
+}
+
+function ComposerActionMetricsTrigger(
+    props: React.ComponentProps<typeof Button>
+) {
+    const { canClear, groupBy, resultsSummary, sectionsLength } =
+        useComposerActionsContext();
+
+    return (
+        <ComposerActionButton {...props}>
+            {canClear ? (
+                <Grid2x2X className="inline-block size-3.5 shrink-0" />
+            ) : (
+                <Grid2x2 className="inline-block size-3.5 shrink-0" />
+            )}
+            <span className="tabular-nums">
+                &nbsp;Showing <Calligraph>{resultsSummary}</Calligraph>
+                {groupBy === "none" ? null : (
+                    <>
+                        , <Calligraph>{sectionsLength}</Calligraph> group
+                        {sectionsLength === 1 ? "" : "s"}
+                    </>
+                )}
+            </span>
+            <ChevronDown className="inline-block size-3.5 shrink-0" />
+        </ComposerActionButton>
+    );
+}
+
+function ComposerActionMetricsPanel({
     canClear,
     metrics,
     onClearPalette,
@@ -731,33 +706,43 @@ function ComposerLibraryMetricsPanel({
     );
 }
 
-function formatShareValue(value: number, total: number): React.ReactNode {
-    if (total <= 0) {
-        return value;
+export function ComposerActionRemoveDuplicates() {
+    const {
+        duplicatesFilterEnabled,
+        onRemoveDuplicates,
+        removableDuplicateCount,
+    } = useComposerActionsContext();
+
+    const canRemove = removableDuplicateCount > 0;
+
+    if (!duplicatesFilterEnabled) {
+        return null;
     }
-    const percent = formatPercent((value / total) * 100);
+
     return (
-        <>
-            {value}
-            <span className="text-muted-foreground/50"> · {percent}</span>
-        </>
+        <ComposerActionButton
+            disabled={!canRemove}
+            onClick={onRemoveDuplicates}
+            title={
+                canRemove
+                    ? "Remove duplicate bookmarks"
+                    : "No duplicates to remove"
+            }
+        >
+            <CopyX className="inline-block size-3.5 shrink-0" />
+            &nbsp;Remove duplicates
+        </ComposerActionButton>
     );
 }
 
-function ActionButton({
-    className,
+function ComposerActionButton({
+    render,
     ...props
-}: React.ComponentProps<typeof Button>) {
+}: React.ComponentProps<typeof Toolbar.Button>) {
     return (
         <Toolbar.Button
-            render={
-                <Button
-                    {...props}
-                    className={cn("rounded-full", className)}
-                    size="xs"
-                    variant="ghost"
-                />
-            }
+            {...props}
+            render={render ?? <Button size="xs" variant="ghost" />}
         />
     );
 }

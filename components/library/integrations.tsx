@@ -129,38 +129,6 @@ export const { useStore: useIntegrationsListStore } = createStore({
     isIntegrationsListOpen: storage(true),
 });
 
-export function Integrations({ connectedIntegrations }: IntegrationsProps) {
-    return (
-        <IntegrationsList data-sidebar-collapsible="">
-            <IntegrationsListTrigger
-                connectedCount={connectedIntegrations.size}
-            >
-                <T>Integrations</T>
-            </IntegrationsListTrigger>
-            <IntegrationsListPanel>
-                <IntegrationsListContent>
-                    {(integration) => (
-                        <IntegrationsListItem
-                            className="group"
-                            direction={
-                                integration.source ? "source" : "destination"
-                            }
-                            integration={integration}
-                            isConnected={connectedIntegrations.has(
-                                integration.id
-                            )}
-                            key={integration.id}
-                        />
-                    )}
-                </IntegrationsListContent>
-                <IntegrationsListPrivacyDisclaimer />
-                <RssManageDialog />
-                <MarkdownImportDialog />
-            </IntegrationsListPanel>
-        </IntegrationsList>
-    );
-}
-
 function resolveActionLabel(args: {
     connectBehavior?:
         | OAuthLinkConnectBehavior
@@ -439,6 +407,38 @@ function useIntegrationActions({
     return { actionStatus, actions: visibleActions };
 }
 
+export function Integrations({ connectedIntegrations }: IntegrationsProps) {
+    return (
+        <IntegrationsList data-sidebar-collapsible="">
+            <IntegrationsListTrigger
+                connectedCount={connectedIntegrations.size}
+            >
+                <T>Integrations</T>
+            </IntegrationsListTrigger>
+            <IntegrationsListPanel>
+                <IntegrationsListContent>
+                    {(integration) => (
+                        <IntegrationsListItem
+                            className="group"
+                            direction={
+                                integration.source ? "source" : "destination"
+                            }
+                            integration={integration}
+                            isConnected={connectedIntegrations.has(
+                                integration.id
+                            )}
+                            key={integration.id}
+                        />
+                    )}
+                </IntegrationsListContent>
+                <IntegrationsListPrivacyDisclaimer />
+                <RssManageDialog />
+                <MarkdownImportDialog />
+            </IntegrationsListPanel>
+        </IntegrationsList>
+    );
+}
+
 function IntegrationsList({
     className,
     ...props
@@ -544,7 +544,10 @@ function IntegrationsListPanel(
 
 function IntegrationsListContent({ children }: IntegrationsListContentProps) {
     return (
-        <DisclosureListVertical className="*:last:ml-1.25" maxVisible={6}>
+        <DisclosureListVertical
+            maxVisible={6}
+            triggerProps={{ className: "ml-1.25" }}
+        >
             {INTEGRATIONS.map(children)}
         </DisclosureListVertical>
     );
