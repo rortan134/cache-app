@@ -62,6 +62,8 @@ import { storage } from "stan-js/storage";
 
 const log = createLogger("library:integrations");
 
+const INTEGRATIONS_LIST_OPEN_STORAGE_KEY = "cache:integrations:list-open";
+
 interface IntegrationsProps {
     connectedIntegrations: Set<IntegrationId>;
 }
@@ -126,7 +128,9 @@ interface IntegrationsListContentProps {
 }
 
 export const { useStore: useIntegrationsListStore } = createStore({
-    isIntegrationsListOpen: storage(true),
+    isIntegrationsListOpen: storage(true, {
+        storageKey: INTEGRATIONS_LIST_OPEN_STORAGE_KEY,
+    }),
 });
 
 function resolveActionLabel(args: {

@@ -305,7 +305,7 @@ function useComposerMetricsContext(): LibraryMetricsSnapshot {
     const context = React.use(ComposerMetricsContext);
     if (!context) {
         throw new Error(
-            "ComposerActions sub-components must be used inside <ComposerActions>."
+            "ComposerActionMetrics sub-components must be used inside <ComposerActionMetrics>."
         );
     }
     return context;
