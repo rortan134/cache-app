@@ -82,7 +82,9 @@ export const STRING_MIME_TYPES = {
     csv: "text/csv",
     html: "text/html",
     json: "application/json",
+    markdown: "text/markdown",
     text: "text/plain",
+    textXml: "text/xml",
     xhtml: "application/xhtml+xml",
     xml: "application/xml",
 } as const;
