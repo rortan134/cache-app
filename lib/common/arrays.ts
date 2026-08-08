@@ -74,14 +74,17 @@ export async function mapConcurrent<T, R>(
     fn: (item: T) => Promise<R>,
     concurrency: number
 ): Promise<R[]> {
+    if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
+        throw new TypeError(
+            `mapConcurrent expects a positive integer concurrency, got ${String(concurrency)}.`
+        );
+    }
+
     if (items.length === 0) {
         return [];
     }
 
-    const concurrencyLimit = Number.isFinite(concurrency)
-        ? Math.floor(concurrency)
-        : 1;
-    const limit = Math.max(1, concurrencyLimit);
+    const limit = Math.min(concurrency, items.length);
     const results = new Array<R>(items.length);
     // Shared iterator: each worker pulls the next entry. Entries preserve T
     // under noUncheckedIndexedAccess (unlike items[i]), and undefined slots
@@ -114,9 +117,7 @@ export async function mapConcurrent<T, R>(
         }
     }
 
-    await Promise.all(
-        Array.from({ length: Math.min(limit, items.length) }, () => worker())
-    );
+    await Promise.all(Array.from({ length: limit }, () => worker()));
     if (hasRejected) {
         throw firstError;
     }
