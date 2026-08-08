@@ -54,6 +54,8 @@ import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
 
+const NORMALIZED_PALETTE_ITEM_CACHE_LIMIT = 2000;
+
 const log = createLogger("library:composer");
 
 export interface PaletteStackEntry {
@@ -97,9 +99,16 @@ interface RankedCommandPaletteItem {
     rank: CommandItemRank;
 }
 
+interface NormalizedPaletteItem {
+    lowerDescription: string;
+    lowerLabel: string;
+    lowerValue: string;
+    words: string[];
+}
+
 type ComposerActionsContextValue = Omit<
     ComposerActionsListProps,
-    "children" | "className"
+    "children" | "className" | "metrics"
 >;
 
 interface ComposerInputProps {
@@ -144,17 +153,21 @@ interface ComposerSuggestionsListProps
     suggestions: CommandSuggestion[];
 }
 
+const normalizedPaletteItemCache = new Map<string, NormalizedPaletteItem>();
+
 function useVisibleGroups({
     groups,
+    isOpen,
     query,
 }: {
     groups: CommandPaletteGroup[];
+    isOpen: boolean;
     query: string;
 }): CommandPaletteGroup[] {
     const filter = useCommandFilter();
 
     const normalizedQuery = query.trim();
-    if (normalizedQuery.length === 0) {
+    if (!isOpen || normalizedQuery.length === 0) {
         return groups;
     }
 
@@ -165,12 +178,7 @@ function useVisibleGroups({
         const rankedItems: RankedCommandPaletteItem[] = [];
 
         for (const [index, item] of group.items.entries()) {
-            const score = getCommandItemScore(
-                filter,
-                item,
-                normalizedQuery,
-                lowerQuery
-            );
+            const score = getCommandItemScore(filter, item, lowerQuery);
             if (score !== null) {
                 rankedItems.push({
                     item,
@@ -198,37 +206,64 @@ function useVisibleGroups({
     return visibleGroups;
 }
 
+function getNormalizedPaletteItem(
+    item: CommandPaletteItem
+): NormalizedPaletteItem {
+    const key = `${item.label}\u0000${item.value}\u0000${item.description ?? ""}`;
+    const cached = normalizedPaletteItemCache.get(key);
+    if (cached) {
+        return cached;
+    }
+
+    const lowerLabel = item.label.trim().toLowerCase();
+    const normalized: NormalizedPaletteItem = {
+        lowerDescription: (item.description ?? "").toLowerCase(),
+        lowerLabel,
+        lowerValue: item.value.toLowerCase(),
+        words: lowerLabel.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN),
+    };
+
+    if (
+        normalizedPaletteItemCache.size >= NORMALIZED_PALETTE_ITEM_CACHE_LIMIT
+    ) {
+        normalizedPaletteItemCache.clear();
+    }
+    normalizedPaletteItemCache.set(key, normalized);
+    return normalized;
+}
+
 function getCommandItemScore(
     filter: ReturnType<typeof useCommandFilter>,
     item: CommandPaletteItem,
-    query: string,
     lowerQuery: string
 ): number | null {
-    const label = item.label;
-    const value = item.value;
-    const description = item.description ?? "";
+    const { lowerDescription, lowerLabel, lowerValue, words } =
+        getNormalizedPaletteItem(item);
 
-    if (label.trim().toLowerCase() === lowerQuery) {
+    if (lowerLabel === lowerQuery) {
         return 0;
     }
-    if (filter.startsWith(label, query)) {
+    if (filter.startsWith(lowerLabel, lowerQuery)) {
         return 1;
     }
-    if (filter.contains(label, query)) {
-        for (const word of label.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN)) {
-            if (filter.startsWith(word, query)) {
+    if (filter.contains(lowerLabel, lowerQuery)) {
+        for (const word of words) {
+            if (filter.startsWith(word, lowerQuery)) {
                 return 2;
             }
         }
         return 3;
     }
-    if (filter.startsWith(value, query)) {
+    if (filter.startsWith(lowerValue, lowerQuery)) {
         return 4;
     }
-    if (filter.contains(value, query)) {
+    if (filter.contains(lowerValue, lowerQuery)) {
         return 5;
     }
-    if (description !== "" && filter.contains(description, query)) {
+    if (
+        lowerDescription !== "" &&
+        filter.contains(lowerDescription, lowerQuery)
+    ) {
         return 6;
     }
 
@@ -255,6 +290,19 @@ const ComposerActionsContext =
 
 function useComposerActionsContext(): ComposerActionsContextValue {
     const context = React.use(ComposerActionsContext);
+    if (!context) {
+        throw new Error(
+            "ComposerActions sub-components must be used inside <ComposerActions>."
+        );
+    }
+    return context;
+}
+
+const ComposerMetricsContext =
+    React.createContext<LibraryMetricsSnapshot | null>(null);
+
+function useComposerMetricsContext(): LibraryMetricsSnapshot {
+    const context = React.use(ComposerMetricsContext);
     if (!context) {
         throw new Error(
             "ComposerActions sub-components must be used inside <ComposerActions>."
@@ -290,7 +338,7 @@ export function ComposerInput({
     ref,
     stackEntries,
 }: ComposerInputProps) {
-    const filteredGroups = useVisibleGroups({ groups, query });
+    const filteredGroups = useVisibleGroups({ groups, isOpen, query });
 
     return (
         <Command
@@ -516,20 +564,23 @@ export function ComposerSuggestionsList({
 export function ComposerActionsList({
     children,
     className,
+    metrics,
     ...value
 }: ComposerActionsListProps) {
     return (
         <ComposerActionsContext value={value}>
-            <ScrollArea shouldScrollFade>
-                <Toolbar.Group
-                    className={cn(
-                        "flex items-center gap-2.5 text-nowrap px-3 py-2",
-                        className
-                    )}
-                >
-                    {children}
-                </Toolbar.Group>
-            </ScrollArea>
+            <ComposerMetricsContext value={metrics}>
+                <ScrollArea shouldScrollFade>
+                    <Toolbar.Group
+                        className={cn(
+                            "flex items-center gap-2.5 text-nowrap px-3 py-2",
+                            className
+                        )}
+                    >
+                        {children}
+                    </Toolbar.Group>
+                </ScrollArea>
+            </ComposerMetricsContext>
         </ComposerActionsContext>
     );
 }
@@ -546,7 +597,8 @@ export function ComposerActionNew() {
 }
 
 export function ComposerActionMetrics() {
-    const { canClear, metrics, onClearPalette } = useComposerActionsContext();
+    const { canClear, onClearPalette } = useComposerActionsContext();
+    const metrics = useComposerMetricsContext();
 
     return (
         <Popover>
