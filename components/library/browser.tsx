@@ -2526,12 +2526,15 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
         setOpenPickerItemId,
     } = useBrowserContext();
     const { state: sidebarState } = useSidebar();
+
     const isQuickLookDrawerOpen = useIsQuickLookDrawerOpen();
-    const sidebarStateDeferred = useDebouncedValue(sidebarState, 300);
-    const quickLookDrawerOpenDeferred = useDebouncedValue(
+    const sidebarStateDebounced = useDebouncedValue(sidebarState, 150);
+    const quickLookDrawerOpenDebounced = useDebouncedValue(
         isQuickLookDrawerOpen,
-        300
+        150
     );
+
+    const rootKey = `${sidebarStateDebounced}-${quickLookDrawerOpenDebounced}-${items.length}`;
 
     const value: MediaCardEnvironment = {
         collections,
@@ -2549,8 +2552,6 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
         pendingDeleteItemId,
         setOpenPickerItemId,
     };
-
-    const rootKey = `${sidebarStateDeferred}-${quickLookDrawerOpenDeferred}-${items.length}`;
 
     if (collapsed || items.length === 0) {
         return null;
@@ -4420,17 +4421,17 @@ function useMediaCardData(): MediaCardData {
 
 function MediaCardDataProvider({
     children,
-    data,
+    item,
 }: React.PropsWithChildren<{
-    data: LibraryItemWithCollections;
+    item: LibraryItemWithCollections;
 }>) {
     return (
         <MediaCardDataContext
             value={{
-                displayTitle: getLibraryItemPrimaryText(data),
-                isNote: data.kind === ITEM_KIND_NOTE,
-                item: data,
-                previewImageUrl: itemPreviewImageUrl(data),
+                displayTitle: getLibraryItemPrimaryText(item),
+                isNote: item.kind === ITEM_KIND_NOTE,
+                item,
+                previewImageUrl: itemPreviewImageUrl(item),
             }}
         >
             {children}
@@ -7956,8 +7957,8 @@ function BrowserContent({
                                         </>
                                     ) : null}
                                     <BrowserMasonry>
-                                        {(data) => (
-                                            <MediaCardDataProvider data={data}>
+                                        {(item) => (
+                                            <MediaCardDataProvider item={item}>
                                                 <MediaCardInteractionProvider>
                                                     <MediaCardContextMenuSurface>
                                                         <MediaCardOpenTarget />
