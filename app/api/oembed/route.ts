@@ -1,9 +1,9 @@
 import { abortAfterAny, isAbortError } from "@/lib/common/abort";
 import { MIME_TYPES } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { OembedSchema } from "@/lib/common/oembed";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchOembed, hasOembedSupport } from "openlink";
-import * as z from "zod";
 
 const log = createLogger("api:oembed");
 
@@ -34,12 +34,6 @@ const CODEPEN_HOST = "codepen.io";
 const CODESANDBOX_HOST = "codesandbox.io";
 const FIGMA_HOST = "figma.com";
 
-const OembedResponseSchema = z.object({
-    html: z.string().min(1),
-    provider: z.string().min(1),
-    title: z.string().nullable(),
-});
-
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
     const targetUrl = await extractTargetUrl(
@@ -67,7 +61,7 @@ export async function GET(request: Request): Promise<Response> {
             return textResponse("oEmbed not available", 424);
         }
 
-        const parsed = OembedResponseSchema.safeParse({
+        const parsed = OembedSchema.safeParse({
             html: oembed.html,
             provider: oembed.provider,
             title: oembed.title,
