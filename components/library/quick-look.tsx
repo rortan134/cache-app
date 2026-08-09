@@ -175,9 +175,10 @@ const { actions: quickLookDrawerStoreActions, useStore: useQuickLookStore } =
         ({ actions, getState }) => ({
             openWithEntry(entry: QuickLookDrawerEntry, triggerId: string) {
                 const { isOpen, items, activeIndex } = getState();
-                const queue = isOpen
-                    ? addQuickLookQueueEntry({ activeIndex, items }, entry)
-                    : { activeIndex: 0, items: [entry] };
+                const queue = addQuickLookQueueEntry(
+                    { activeIndex, items },
+                    entry
+                );
 
                 actions.setItems(queue.items);
                 actions.setActiveIndex(queue.activeIndex);

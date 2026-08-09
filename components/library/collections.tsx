@@ -324,7 +324,7 @@ const DEFAULT_PRIORITY: PriorityOption = {
     value: "none",
 };
 
-const PRIORITIES = [
+const PRIORITIES: PriorityOption[] = [
     DEFAULT_PRIORITY,
     {
         icon: Sparkle,
@@ -346,13 +346,13 @@ const PRIORITIES = [
         label: "Archive",
         value: "archive",
     },
-] as const satisfies PriorityOption[];
+];
 
 const PRIORITY_BY_VALUE = new Map(
     PRIORITIES.map((option) => [option.value, option])
 );
 
-const SORT_OPTIONS = [
+const SORT_OPTIONS: SortingOption[] = [
     {
         icon: SignalHigh,
         label: "Priority",
@@ -378,7 +378,7 @@ const SORT_OPTIONS = [
         label: "Updated",
         value: "updated",
     },
-] as const satisfies SortingOption[];
+];
 
 const SORT_OPTION_BY_VALUE = new Map(
     SORT_OPTIONS.map((option) => [option.value, option])
