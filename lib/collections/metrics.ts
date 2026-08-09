@@ -18,7 +18,6 @@ export interface LibraryMetricsSnapshot {
     favoriteCount: number;
     inCollectionCount: number;
     itemCount: number;
-    libraryItemCount: number;
     noteCount: number;
     sourceSegments: LibraryMetricsSegment[];
     uncollectedCount: number;
@@ -42,11 +41,9 @@ export interface LibraryMetricsItem {
 export function buildLibraryMetrics({
     getSourceLabel,
     items,
-    libraryItemCount,
 }: {
     getSourceLabel: (source: LibraryItemSource) => string;
     items: readonly LibraryMetricsItem[];
-    libraryItemCount: number;
 }): LibraryMetricsSnapshot {
     const sourceCounts = new Map<LibraryItemSource, number>();
     let favoriteCount = 0;
@@ -105,7 +102,6 @@ export function buildLibraryMetrics({
         favoriteCount,
         inCollectionCount: itemCount - uncollectedCount,
         itemCount,
-        libraryItemCount,
         noteCount,
         sourceSegments,
         uncollectedCount,

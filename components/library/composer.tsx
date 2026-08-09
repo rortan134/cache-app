@@ -106,10 +106,17 @@ interface NormalizedPaletteItem {
     words: string[];
 }
 
-type ComposerActionsContextValue = Omit<
-    ComposerActionsListProps,
-    "children" | "className" | "metrics"
->;
+interface ComposerActionsProps {
+    canClear: boolean;
+    duplicatesFilterEnabled: boolean;
+    groupBy: string;
+    onClearPalette: () => void;
+    onCreateNote: () => void;
+    onRemoveDuplicates: () => void;
+    removableDuplicateCount: number;
+    resultsSummary: string;
+    sectionsLength: number;
+}
 
 interface ComposerInputProps {
     containerRef: React.RefObject<HTMLDivElement | null>;
@@ -139,19 +146,11 @@ interface CommandPaletteItemComponentProps {
     item: CommandPaletteItem;
 }
 
-interface ComposerActionsListProps {
-    canClear: boolean;
+interface ComposerActionsListProps
+    extends React.ComponentProps<typeof Toolbar.Group> {
+    actions: ComposerActionsProps;
     children: React.ReactNode;
-    className?: string;
-    duplicatesFilterEnabled: boolean;
-    groupBy: string;
     metrics: LibraryMetricsSnapshot;
-    onClearPalette: () => void;
-    onCreateNote: () => void;
-    onRemoveDuplicates: () => void;
-    removableDuplicateCount: number;
-    resultsSummary: string;
-    sectionsLength: number;
 }
 
 interface ComposerSuggestionsListProps
@@ -300,10 +299,11 @@ function formatShareValue(value: number, total: number): React.ReactNode {
     );
 }
 
-const ComposerActionsContext =
-    React.createContext<ComposerActionsContextValue | null>(null);
+const ComposerActionsContext = React.createContext<ComposerActionsProps | null>(
+    null
+);
 
-function useComposerActionsContext(): ComposerActionsContextValue {
+function useComposerActionsContext(): ComposerActionsProps {
     const context = React.use(ComposerActionsContext);
     if (!context) {
         throw new Error(
@@ -571,23 +571,22 @@ export function ComposerSuggestionsList({
 }
 
 export function ComposerActionsList({
-    children,
     className,
+    actions,
     metrics,
-    ...value
+    ...props
 }: ComposerActionsListProps) {
     return (
-        <ComposerActionsContext value={value}>
+        <ComposerActionsContext value={actions}>
             <ComposerMetricsContext value={metrics}>
                 <ScrollArea shouldScrollFade>
                     <Toolbar.Group
+                        {...props}
                         className={cn(
                             "flex items-center gap-2.5 text-nowrap px-3 py-2",
                             className
                         )}
-                    >
-                        {children}
-                    </Toolbar.Group>
+                    />
                 </ScrollArea>
             </ComposerMetricsContext>
         </ComposerActionsContext>

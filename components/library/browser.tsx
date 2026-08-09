@@ -7127,9 +7127,9 @@ function BrowserContent({
 
     const isPreviewOnly = !hasAccess && lockedItemCount > 0;
 
-    let resultsSummary = `${filteredItems.length} of ${items.length} items`;
+    let resultsSummary = `${filteredItems.length} of ${totalItemCount} items`;
     if (filteredItems.length === items.length) {
-        resultsSummary = `${items.length} item${items.length === 1 ? "" : "s"}`;
+        resultsSummary = `${totalItemCount} item${totalItemCount === 1 ? "" : "s"}`;
     }
     if (isPreviewOnly) {
         resultsSummary =
@@ -7167,12 +7167,6 @@ function BrowserContent({
 
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !shouldShowEmptyLibraryPeek;
-
-    const metrics = buildLibraryMetrics({
-        getSourceLabel: sourceLabel,
-        items: filteredItems,
-        libraryItemCount: isPreviewOnly ? totalItemCount : items.length,
-    });
 
     const suggestions = buildCommandSuggestions({
         clearLibraryPalette,
@@ -7403,7 +7397,7 @@ function BrowserContent({
         });
     });
 
-    const paletteStackEntries = buildPaletteStackEntries({
+    const stackEntries = buildPaletteStackEntries({
         collectionMembershipFilter,
         collections,
         columnCountMode,
@@ -7467,7 +7461,7 @@ function BrowserContent({
                     returnToSearchSection();
                     return;
                 }
-                removeLastPaletteStackEntry(paletteStackEntries);
+                removeLastPaletteStackEntry(stackEntries);
                 return;
             }
 
@@ -7877,25 +7871,26 @@ function BrowserContent({
                                 placeholder={placeholder}
                                 query={query}
                                 ref={inputRef}
-                                stackEntries={paletteStackEntries}
+                                stackEntries={stackEntries}
                             />
                             <ComposerActionsList
-                                canClear={canClear}
-                                duplicatesFilterEnabled={
-                                    duplicatesFilterEnabled
-                                }
-                                groupBy={groupBy}
-                                metrics={metrics}
-                                onClearPalette={clearLibraryPalette}
-                                onCreateNote={handleCreateNote}
-                                onRemoveDuplicates={
-                                    handleRequestRemoveDuplicates
-                                }
-                                removableDuplicateCount={
-                                    removableDuplicateIds.length
-                                }
-                                resultsSummary={resultsSummary}
-                                sectionsLength={groups.length}
+                                actions={{
+                                    canClear,
+                                    duplicatesFilterEnabled,
+                                    groupBy,
+                                    onClearPalette: clearLibraryPalette,
+                                    onCreateNote: handleCreateNote,
+                                    onRemoveDuplicates:
+                                        handleRequestRemoveDuplicates,
+                                    removableDuplicateCount:
+                                        removableDuplicateIds.length,
+                                    resultsSummary,
+                                    sectionsLength: groups.length,
+                                }}
+                                metrics={buildLibraryMetrics({
+                                    getSourceLabel: sourceLabel,
+                                    items: filteredItems,
+                                })}
                             >
                                 <ComposerActionNew />
                                 <ComposerActionMetrics />
