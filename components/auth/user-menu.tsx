@@ -209,12 +209,8 @@ export function UserMenuContent() {
                 <SubscribedOnly>
                     <SubscriptionBillingPortalButton
                         className="w-full justify-start font-normal"
-                        render={
-                            <MenuItem
-                                closeOnClick={false}
-                                nativeButton={false}
-                            />
-                        }
+                        nativeButton={false}
+                        render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Billing</T>
                         <ArrowUpRight className="ml-auto! inline-block size-4 text-muted-foreground" />

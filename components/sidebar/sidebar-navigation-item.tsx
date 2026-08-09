@@ -40,7 +40,6 @@ export function SidebarNavigationItem({
                 href={href}
                 render={
                     <SidebarItem
-                        className="group"
                         render={
                             <Link
                                 {...props}

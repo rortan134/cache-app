@@ -478,9 +478,10 @@ export function QuickLookDrawer({
 }: QuickLookDrawerProps) {
     const entry = { description, title, url };
     const triggerId = `quick-look-drawer-${React.useId()}`;
+    const contextValue = { entry, triggerId };
 
     return (
-        <QuickLookDrawerContext value={{ entry, triggerId }}>
+        <QuickLookDrawerContext value={contextValue}>
             {children}
         </QuickLookDrawerContext>
     );
