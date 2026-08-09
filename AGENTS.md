@@ -14,8 +14,6 @@ Suggest solutions or alternatives I didn’t think about and anticipate my needs
 
 When the request is wrong, unsafe, or would not work, block it and offer alternatives. When it is merely suboptimal, challenge once with a concrete alternative, then execute the user's choice unless a hard constraint still fails. Reframe from first principles when that reaches a better answer.
 
-Consider new technologies and contrarian ideas, not just conventional wisdom.
-
 Learn from existing code: Study and plan before implementing. Identify recurring patterns and design influences in the code. Keep rules or constraints of the task in mind.
 
 Trace how parts connect, such as data flow between functions, stage dependencies, or what module owns what.
@@ -58,7 +56,7 @@ Before adding a new utility, check if a similar one exists in the `lib/common` d
 
 Anchor design decisions on the user's primary task or focus, to make sure the user can complete those tasks easily, not overwhelmed by unrelated UI clutter or user flows. Our UI should help users complete their tasks, not hinder them.
 
-Constants Are Module-Level and UPPER_SNAKE_CASE. Physics constants, selectors, and thresholds are declared at the top of the file, never inside the component.
+Constants are module-level and UPPER_SNAKE_CASE: Physics constants, selectors, and thresholds are declared at the top of the file, never inside the component.
 
 Inline single-use values when the expression is obvious in place. Keep a name when it encodes units, domain meaning, or a non-obvious intermediate — even if used once.
 
@@ -73,7 +71,7 @@ const journal = await Bun.file(journalPath).json()
 
 ## React components
 
-Always build React components following full `vercel-composition-patterns` and `vercel-react-best-practices` rules.
+Build React components following full `vercel-composition-patterns` and `vercel-react-best-practices` rules.
 
 Every component should be co-located into a single file with its parts, and should use a common, composable interface, making them predictable.
 
@@ -185,20 +183,20 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 
 ### Tech stack
 
-Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
+Runtime & Package Manager: Node.js 24.x and Bun (read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary)
 Framework: Next.js 16 (App Router)
-UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), [motion](https://motion.dev) for animations, and lucide-react icons
-React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values, including render-time derived values. Do not add manual `useMemo` or `useCallback`; they can interfere with compiler optimization.
+UI: [React 19](https://react.dev/llms.txt), Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), [motion (previosuly framer motion)](https://motion.dev/llms.txt), and lucide-react icons
+React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values, including render-time derived values. Do not add manual `useMemo` or `useCallback`; they can interfere with compiler optimization
 Styling: Tailwind CSS 4
-Rich Text: [Lexical](https://lexical.dev) for notes editing
-Internationalization: [gt-next](https://gt-next.vercel.app) for i18n
-Validation: zod v4 schemas
-Database: PostgreSQL via Prisma ORM v7
-AI: [Vercel AI SDK](https://sdk.vercel.ai) + [Workflow](https://workflow.vercel.ai) for durable AI orchestration
-Auth: [better-auth](https://better-auth.com/llms.txt) with better-auth/stripe (Stripe subscriptions)
-Email: [Resend](https://resend.com)
-Security: [Arcjet](https://arcjet.com) for rate limiting and bot protection
-Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
+Rich Text: [Lexical](https://lexical.dev)
+Internationalization: [gt-next](https://generaltranslation.com/llms.txt)
+Validation: [Zod v4](https://zod.dev/llms.txt) schemas
+Database: PostgreSQL via [Prisma ORM v7](https://www.prisma.io/docs/llms.txt)
+AI: [Vercel AI SDK](https://ai-sdk.dev/llms.txt) + [Workflow SDK](https://workflow-sdk.dev/llms.txt) for durable AI orchestration
+Auth: [better-auth](https://better-auth.com/llms.txt) with @better-auth/stripe
+Email: [Resend](https://resend.com/llms.txt)
+Security: [Arcjet](https://arcjet.com/llms.txt) for rate limiting and bot protection
+Tooling: TypeScript v7 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
 
 <!-- BEGIN:nextjs-agent-rules -->
 
