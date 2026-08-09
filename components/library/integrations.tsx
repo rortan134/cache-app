@@ -64,10 +64,6 @@ const log = createLogger("library:integrations");
 
 const INTEGRATIONS_LIST_OPEN_STORAGE_KEY = "cache:integrations:list-open";
 
-interface IntegrationsProps {
-    connectedIntegrations: Set<IntegrationId>;
-}
-
 type IntegrationActionStatusTone = "error" | "success";
 
 interface IntegrationActionStatus {
@@ -94,21 +90,23 @@ interface UseIntegrationActionsResult {
     actions: IntegrationActionViewModel[];
 }
 
+interface IntegrationsProps {
+    connectedIntegrations: Set<IntegrationId>;
+}
+
 interface IntegrationsListActionStatusProps extends React.ComponentProps<"p"> {
     tone?: IntegrationActionStatusTone;
 }
 
 interface IntegrationsListItemProps
-    extends React.ComponentProps<typeof SidebarItem> {
+    extends React.ComponentProps<typeof IntegrationsListItemPreviewTrigger> {
     direction?: IntegrationDirection;
-    integration: SupportedIntegration;
     isConnected: boolean;
 }
 
-interface IntegrationsListItemPreviewTriggerProps {
+interface IntegrationsListItemPreviewTriggerProps
+    extends React.ComponentProps<typeof PreviewCardTrigger> {
     integration: SupportedIntegration;
-    onClick?: () => void;
-    render: React.ReactElement;
 }
 
 interface IntegrationsListTriggerProps
@@ -116,9 +114,14 @@ interface IntegrationsListTriggerProps
     connectedCount: number;
 }
 
-interface IntegrationsListItemActionsProps extends React.ComponentProps<"div"> {
+interface IntegrationsListItemActionsProps
+    extends Omit<React.ComponentProps<"div">, "children"> {
     actionStatus: IntegrationActionStatus | null;
     actions: IntegrationActionViewModel[];
+    children: (
+        action: IntegrationActionViewModel,
+        index: number
+    ) => React.ReactNode;
 }
 
 interface IntegrationsListItemActionButtonProps {
@@ -249,6 +252,7 @@ async function executeIntegrationAction(args: {
             }
 
             if (integration.behaviors.connect.kind === "rss-manage") {
+                openRssManageDialog();
                 return { refresh: false, successMessage: null };
             }
 
@@ -290,6 +294,11 @@ async function executeIntegrationAction(args: {
             return { refresh: true, successMessage };
         }
         case "import":
+            if (integration.id === "markdown") {
+                openMarkdownImportDialog();
+                return { refresh: false, successMessage: null };
+            }
+
             throw buildCapabilityMissingError({
                 capability: "import",
                 integrationId: integration.id,
@@ -328,19 +337,6 @@ function useIntegrationActions({
             }
 
             setActionStatus(null);
-
-            if (
-                integration.behaviors.connect?.kind === "rss-manage" &&
-                role === "connect"
-            ) {
-                openRssManageDialog();
-                return;
-            }
-
-            if (integration.id === "markdown" && role === "import") {
-                openMarkdownImportDialog();
-                return;
-            }
 
             activeActionRolesRef.current.add(role);
             setActiveActionRoles(new Set(activeActionRolesRef.current));
@@ -425,7 +421,6 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                 <IntegrationsListContent>
                     {(integration) => (
                         <IntegrationsListItem
-                            className="group"
                             direction={
                                 integration.source ? "source" : "destination"
                             }
@@ -437,7 +432,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                         />
                     )}
                 </IntegrationsListContent>
-                <IntegrationsListPrivacyDisclaimer />
+                <IntegrationsListDisclaimer />
                 <RssManageDialog />
                 <MarkdownImportDialog />
             </IntegrationsListPanel>
@@ -561,63 +556,13 @@ function IntegrationsListContent({ children }: IntegrationsListContentProps) {
     );
 }
 
-function IntegrationsListPrivacyDisclaimer() {
-    const [isOpen, setIsOpen] = React.useState(true);
-
-    const handleDismiss = useStableCallback(() => setIsOpen(false));
-
-    return (
-        <Collapsible
-            className="mx-2.5 pb-1"
-            onOpenChange={setIsOpen}
-            open={isOpen}
-        >
-            <CollapsiblePanel>
-                <p className="text-[11px] text-muted-foreground leading-tight">
-                    Only connect accounts you trust. Cache can access what you
-                    choose to save with connected apps. You can always change
-                    your mind.{" "}
-                    <Button
-                        className="h-fit! px-0 leading-tight sm:text-[11px]"
-                        onClick={handleDismiss}
-                        size="xs"
-                        variant="link"
-                    >
-                        Dismiss
-                    </Button>{" "}
-                    or{" "}
-                    <Button
-                        className="h-fit! px-0 leading-tight sm:text-[11px]"
-                        nativeButton={false}
-                        render={
-                            <Link
-                                href="/legal/privacy-policy"
-                                prefetch={false}
-                                rel="noopener"
-                                target="_blank"
-                            />
-                        }
-                        size="xs"
-                        variant="link"
-                    >
-                        Cache Privacy
-                        <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
-                    </Button>
-                </p>
-            </CollapsiblePanel>
-        </Collapsible>
-    );
-}
-
 function IntegrationsListItem({
-    className,
     direction = "source",
     integration,
     isConnected,
     ...props
 }: IntegrationsListItemProps) {
     const isExtensionInstalled = useIsExtensionInstalled();
-
     const { actionStatus, actions } = useIntegrationActions({
         direction,
         integration,
@@ -626,101 +571,86 @@ function IntegrationsListItem({
     });
     const [primaryAction] = actions;
     const isPrimaryActionLoading = primaryAction?.isLoading ?? false;
+    const IntegrationIcon = integration.Icon;
 
     const handleClick = useStableCallback(() => {
         if (isPrimaryActionLoading) {
             return;
         }
-
         primaryAction?.onClick();
     });
 
-    const handleKeyDown = useStableCallback(
-        (event: React.KeyboardEvent<HTMLDivElement>) => {
-            if (
-                event.target !== event.currentTarget ||
-                (event.key !== "Enter" && event.key !== " ")
-            ) {
-                return;
-            }
-
-            event.preventDefault();
-            handleClick();
-        }
-    );
-
     return (
         <IntegrationsListItemPreviewTrigger
+            {...props}
             integration={integration}
             onClick={handleClick}
             render={
                 <SidebarItem
-                    {...props}
                     aria-disabled={isPrimaryActionLoading}
-                    className={cn("gap-2.5 py-0.5 opacity-100", className)}
-                    onKeyDown={primaryAction ? handleKeyDown : undefined}
                     role={primaryAction ? "button" : undefined}
                     tabIndex={primaryAction ? 0 : undefined}
-                >
-                    <Avatar
-                        aria-label={integration.label}
-                        className="size-6 rounded-md"
-                    >
-                        <AvatarFallback className="rounded-md">
-                            <integration.Icon
-                                aria-hidden
-                                className="size-3.5 shrink-0"
-                                focusable="false"
-                            />
-                        </AvatarFallback>
-                    </Avatar>
-                    <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                        {integration.label}
-                    </span>
-                    <div className="grid items-center text-muted-foreground leading-snug">
-                        <span className="text-right text-[11px] opacity-0 [grid-area:1/1] sm:opacity-100 sm:group-hover:opacity-0 sm:group-focus-within:opacity-0">
-                            {integration.description}
-                        </span>
-                        <IntegrationsListItemActions
-                            actionStatus={actionStatus}
-                            actions={actions}
-                            className="opacity-100 [grid-area:1/1] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                        />
-                    </div>
-                </SidebarItem>
+                />
             }
-        />
+        >
+            <Avatar
+                aria-label={integration.label}
+                className="size-6 rounded-md"
+            >
+                <AvatarFallback className="rounded-md">
+                    <IntegrationIcon
+                        aria-hidden
+                        className="size-3.5 shrink-0"
+                        focusable="false"
+                    />
+                </AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                {integration.label}
+            </span>
+            <div className="pointer-events-none grid w-fit items-center justify-self-end text-muted-foreground leading-snug [grid-area:1/1]">
+                <span className="text-right text-[11px] opacity-0 [grid-area:1/1] sm:opacity-100 sm:group-hover:opacity-0 sm:group-focus-within:opacity-0">
+                    {integration.description}
+                </span>
+                <IntegrationsListItemActions
+                    actionStatus={actionStatus}
+                    actions={actions}
+                    className="pointer-events-auto opacity-100 sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100"
+                >
+                    {(action) => (
+                        <IntegrationsListItemActionButton
+                            action={action}
+                            key={action.role}
+                        />
+                    )}
+                </IntegrationsListItemActions>
+            </div>
+        </IntegrationsListItemPreviewTrigger>
     );
 }
 
 function IntegrationsListItemPreviewTrigger({
     integration,
-    onClick,
-    render,
+    ...props
 }: IntegrationsListItemPreviewTriggerProps) {
-    const [isHovered, setIsHovered] = React.useState(false);
-
-    const handleClick = useStableCallback(() => {
-        setIsHovered(false);
-        onClick?.();
-    });
-
     return (
-        <PreviewCard onOpenChange={setIsHovered} open={isHovered}>
-            <PreviewCardTrigger onClick={handleClick} render={render} />
+        <PreviewCard>
+            <PreviewCardTrigger {...props} />
             <PreviewCardPopup
                 className="flex flex-col p-0"
                 positionMethod="fixed"
                 side="right"
             >
                 {integration.hintImage ? (
-                    <Image
-                        alt=""
-                        className="aspect-3/2 h-auto w-full object-cover"
-                        fill
-                        sizes="256px"
-                        src={integration.hintImage}
-                    />
+                    <div className="relative aspect-3/2 w-full shrink-0">
+                        <Image
+                            alt=""
+                            className="object-cover"
+                            fill
+                            sizes="256px"
+                            src={integration.hintImage}
+                        />
+                    </div>
                 ) : null}
                 <p className="p-3 text-xs leading-tight">{integration.hint}</p>
             </PreviewCardPopup>
@@ -732,6 +662,7 @@ function IntegrationsListItemActions({
     actions,
     actionStatus,
     className,
+    children,
     ...props
 }: IntegrationsListItemActionsProps) {
     if (!actions.length) {
@@ -742,19 +673,14 @@ function IntegrationsListItemActions({
         <div
             {...props}
             className={cn(
-                "-mr-2.5 flex min-w-0 shrink-0 items-center justify-end gap-0.5",
+                "z-10 -mr-2.5 flex w-fit min-w-0 shrink-0 items-center justify-end justify-self-end [grid-area:1/1]",
                 className
             )}
         >
             <IntegrationsListActionStatus tone={actionStatus?.tone}>
                 {actionStatus?.message}
             </IntegrationsListActionStatus>
-            {actions.map((action) => (
-                <IntegrationsListItemActionButton
-                    action={action}
-                    key={action.role}
-                />
-            ))}
+            {actions.map(children)}
         </div>
     );
 }
@@ -764,11 +690,11 @@ function IntegrationsListActionStatus({
     className,
     ...props
 }: IntegrationsListActionStatusProps) {
+    const isError = tone === "error";
+
     if (!props.children) {
         return null;
     }
-
-    const isError = tone === "error";
 
     return (
         <p
@@ -803,5 +729,55 @@ function IntegrationsListItemActionButton({
         >
             {action.label}
         </Button>
+    );
+}
+
+function IntegrationsListDisclaimer() {
+    const [isOpen, setIsOpen] = React.useState(true);
+
+    const handleDismiss = useStableCallback(() => setIsOpen(false));
+
+    return (
+        <Collapsible
+            className="mx-2.5 pb-1"
+            onOpenChange={setIsOpen}
+            open={isOpen}
+        >
+            <CollapsiblePanel>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                    <T>
+                        Only connect accounts you trust. Cache can access what
+                        you choose to save with connected apps. You can always
+                        change your mind.
+                    </T>{" "}
+                    <Button
+                        className="h-fit! px-0 leading-tight sm:text-[11px]"
+                        onClick={handleDismiss}
+                        size="xs"
+                        variant="link"
+                    >
+                        <T>Dismiss</T>
+                    </Button>{" "}
+                    <T>or</T>{" "}
+                    <Button
+                        className="h-fit! px-0 leading-tight sm:text-[11px]"
+                        nativeButton={false}
+                        render={
+                            <Link
+                                href="/legal/privacy-policy"
+                                prefetch={false}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            />
+                        }
+                        size="xs"
+                        variant="link"
+                    >
+                        <T>Cache Privacy</T>
+                        <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
+                    </Button>
+                </p>
+            </CollapsiblePanel>
+        </Collapsible>
     );
 }
