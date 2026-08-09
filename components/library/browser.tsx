@@ -7783,7 +7783,7 @@ function BrowserContent({
     }
 
     const sectionStyle: React.CSSProperties & Record<string, string> = {
-        "--library-section-sticky-top": "8px",
+        "--library-section-sticky-top": "96px",
     };
 
     const handleOpenCreateResultsDialog = useStableCallback(() =>

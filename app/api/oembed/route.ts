@@ -4,6 +4,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { OembedSchema } from "@/lib/common/oembed";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchOembed, hasOembedSupport } from "openlink";
+import * as z from "zod";
 
 const log = createLogger("api:oembed");
 
@@ -30,9 +31,22 @@ const SPOTIFY_HOST = "open.spotify.com";
 const SOUNDCLOUD_HOSTS = new Set(["soundcloud.com", "www.soundcloud.com"]);
 const TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com"]);
 const INSTAGRAM_HOSTS = new Set(["instagram.com", "www.instagram.com"]);
+// openlink@0.3 still targets the retired api.instagram.com/oembed endpoint.
+const INSTAGRAM_OEMBED_ENDPOINT =
+    "https://graph.facebook.com/v26.0/instagram_oembed";
 const CODEPEN_HOST = "codepen.io";
 const CODESANDBOX_HOST = "codesandbox.io";
 const FIGMA_HOST = "figma.com";
+const INSTAGRAM_OEMBED_RESPONSE_SCHEMA = z.object({
+    html: z.string().min(1),
+    provider_name: z.string().min(1),
+    title: z.string().nullable().optional(),
+});
+
+type OembedFetch = (
+    input: Parameters<typeof fetch>[0],
+    init?: Parameters<typeof fetch>[1]
+) => Promise<Response>;
 
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
@@ -50,10 +64,13 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     try {
-        const oembed = await fetchOembed(targetUrl.href, {
-            fetch: fetchWithRequestSignal(request.signal),
-            timeout: OEMBED_TIMEOUT_MS,
-        });
+        const fetcher = fetchWithRequestSignal(request.signal);
+        const oembed = isInstagramUrl(targetUrl)
+            ? await fetchInstagramOembed(targetUrl.href, fetcher)
+            : await fetchOembed(targetUrl.href, {
+                  fetch: fetcher,
+                  timeout: OEMBED_TIMEOUT_MS,
+              });
         if (!oembed?.html) {
             if (request.signal.aborted) {
                 return textResponse("Request aborted", 499);
@@ -90,6 +107,43 @@ export async function GET(request: Request): Promise<Response> {
         });
         return textResponse("oEmbed not available", 424);
     }
+}
+
+async function fetchInstagramOembed(targetUrl: string, fetcher: OembedFetch) {
+    const endpoint = new URL(INSTAGRAM_OEMBED_ENDPOINT);
+    endpoint.searchParams.set("url", targetUrl);
+
+    const response = await fetcher(endpoint, {
+        headers: { Accept: MIME_TYPES.json },
+    });
+    if (!response.ok) {
+        log.warn("Instagram oEmbed request rejected", {
+            status: response.status,
+            statusText: response.statusText,
+            targetUrl,
+        });
+        return null;
+    }
+
+    const data: unknown = await response.json();
+    const parsed = INSTAGRAM_OEMBED_RESPONSE_SCHEMA.safeParse(data);
+    if (!parsed.success) {
+        log.warn("Invalid Instagram oEmbed response", {
+            issues: parsed.error.issues,
+            targetUrl,
+        });
+        return null;
+    }
+
+    return {
+        html: parsed.data.html,
+        provider: "instagram",
+        title: parsed.data.title ?? null,
+    };
+}
+
+function isInstagramUrl(url: URL): boolean {
+    return INSTAGRAM_HOSTS.has(url.hostname.toLowerCase());
 }
 
 function isSupportedOembedUrl(url: URL): boolean {

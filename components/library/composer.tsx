@@ -334,7 +334,7 @@ export function Composer({
         <Toolbar.Root
             {...props}
             className={cn(
-                "relative w-full max-w-2xl rounded-t-4xl rounded-b-2xl bg-muted/80",
+                "sticky top-1 z-50 w-full max-w-2xl rounded-t-4xl rounded-b-3xl bg-muted",
                 className
             )}
         />
@@ -385,7 +385,7 @@ export function ComposerInput({
                         />
                     }
                 />
-                <CommandPopup className="max-w-2xl">
+                <CommandPopup className="max-w-2xl" positionMethod="fixed">
                     <CommandEmpty>No matching commands</CommandEmpty>
                     <CommandStatus />
                     <CommandList className="max-w-2xl">
