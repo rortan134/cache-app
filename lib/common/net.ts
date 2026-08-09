@@ -140,3 +140,45 @@ export async function readJsonOrNull(response: Response): Promise<unknown> {
         return null;
     }
 }
+
+const isError = (value: unknown): value is Error =>
+    Object.prototype.toString.call(value) === "[object Error]";
+
+const errorMessages = new Set<string>([
+    "network error", // Chrome
+    "Failed to fetch", // Chrome
+    "NetworkError when attempting to fetch resource.", // Firefox
+    "The Internet connection appears to be offline.", // Safari 16
+    "Network request failed", // `cross-fetch`
+    "fetch failed", // Undici (Node.js)
+    "terminated", // Undici (Node.js)
+    " A network error occurred.", // Bun (WebKit)
+    "Network connection lost", // Cloudflare Workers (fetch)
+]);
+
+export function isNetworkError(error: unknown): error is Error {
+    const isValidError =
+        error &&
+        isError(error) &&
+        error.name === "TypeError" &&
+        typeof error.message === "string";
+
+    if (!isValidError) {
+        return false;
+    }
+
+    const { message, stack } = error;
+
+    // Safari 17+ has generic message but no stack for network errors
+    if (message === "Load failed") {
+        return stack === undefined;
+    }
+
+    // Deno network errors start with specific text
+    if (message.startsWith("error sending request for url")) {
+        return true;
+    }
+
+    // Standard network error messages
+    return errorMessages.has(message);
+}
