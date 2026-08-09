@@ -3,7 +3,7 @@
 import {
     MarkdownImportDialog,
     openMarkdownImportDialog,
-} from "@/components/library/markdown-import-dialog";
+} from "@/components/library/markdown";
 import { RssManageDialog, openRssManageDialog } from "@/components/library/rss";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ import {
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
 import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T } from "gt-next";
+import { T, Var } from "gt-next";
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -111,6 +111,11 @@ interface IntegrationsListItemPreviewTriggerProps {
     render: React.ReactElement;
 }
 
+interface IntegrationsListTriggerProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
+    connectedCount: number;
+}
+
 interface IntegrationsListItemActionsProps extends React.ComponentProps<"div"> {
     actionStatus: IntegrationActionStatus | null;
     actions: IntegrationActionViewModel[];
@@ -143,7 +148,7 @@ function resolveActionLabel(args: {
     isConnected: boolean;
     openBehavior?: ExtensionOpenBehavior;
     role: IntegrationActionRole;
-}): string {
+}) {
     const {
         connectBehavior,
         label,
@@ -214,10 +219,7 @@ async function executeIntegrationAction(args: {
     isExtensionInstalled: boolean;
     integration: SupportedIntegration;
     role: IntegrationActionRole;
-}): Promise<{
-    refresh: boolean;
-    successMessage: string | null;
-}> {
+}) {
     const { isExtensionInstalled, integration, role } = args;
 
     switch (role) {
@@ -474,9 +476,7 @@ function IntegrationsListTrigger({
     connectedCount,
     render,
     ...props
-}: React.ComponentProps<typeof CollapsibleTrigger> & {
-    connectedCount: number;
-}) {
+}: IntegrationsListTriggerProps) {
     const { isIntegrationsListOpen } = useIntegrationsListStore();
 
     return (
@@ -507,7 +507,9 @@ function IntegrationsListTrigger({
                     focusable="false"
                 />
                 <HighlightIn className="absolute right-2 text-[11px] text-muted-foreground group-hover:hidden">
-                    {connectedCount} connected
+                    <T>
+                        <Var>{connectedCount}</Var> connected
+                    </T>
                 </HighlightIn>
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I
@@ -528,11 +530,13 @@ function IntegrationsListTrigger({
                 />
                 <div className="m-3 flex max-w-64 flex-col gap-2">
                     <h2 className="font-medium text-sm">
-                        Import from other apps
+                        <T>Import from other apps</T>
                     </h2>
                     <p className="text-foreground text-xs">
-                        Sync your bookmarks from other services into your
-                        library.
+                        <T>
+                            Sync your bookmarks from other services into your
+                            library.
+                        </T>
                     </p>
                 </div>
             </PreviewCardPopup>
@@ -631,6 +635,20 @@ function IntegrationsListItem({
         primaryAction?.onClick();
     });
 
+    const handleKeyDown = useStableCallback(
+        (event: React.KeyboardEvent<HTMLDivElement>) => {
+            if (
+                event.target !== event.currentTarget ||
+                (event.key !== "Enter" && event.key !== " ")
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+            handleClick();
+        }
+    );
+
     return (
         <IntegrationsListItemPreviewTrigger
             integration={integration}
@@ -640,6 +658,7 @@ function IntegrationsListItem({
                     {...props}
                     aria-disabled={isPrimaryActionLoading}
                     className={cn("gap-2.5 py-0.5 opacity-100", className)}
+                    onKeyDown={primaryAction ? handleKeyDown : undefined}
                     role={primaryAction ? "button" : undefined}
                     tabIndex={primaryAction ? 0 : undefined}
                 >
@@ -715,7 +734,7 @@ function IntegrationsListItemActions({
     className,
     ...props
 }: IntegrationsListItemActionsProps) {
-    if (actions.length === 0) {
+    if (!actions.length) {
         return null;
     }
 

@@ -85,12 +85,8 @@ export function RssManageDialog() {
         }
     });
 
-    const handleOpenChange = useStableCallback((open: boolean) => {
-        setIsOpen(open);
-    });
-
     return (
-        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
+        <Dialog onOpenChange={setIsOpen} open={isOpen}>
             <DialogPopup>
                 <DialogHeader>
                     <DialogTitle>Manage RSS feeds</DialogTitle>

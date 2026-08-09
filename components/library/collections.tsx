@@ -2976,10 +2976,6 @@ function CollectionsListFavoritesContent({
         favoriteCollectionIds
     );
 
-    if (!favoriteCollections.length) {
-        return null;
-    }
-
     return favoriteCollections.map(children);
 }
 

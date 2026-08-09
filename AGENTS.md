@@ -185,7 +185,7 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 
 Runtime & Package Manager: Node.js 24.x and Bun (read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary)
 Framework: Next.js 16 (App Router)
-UI: [React 19](https://react.dev/llms.txt), Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), [motion (previosuly framer motion)](https://motion.dev/llms.txt), and lucide-react icons
+UI: [React 19](https://react.dev/llms.txt), Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), [motion (previously framer motion)](https://motion.dev/llms.txt), and lucide-react icons
 React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values, including render-time derived values. Do not add manual `useMemo` or `useCallback`; they can interfere with compiler optimization
 Styling: Tailwind CSS 4
 Rich Text: [Lexical](https://lexical.dev)

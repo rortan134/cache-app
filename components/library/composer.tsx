@@ -130,6 +130,15 @@ interface ComposerInputProps {
     stackEntries: PaletteStackEntry[];
 }
 
+interface ComposerInputEndAddonProps {
+    stackEntries: PaletteStackEntry[];
+}
+
+interface CommandPaletteItemComponentProps {
+    isHorizontal?: boolean;
+    item: CommandPaletteItem;
+}
+
 interface ComposerActionsListProps {
     canClear: boolean;
     children: React.ReactNode;
@@ -151,6 +160,12 @@ interface ComposerSuggestionsListProps
     onOpenChange?: (open: boolean) => void;
     open?: boolean;
     suggestions: CommandSuggestion[];
+}
+
+interface ComposerActionMetricsPanelProps {
+    canClear: boolean;
+    metrics: LibraryMetricsSnapshot;
+    onClearPalette: () => void;
 }
 
 const normalizedPaletteItemCache = new Map<string, NormalizedPaletteItem>();
@@ -410,11 +425,7 @@ export function ComposerInput({
     );
 }
 
-function ComposerInputEndAddon({
-    stackEntries,
-}: {
-    stackEntries: PaletteStackEntry[];
-}) {
+function ComposerInputEndAddon({ stackEntries }: ComposerInputEndAddonProps) {
     return (
         <>
             {stackEntries.length === 0 ? <ComposerInputShortcut /> : null}
@@ -460,10 +471,7 @@ function ComposerInputShortcut() {
 function CommandPaletteItemComponent({
     item,
     isHorizontal = false,
-}: {
-    item: CommandPaletteItem;
-    isHorizontal?: boolean;
-}) {
+}: CommandPaletteItemComponentProps) {
     const onSelect = item.onSelect;
     const handleSelect = useStableCallback(
         (event: BaseUIEvent<React.MouseEvent>) => {
@@ -520,6 +528,7 @@ export function ComposerSuggestionsList({
 }: ComposerSuggestionsListProps) {
     const [isInternalOpen, setInternalOpen] = React.useState(true);
     const isOpen = openProp === undefined ? isInternalOpen : openProp;
+
     const setIsOpen = useStableCallback((next: boolean) => {
         setInternalOpen(next);
         onOpenChangeProp?.(next);
@@ -527,7 +536,7 @@ export function ComposerSuggestionsList({
 
     const handleDismiss = useStableCallback(() => setIsOpen(false));
 
-    if (suggestions.length === 0) {
+    if (!suggestions.length) {
         return null;
     }
 
@@ -634,7 +643,7 @@ function ComposerActionMetricsTrigger(
             ) : (
                 <Grid2x2 className="inline-block size-3.5 shrink-0" />
             )}
-            <span className="tabular-nums">
+            <span className="min-w-0 tabular-nums">
                 &nbsp;Showing <Calligraph>{resultsSummary}</Calligraph>
                 {groupBy === "none" ? null : (
                     <>
@@ -652,11 +661,7 @@ function ComposerActionMetricsPanel({
     canClear,
     metrics,
     onClearPalette,
-}: {
-    canClear: boolean;
-    metrics: LibraryMetricsSnapshot;
-    onClearPalette: () => void;
-}) {
+}: ComposerActionMetricsPanelProps) {
     const {
         duplicateCount,
         itemCount,
