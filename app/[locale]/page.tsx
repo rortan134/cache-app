@@ -134,8 +134,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
     const gt = await getGT();
-
-    return buildPageMetadata({
+    const metadata = buildPageMetadata({
         description: gt(
             "The AI bookmark manager for busy people. View, manage, and organize bookmarks across platforms."
         ),
@@ -153,6 +152,16 @@ export async function generateMetadata({
             absolute: `Cache | ${gt("Unify your bookmarks across every platform")}`,
         },
     });
+
+    return {
+        ...metadata,
+        alternates: {
+            ...metadata.alternates,
+            types: {
+                "text/markdown": `${BASE_URL}/api/markdown/home/${locale}`,
+            },
+        },
+    };
 }
 
 export default async function Home() {

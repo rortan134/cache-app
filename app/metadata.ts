@@ -1,4 +1,5 @@
 import { BASE_URL } from "@/lib/common/constants";
+import { getLocalizedUrl } from "@/lib/marketing/url";
 import { getDefaultLocale, getLocales, resolveCanonicalLocale } from "gt-next";
 import type { Metadata } from "next";
 
@@ -66,12 +67,6 @@ export function buildPageMetadata({
             title,
         },
     };
-}
-
-function getLocalizedUrl(locale: string, path: `/${string}`) {
-    return path === "/"
-        ? `${BASE_URL}/${locale}`
-        : `${BASE_URL}/${locale}${path}`;
 }
 
 export function buildLocaleAlternates(
