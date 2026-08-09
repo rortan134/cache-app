@@ -5,7 +5,7 @@ import {
     fileSave as _fileSave,
 } from "browser-fs-access";
 
-type FILE_EXTENSION = Exclude<keyof typeof MIME_TYPES, "binary">;
+export type FILE_EXTENSION = Exclude<keyof typeof MIME_TYPES, "binary">;
 
 const DEFAULT_FILE_MEDIA_TYPE = MIME_TYPES.binary;
 
@@ -17,7 +17,10 @@ export const fileOpen = async <M extends boolean | undefined = false>(options: {
     type ReturnType = M extends false | undefined ? File : File[];
 
     const mimeTypes = options.extensions?.reduce((acc, type) => {
-        acc.push(MIME_TYPES[type]);
+        const mimeType = MIME_TYPES[type];
+        if (!acc.includes(mimeType)) {
+            acc.push(mimeType);
+        }
         return acc;
     }, [] as string[]);
 

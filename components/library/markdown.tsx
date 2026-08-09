@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { LibraryCollectionSummary } from "@/lib/collections/utils";
+import { fileOpen, type FILE_EXTENSION } from "@/lib/common/file";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createMarkdownImport,
@@ -49,7 +50,7 @@ interface ImportFileEntry {
     relativePath: string;
 }
 
-const MARKDOWN_FILE_EXTENSIONS = [".md", ".markdown"];
+const MARKDOWN_FILE_EXTENSIONS: FILE_EXTENSION[] = ["md", "markdown"];
 const MAX_FILE_SIZE_BYTES = 500_000;
 const MAX_FILES_PER_BATCH = 100;
 const MAX_BATCH_BYTES = 3_000_000;
@@ -96,11 +97,14 @@ export function MarkdownImportDialog() {
                 const response = await listMarkdownImports();
                 if (response.status === "SUCCESS") {
                     setImports(response.data);
+                    setErrorMessage(null);
                 } else {
                     log.error("Failed to load imports", response);
+                    setErrorMessage("We couldn't load previous imports.");
                 }
             } catch (err) {
                 log.error("Failed to load imports unexpectedly", err);
+                setErrorMessage("We couldn't load previous imports.");
             }
         });
     });
@@ -129,6 +133,7 @@ export function MarkdownImportDialog() {
     });
 
     const handleCreateNew = useStableCallback(() => {
+        setErrorMessage(null);
         setStep("create-new");
     });
 
@@ -171,6 +176,7 @@ export function MarkdownImportDialog() {
     });
 
     const handleSelectExisting = useStableCallback((id: string) => {
+        setErrorMessage(null);
         setSelectedImportId(id);
         setStep("pick-files");
     });
@@ -193,27 +199,29 @@ export function MarkdownImportDialog() {
     const handlePickFiles = useStableCallback(async () => {
         setErrorMessage(null);
         try {
-            const { directoryOpen, fileOpen, supported } = await import(
-                "browser-fs-access"
+            const openedFiles = await fileOpen({
+                description: "Markdown files",
+                extensions: MARKDOWN_FILE_EXTENSIONS,
+                multiple: true,
+            });
+            const { entries, skippedPaths } = await readMarkdownFileEntries(
+                openedFiles,
+                false
             );
-
-            if (!supported) {
-                const openedFiles = await fileOpen({
-                    extensions: MARKDOWN_FILE_EXTENSIONS,
-                    mimeTypes: ["text/markdown", "text/plain"],
-                    multiple: true,
-                });
-                const picked = Array.isArray(openedFiles)
-                    ? openedFiles
-                    : [openedFiles];
-                const { entries, skippedPaths } = await readMarkdownFileEntries(
-                    picked,
-                    false
-                );
-                handleEntriesReady(entries, skippedPaths);
+            handleEntriesReady(entries, skippedPaths);
+        } catch (error) {
+            if (isPickerAbortError(error)) {
                 return;
             }
+            log.error("Failed to pick Markdown files", error);
+            setErrorMessage("We couldn't open those files. Try again.");
+        }
+    });
 
+    const handlePickFolder = useStableCallback(async () => {
+        setErrorMessage(null);
+        try {
+            const { directoryOpen } = await import("browser-fs-access");
             const dirFiles = await directoryOpen({ recursive: true });
             const { entries, skippedPaths } = await readMarkdownFileEntries(
                 dirFiles,
@@ -224,8 +232,8 @@ export function MarkdownImportDialog() {
             if (isPickerAbortError(error)) {
                 return;
             }
-            log.error("Failed to pick Markdown files", error);
-            setErrorMessage("We couldn't open those files. Try again.");
+            log.error("Failed to pick Markdown folder", error);
+            setErrorMessage("We couldn't open that folder. Try again.");
         }
     });
 
@@ -389,11 +397,16 @@ export function MarkdownImportDialog() {
     const renderChooseStep = (
         <div className="flex flex-col gap-3 py-2">
             <div className="flex flex-col gap-1">
-                {imports.length === 0 && !isLoading && (
+                {errorMessage ? (
+                    <p className="px-1 py-4 text-center text-muted-foreground text-sm">
+                        {errorMessage}
+                    </p>
+                ) : null}
+                {!errorMessage && imports.length === 0 && !isLoading ? (
                     <p className="px-1 py-4 text-center text-muted-foreground text-sm">
                         No previous imports.
                     </p>
-                )}
+                ) : null}
                 {isLoading ? (
                     <div className="flex items-center justify-center py-4">
                         <Loader2 className="size-4 animate-spin" />
@@ -446,7 +459,10 @@ export function MarkdownImportDialog() {
     const renderPickFilesStep = (
         <div className="flex flex-col gap-3 py-2">
             <Button onClick={handlePickFiles} size="sm">
-                Choose folder or files
+                Choose files
+            </Button>
+            <Button onClick={handlePickFolder} size="sm" variant="outline">
+                Choose folder
             </Button>
             {errorMessage ? (
                 <DialogFieldError>{errorMessage}</DialogFieldError>
@@ -649,7 +665,7 @@ function buildResultSummary(result: MarkdownImportResult): string {
 
 function isMarkdownFile(fileName: string): boolean {
     return MARKDOWN_FILE_EXTENSIONS.some((extension) =>
-        fileName.endsWith(extension)
+        fileName.endsWith(`.${extension}`)
     );
 }
 
