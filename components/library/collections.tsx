@@ -2710,7 +2710,7 @@ function CollectionsListGroupTrigger({
                 side="right"
             >
                 {isOpen && priorityBreakdownEntries.length > 0 ? (
-                    <CollectionsListBreakdown
+                    <CollectionsListPriorityBreakdown
                         entries={priorityBreakdownEntries}
                     />
                 ) : (
@@ -3661,6 +3661,8 @@ function CollectionsListItemPreviewImage({
         onSlideError(currentSlide.src);
     });
 
+    const isCurrentSlideVisible = outgoingSlide === null || isFading;
+
     const crossfadeStyle = {
         transitionDuration: `${PREVIEW_CROSSFADE_MS}ms`,
     } satisfies React.CSSProperties;
@@ -3677,7 +3679,7 @@ function CollectionsListItemPreviewImage({
                     alt=""
                     aria-hidden
                     className={cn(
-                        "absolute inset-0 size-full object-cover transition-opacity ease-out",
+                        "pointer-events-none absolute inset-0 size-full object-cover transition-opacity ease-out",
                         isFading ? "opacity-0" : "opacity-100"
                     )}
                     decoding="async"
@@ -3691,10 +3693,8 @@ function CollectionsListItemPreviewImage({
             <img
                 alt={`${collectionName} preview`}
                 className={cn(
-                    "absolute inset-0 size-full object-cover transition-opacity ease-out",
-                    outgoingSlide === null || isFading
-                        ? "opacity-100"
-                        : "opacity-0"
+                    "pointer-events-none absolute inset-0 size-full object-cover transition-opacity ease-out",
+                    isCurrentSlideVisible ? "opacity-100" : "opacity-0"
                 )}
                 decoding="async"
                 draggable={false}
@@ -3724,7 +3724,7 @@ function CollectionsListItemValue() {
                 </span>
             ) : null}
             {isSelected || collection.sources.length === 0 ? null : (
-                <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-80">
+                <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
                     {collection.sources.map(getSourceLabel).join(", ")}
                 </span>
             )}
@@ -5069,15 +5069,18 @@ function CollectionsDeleteDialog() {
     );
 }
 
-function CollectionsListBreakdown({
+function CollectionsListPriorityBreakdown({
     entries,
 }: {
     entries: PriorityBreakdownEntry[];
 }) {
     return (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex w-full flex-col gap-2">
             {entries.map(({ count, icon: Icon, label, value }) => (
-                <li className="flex items-center gap-2" key={value}>
+                <li
+                    className="mr-1 ml-0.5 flex items-center gap-1.5 text-nowrap"
+                    key={value}
+                >
                     <Icon
                         aria-hidden
                         className="size-3.5 shrink-0 text-muted-foreground"
@@ -5086,7 +5089,7 @@ function CollectionsListBreakdown({
                     <span className="min-w-0 flex-1 truncate text-muted-foreground text-xs">
                         {label}
                     </span>
-                    <span className="font-medium text-xs tabular-nums">
+                    <span className="ml-auto font-medium text-xs tabular-nums">
                         {count}
                     </span>
                 </li>
