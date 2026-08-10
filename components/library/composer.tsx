@@ -583,7 +583,7 @@ export function ComposerActionsList({
                     <Toolbar.Group
                         {...props}
                         className={cn(
-                            "flex items-center gap-2.5 text-nowrap px-3 py-2",
+                            "flex items-center gap-2.5 overflow-clip text-nowrap px-3 py-2",
                             className
                         )}
                     />

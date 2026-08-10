@@ -5,21 +5,15 @@ import { authClient } from "@/lib/auth/client";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { T } from "gt-next";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 const log = createLogger("logout-page-client");
 
 export function LogoutPageClient() {
     const router = useRouter();
-    const isMountedRef = useRef(false);
 
     useEffect(() => {
-        if (isMountedRef.current) {
-            return;
-        }
-        isMountedRef.current = true;
-
-        const performLogout = async () => {
+        const logout = async () => {
             try {
                 await authClient.signOut();
                 router.push("/");
@@ -30,7 +24,7 @@ export function LogoutPageClient() {
             }
         };
 
-        performLogout();
+        logout();
     }, [router]);
 
     return (

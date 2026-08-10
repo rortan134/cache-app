@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
@@ -10,7 +11,6 @@ import {
     DrawerTitle,
     DrawerTrigger,
     DrawerViewport,
-    DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
@@ -26,6 +26,7 @@ import { T } from "gt-next";
 import {
     AlertCircleIcon,
     ExternalLinkIcon,
+    Eye,
     PanelRight,
     PanelRightOpen,
     XIcon,
@@ -36,13 +37,12 @@ import { storage } from "stan-js/storage";
 import useSWR from "swr";
 
 const QUICK_LOOK_BLOCKED_URL = "about:blank";
-const DEFAULT_QUICK_LOOK_TITLE = "Preview";
-const DEFAULT_QUICK_LOOK_TIMEOUT_MS = 8000;
-const QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY =
-    "cache:quick-look:active-index";
-const QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY = "cache:quick-look:items";
-const QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY = "cache:quick-look:open";
-const QUICK_LOOK_DRAWER_QUEUE_LIMIT = 12;
+const DEFAULT_TITLE = "Preview";
+const DEFAULT_TIMEOUT_MS = 8000;
+const ACTIVE_INDEX_STORAGE_KEY = "cache:quick-look:active-index";
+const ITEMS_STORAGE_KEY = "cache:quick-look:items";
+const OPEN_STORAGE_KEY = "cache:quick-look:open";
+const QUEUE_LIMIT = 12;
 
 const OEMBED_DIRECT_IFRAME_SANDBOX =
     "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation";
@@ -79,41 +79,62 @@ interface QuickLookDrawerProps extends React.PropsWithChildren {
     url: string;
 }
 
-interface QuickLookDrawerEntry {
+interface QuickLookDrawerContentProps {
+    container: HTMLDivElement | React.RefObject<HTMLDivElement | null> | null;
+}
+
+interface QuickLookDrawerPanelProps {
+    activeEntry: QuickLookEntry | null;
+}
+
+interface QuickLookOembedPreviewProps {
+    oembed: Oembed;
+}
+
+interface QuickLookListProps
+    extends Omit<React.ComponentProps<"ul">, "children"> {
+    children: (item: QuickLookEntry, index: number) => React.ReactNode;
+    items: QuickLookEntry[];
+}
+
+interface QuickLookListItemProps {
+    index: number;
+    isActive: boolean;
+    item: QuickLookEntry;
+    onRemove: (index: number) => void;
+    onSelect: (index: number) => void;
+}
+
+interface QuickLookEntry {
     description?: string;
     title: string;
     url: string;
 }
 
-interface QuickLookDrawerQueueState {
+interface QuickLookQueueState {
     activeIndex: number;
-    items: QuickLookDrawerEntry[];
+    items: QuickLookEntry[];
 }
 
-interface QuickLookDrawerContextValue {
-    entry: QuickLookDrawerEntry;
+interface QuickLookContextValue {
+    entry: QuickLookEntry;
     triggerId: string;
 }
 
-interface QuickLookDrawerStore {
+interface QuickLookStore {
     activeIndex: number;
     isOpen: boolean;
-    items: QuickLookDrawerEntry[];
+    items: QuickLookEntry[];
     triggerId: string | null;
 }
 
-interface QuickLookDrawerActions {
-    openWithEntry: (entry: QuickLookDrawerEntry, triggerId: string) => void;
+interface QuickLookActions {
+    openWithEntry: (entry: QuickLookEntry, triggerId: string) => void;
     removeQueueItem: (index: number) => void;
     selectQueueIndex: (index: number) => void;
 }
 
-// stan-js@1.9's `CustomActions` constraint is `Record<string, (...args: never[]) => void>`,
-// which is too narrow to accept parameterised functions. Intersecting with that shape
-// satisfies the constraint without weakening our typed signatures. Soundness leans on
-// `noUncheckedIndexedAccess` (tsconfig.json): the index signature resolves to `... | undefined`,
-// so unknown action keys are rejected at call sites. Do not disable that flag.
-type QuickLookDrawerStanActions = QuickLookDrawerActions &
+type QuickLookStoreActions = QuickLookActions &
     Record<string, (...args: never[]) => void>;
 
 function isQuickLookBlockedUrl(url: string | null): boolean {
@@ -128,9 +149,9 @@ function clampActiveIndex(index: number, itemsLength: number): number {
 }
 
 function addQuickLookQueueEntry(
-    { items }: QuickLookDrawerQueueState,
-    entry: QuickLookDrawerEntry
-): QuickLookDrawerQueueState {
+    { items }: QuickLookQueueState,
+    entry: QuickLookEntry
+): QuickLookQueueState {
     const existingEntry = items.find((item) => item.url === entry.url);
     if (existingEntry) {
         const existingIndex = items.indexOf(existingEntry);
@@ -146,34 +167,34 @@ function addQuickLookQueueEntry(
             items: items.map((item, i) => (i === existingIndex ? entry : item)),
         };
     }
-    const nextItems = [...items, entry].slice(-QUICK_LOOK_DRAWER_QUEUE_LIMIT);
-    return {
-        activeIndex: nextItems.length - 1,
-        items: nextItems,
-    };
+
+    const nextItems = [...items, entry].slice(-QUEUE_LIMIT);
+
+    return { activeIndex: nextItems.length - 1, items: nextItems };
 }
 
-const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookDrawerEntry>();
+const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookEntry>();
 
-const QuickLookDrawerContext =
-    React.createContext<QuickLookDrawerContextValue | null>(null);
+const QuickLookContext = React.createContext<QuickLookContextValue | null>(
+    null
+);
 
-const { actions: quickLookDrawerStoreActions, useStore: useQuickLookStore } =
-    createStore<QuickLookDrawerStore, QuickLookDrawerStanActions>(
+const { actions: quickLookStoreActions, useStore: useQuickLookStore } =
+    createStore<QuickLookStore, QuickLookStoreActions>(
         {
             activeIndex: storage(0, {
-                storageKey: QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
+                storageKey: ACTIVE_INDEX_STORAGE_KEY,
             }),
             isOpen: storage(false, {
-                storageKey: QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY,
+                storageKey: OPEN_STORAGE_KEY,
             }),
-            items: storage<QuickLookDrawerEntry[]>([], {
-                storageKey: QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY,
+            items: storage<QuickLookEntry[]>([], {
+                storageKey: ITEMS_STORAGE_KEY,
             }),
             triggerId: null,
         },
         ({ actions, getState }) => ({
-            openWithEntry(entry: QuickLookDrawerEntry, triggerId: string) {
+            openWithEntry(entry: QuickLookEntry, triggerId: string) {
                 const { isOpen, items, activeIndex } = getState();
                 const queue = addQuickLookQueueEntry(
                     { activeIndex, items },
@@ -205,10 +226,6 @@ const { actions: quickLookDrawerStoreActions, useStore: useQuickLookStore } =
                         nextItems.length
                     )
                 );
-                if (nextItems.length === 0) {
-                    actions.setIsOpen(false);
-                    actions.setTriggerId(null);
-                }
             },
             selectQueueIndex(index: number) {
                 const { items } = getState();
@@ -220,14 +237,11 @@ const { actions: quickLookDrawerStoreActions, useStore: useQuickLookStore } =
         })
     );
 
-export function openQuickLookDrawer(
-    entry: QuickLookDrawerEntry,
-    triggerId: string
-) {
-    quickLookDrawerStoreActions.openWithEntry(entry, triggerId);
+export function openQuickLook(entry: QuickLookEntry, triggerId: string) {
+    quickLookStoreActions.openWithEntry(entry, triggerId);
 }
 
-export function useIsQuickLookDrawerOpen(): boolean {
+export function useIsQuickLookOpen(): boolean {
     const { isOpen } = useQuickLookStore();
     return isOpen;
 }
@@ -374,11 +388,11 @@ blockquote {
 </html>`;
 }
 
-function useQuickLookDrawerContext(): QuickLookDrawerContextValue {
-    const context = React.use(QuickLookDrawerContext);
+function useQuickLookContext(): QuickLookContextValue {
+    const context = React.use(QuickLookContext);
     if (!context) {
         throw new Error(
-            "QuickLookDrawer components must be used inside <QuickLookDrawer>."
+            "QuickLook components must be used inside <QuickLookDrawer>."
         );
     }
     return context;
@@ -462,17 +476,12 @@ function useQuickLookStatus(url: string | null, timeoutMs: number) {
     const oembed = data?.resolution === "found" ? data.oembed : null;
     const status = parseOembedStatus(url, data, error, iframeStatus);
 
-    return {
-        markAsBlocked,
-        markAsLoaded,
-        oembed,
-        status,
-    };
+    return { markAsBlocked, markAsLoaded, oembed, status };
 }
 
 export function QuickLookDrawer({
     description,
-    title = DEFAULT_QUICK_LOOK_TITLE,
+    title = DEFAULT_TITLE,
     url,
     children,
 }: QuickLookDrawerProps) {
@@ -480,18 +489,14 @@ export function QuickLookDrawer({
     const triggerId = `quick-look-drawer-${React.useId()}`;
     const contextValue = { entry, triggerId };
 
-    return (
-        <QuickLookDrawerContext value={contextValue}>
-            {children}
-        </QuickLookDrawerContext>
-    );
+    return <QuickLookContext value={contextValue}>{children}</QuickLookContext>;
 }
 
 export function QuickLookDrawerTrigger({
     onClick: onClickProp,
     ...props
 }: React.ComponentProps<typeof DrawerTrigger>) {
-    const { entry, triggerId } = useQuickLookDrawerContext();
+    const { entry, triggerId } = useQuickLookContext();
 
     const handleClick = useStableCallback(
         (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {
@@ -499,7 +504,7 @@ export function QuickLookDrawerTrigger({
             if (event.defaultPrevented) {
                 return;
             }
-            openQuickLookDrawer(entry, triggerId);
+            openQuickLook(entry, triggerId);
             event.preventDefault();
         }
     );
@@ -517,9 +522,7 @@ export function QuickLookDrawerTrigger({
 
 export function QuickLookDrawerContent({
     container,
-}: {
-    container: HTMLDivElement | React.RefObject<HTMLDivElement | null> | null;
-}) {
+}: QuickLookDrawerContentProps) {
     const {
         activeIndex,
         isOpen,
@@ -554,123 +557,123 @@ export function QuickLookDrawerContent({
                 swipeDirection="right"
                 triggerId={triggerId}
             >
-                <DrawerVirtualKeyboardProvider>
-                    <DrawerViewport
-                        className="lg:sticky lg:h-dvh"
-                        portalProps={{
-                            className: "lg:flex-1",
-                            container,
-                        }}
-                        shouldShowBackdrop={false}
-                    >
-                        <DrawerPopup className="max-w-2xl" variant="straight">
-                            <DrawerHeader className="p-2 pr-11 pb-1!">
-                                <DrawerTitle className="sr-only">
-                                    Quick Look
-                                </DrawerTitle>
-                                <QuickLookDrawerList items={items}>
-                                    {(item, index) => (
-                                        <QuickLookDrawerListItem
-                                            index={index}
-                                            isActive={index === safeActiveIndex}
-                                            item={item}
-                                            key={item.url}
-                                            onRemove={removeQueueItem}
-                                            onSelect={selectQueueIndex}
-                                        />
-                                    )}
-                                </QuickLookDrawerList>
-                            </DrawerHeader>
-                            <QuickLookDrawerPanel activeEntry={activeEntry} />
-                        </DrawerPopup>
-                    </DrawerViewport>
-                </DrawerVirtualKeyboardProvider>
+                <DrawerViewport
+                    className="lg:sticky lg:h-dvh"
+                    portalProps={{
+                        className: "lg:flex-1",
+                        container,
+                    }}
+                    shouldShowBackdrop={false}
+                >
+                    <DrawerPopup className="max-w-full" variant="straight">
+                        <DrawerHeader className="p-2 pr-11 pb-1!">
+                            <DrawerTitle className="sr-only">
+                                Quick Look
+                            </DrawerTitle>
+                            <QuickLookList items={items}>
+                                {(item, index) => (
+                                    <QuickLookListItem
+                                        index={index}
+                                        isActive={index === safeActiveIndex}
+                                        item={item}
+                                        key={item.url}
+                                        onRemove={removeQueueItem}
+                                        onSelect={selectQueueIndex}
+                                    />
+                                )}
+                            </QuickLookList>
+                        </DrawerHeader>
+                        <QuickLookDrawerPanel activeEntry={activeEntry} />
+                    </DrawerPopup>
+                </DrawerViewport>
             </Drawer>
         </>
     );
 }
 
-function QuickLookDrawerPanel({
-    activeEntry,
-}: {
-    activeEntry: QuickLookDrawerEntry | null;
-}) {
+function QuickLookDrawerPanel({ activeEntry }: QuickLookDrawerPanelProps) {
     const { markAsBlocked, markAsLoaded, oembed, status } = useQuickLookStatus(
         activeEntry?.url ?? null,
-        DEFAULT_QUICK_LOOK_TIMEOUT_MS
+        DEFAULT_TIMEOUT_MS
     );
+
     const isLoading = status === "loading";
+    const isLoaded = status === "loaded";
+    const isBlocked = status === "blocked";
+    const isOembed = status === "oembed";
 
     return (
-        <DrawerPanel className="p-0" isScrollable={false}>
-            <div
-                aria-busy={isLoading}
-                className="relative flex size-full min-h-0"
-            >
-                {activeEntry ? (
-                    <>
-                        {isLoading ? <QuickLookDrawerLoading /> : null}
-                        {status === "blocked" ? (
-                            <QuickLookDrawerBlocked
-                                canOpenUrlExternally={
-                                    !isQuickLookBlockedUrl(activeEntry.url)
-                                }
-                                url={activeEntry.url}
-                            />
-                        ) : null}
-                        {status === "oembed" && oembed ? (
-                            <QuickLookDrawerOembedPreview oembed={oembed} />
-                        ) : null}
-                        {status !== "blocked" && status !== "oembed" ? (
-                            <iframe
-                                className="size-full border-0 bg-background"
-                                key={activeEntry.url}
-                                onError={markAsBlocked}
-                                onLoad={markAsLoaded}
-                                referrerPolicy="strict-origin-when-cross-origin"
-                                sandbox={QUICK_LOOK_IFRAME_SANDBOX}
-                                src={activeEntry.url}
-                                title={`Preview of ${activeEntry.title}`}
-                            />
-                        ) : null}
-                    </>
-                ) : null}
-            </div>
+        <DrawerPanel
+            aria-busy={isLoading}
+            className="relative p-0"
+            isScrollable={false}
+        >
+            {activeEntry ? (
+                <>
+                    {isLoading ? <QuickLookLoading /> : null}
+                    {isBlocked ? (
+                        <QuickLookBlocked
+                            canOpenUrlExternally={
+                                !isQuickLookBlockedUrl(activeEntry.url)
+                            }
+                            url={activeEntry.url}
+                        />
+                    ) : null}
+                    {isOembed && oembed ? (
+                        <QuickLookOembedPreview oembed={oembed} />
+                    ) : null}
+                    {isLoaded && !isOembed ? (
+                        <iframe
+                            className="size-full border-0 bg-background"
+                            key={activeEntry.url}
+                            onError={markAsBlocked}
+                            onLoad={markAsLoaded}
+                            referrerPolicy="strict-origin-when-cross-origin"
+                            sandbox={QUICK_LOOK_IFRAME_SANDBOX}
+                            src={activeEntry.url}
+                            title={`Preview of ${activeEntry.title}`}
+                        />
+                    ) : null}
+                </>
+            ) : (
+                <QuickLookPanelEmpty />
+            )}
         </DrawerPanel>
     );
 }
 
-function QuickLookDrawerOembedPreview({ oembed }: { oembed: Oembed }) {
-    const iframeSrc = getOembedIframeSrc(oembed);
+function QuickLookPanelEmpty() {
+    return (
+        <Alert className="max-w-md">
+            <Eye aria-hidden focusable="false" />
+            <AlertTitle>Quick Look</AlertTitle>
+        </Alert>
+    );
+}
+
+function QuickLookOembedPreview({ oembed }: QuickLookOembedPreviewProps) {
+    const src = getOembedIframeSrc(oembed);
 
     return (
         <iframe
-            allow={iframeSrc ? OEMBED_IFRAME_ALLOW : undefined}
-            allowFullScreen={!!iframeSrc}
+            allow={src ? OEMBED_IFRAME_ALLOW : undefined}
+            allowFullScreen={!!src}
             className="size-full border-0 bg-background"
             referrerPolicy="strict-origin-when-cross-origin"
-            sandbox={
-                iframeSrc ? OEMBED_DIRECT_IFRAME_SANDBOX : OEMBED_IFRAME_SANDBOX
-            }
-            src={iframeSrc ?? undefined}
-            srcDoc={iframeSrc ? undefined : buildOembedSrcDocument(oembed.html)}
+            sandbox={src ? OEMBED_DIRECT_IFRAME_SANDBOX : OEMBED_IFRAME_SANDBOX}
+            src={src ?? undefined}
+            srcDoc={src ? undefined : buildOembedSrcDocument(oembed.html)}
             title={oembed.title ?? `${oembed.provider} preview`}
         />
     );
 }
 
-interface QuickLookDrawerListProps
-    extends Omit<React.ComponentProps<"ul">, "children"> {
-    children: (item: QuickLookDrawerEntry, index: number) => React.ReactNode;
-    items: QuickLookDrawerEntry[];
-}
-
-function QuickLookDrawerList({
+function QuickLookList({
     items,
     className,
     children,
     ...props
-}: QuickLookDrawerListProps) {
+}: QuickLookListProps) {
     return (
         <ul
             {...props}
@@ -681,19 +684,13 @@ function QuickLookDrawerList({
     );
 }
 
-function QuickLookDrawerListItem({
+function QuickLookListItem({
     index,
     isActive,
     item,
     onRemove,
     onSelect,
-}: {
-    index: number;
-    isActive: boolean;
-    item: QuickLookDrawerEntry;
-    onRemove: (index: number) => void;
-    onSelect: (index: number) => void;
-}) {
+}: QuickLookListItemProps) {
     const handleClick = useStableCallback(() => {
         onSelect(index);
     });
@@ -734,7 +731,7 @@ function QuickLookDrawerListItem({
     );
 }
 
-function QuickLookDrawerLoading() {
+function QuickLookLoading() {
     return (
         <div
             aria-live="polite"
@@ -754,7 +751,7 @@ function QuickLookDrawerLoading() {
     );
 }
 
-function QuickLookDrawerBlocked({
+function QuickLookBlocked({
     canOpenUrlExternally,
     url,
 }: {

@@ -311,7 +311,7 @@
         mask-repeat: no-repeat;
         -webkit-mask-position: var(--texture-position, 36% 9%);
         mask-position: var(--texture-position, 36% 9%);
-        mask-size: 200% auto;
+        mask-size: 250% auto;
     }
 
     :is(.dark *)&::before {

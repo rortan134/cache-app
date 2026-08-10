@@ -1,4 +1,4 @@
-import { JsonLdScript } from "@/app/json-ld-script";
+import { JsonLdScript } from "@/components/ui/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
 import { DesktopHomeRedirect } from "@/components/auth/desktop-home-redirect";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
@@ -25,7 +25,11 @@ import {
 } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
-import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
+import {
+    Sidebar,
+    SidebarFooter,
+    SidebarContent,
+} from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
 import { BASE_URL, CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
@@ -165,7 +169,7 @@ export default async function Home() {
                 <GoogleOneTapTrigger />
                 <article className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
                     <Sidebar>
-                        <SidebarHeader>
+                        <SidebarContent>
                             <BrandLogo href="/library" src={LogoIconImage} />
                             <T context="'Cache' is the product's name">
                                 <h1 className="font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
@@ -184,7 +188,7 @@ export default async function Home() {
                             </T>
                             <SignInButton hasServerSession={!!session} />
                             <SessionHint serverSession={session} />
-                        </SidebarHeader>
+                        </SidebarContent>
                         <SidebarFooter>
                             <div className="hidden items-center gap-3 lg:flex">
                                 <a

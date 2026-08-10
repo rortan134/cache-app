@@ -2,7 +2,6 @@ import { buildPageMetadata } from "@/app/metadata";
 import { PageShell } from "@/components/ui/page-shell";
 import { getGT, getLocale } from "gt-next/server";
 import type { Metadata } from "next";
-import * as React from "react";
 import { LogoutPageClient } from "./client";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,9 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function LogoutPage() {
     return (
         <PageShell>
-            <React.Suspense fallback={null}>
-                <LogoutPageClient />
-            </React.Suspense>
+            <LogoutPageClient />
         </PageShell>
     );
 }

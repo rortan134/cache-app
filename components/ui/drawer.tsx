@@ -31,9 +31,6 @@ const DrawerContext: React.Context<DrawerContextValue> =
 export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
     DrawerPrimitive.createHandle;
 
-export const DrawerVirtualKeyboardProvider: typeof DrawerPrimitive.VirtualKeyboardProvider =
-    DrawerPrimitive.VirtualKeyboardProvider;
-
 export function Drawer<Payload = unknown>({
     swipeDirection,
     position = "bottom",
@@ -72,28 +69,33 @@ export function DrawerViewport({
     const position = positionProp ?? contextPosition;
 
     return (
-        <DrawerPortal {...portalProps}>
-            {shouldShowBackdrop ? <DrawerBackdrop /> : null}
-            <DrawerPrimitive.Viewport
-                {...props}
-                className={cn(
-                    "fixed inset-0 z-50 [--bleed:--spacing(12)] [--inset:--spacing(0)]",
-                    "touch-none",
-                    position === "bottom" && "grid grid-rows-[1fr_auto] pt-12",
-                    position === "top" && "grid grid-rows-[auto_1fr] pb-12",
-                    position === "left" && "flex justify-start",
-                    position === "right" && "flex justify-end",
-                    variant === "inset" &&
-                        "px-(--inset) sm:[--inset:--spacing(4)]",
-                    variant === "inset" &&
-                        position !== "bottom" &&
-                        "pt-(--inset)",
-                    variant === "inset" && position !== "top" && "pb-(--inset)",
-                    className
-                )}
-                data-slot="drawer-viewport"
-            />
-        </DrawerPortal>
+        <DrawerPrimitive.VirtualKeyboardProvider>
+            <DrawerPortal {...portalProps}>
+                {shouldShowBackdrop ? <DrawerBackdrop /> : null}
+                <DrawerPrimitive.Viewport
+                    {...props}
+                    className={cn(
+                        "fixed inset-0 z-50 [--bleed:--spacing(12)] [--inset:--spacing(0)]",
+                        "touch-none",
+                        position === "bottom" &&
+                            "grid grid-rows-[1fr_auto] pt-12",
+                        position === "top" && "grid grid-rows-[auto_1fr] pb-12",
+                        position === "left" && "flex justify-start",
+                        position === "right" && "flex justify-end",
+                        variant === "inset" &&
+                            "px-(--inset) sm:[--inset:--spacing(4)]",
+                        variant === "inset" &&
+                            position !== "bottom" &&
+                            "pt-(--inset)",
+                        variant === "inset" &&
+                            position !== "top" &&
+                            "pb-(--inset)",
+                        className
+                    )}
+                    data-slot="drawer-viewport"
+                />
+            </DrawerPortal>
+        </DrawerPrimitive.VirtualKeyboardProvider>
     );
 }
 

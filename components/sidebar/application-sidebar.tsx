@@ -17,7 +17,7 @@ import {
 import {
     Sidebar,
     SidebarGroup,
-    SidebarHeader,
+    SidebarContent,
     SidebarItem,
     SidebarRail,
     SidebarTrigger,
@@ -28,8 +28,8 @@ import type * as React from "react";
 
 export function ApplicationSidebar({ children }: React.PropsWithChildren) {
     return (
-        <Sidebar>
-            <SidebarHeader className="gap-3 pb-4">
+        <Sidebar className="pt-0">
+            <SidebarContent className="gap-3 py-8 lg:top-0 lg:max-h-dvh">
                 <div className="flex items-center justify-between gap-1">
                     <UserMenu>
                         <SidebarItem
@@ -114,7 +114,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                     </li>
                 </SidebarGroup>
                 {children}
-            </SidebarHeader>
+            </SidebarContent>
             <SidebarRail />
         </Sidebar>
     );
