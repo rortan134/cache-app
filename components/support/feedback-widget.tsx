@@ -9,7 +9,6 @@ import { createFeedback } from "@/lib/feedback/actions";
 import type { FeedbackActionState } from "@/lib/feedback/schema";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Send } from "lucide-react";
-import { useReducedMotion } from "motion/react";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import { useFormStatus } from "react-dom";
@@ -26,7 +25,6 @@ export function FeedbackWidget({
     ...props
 }: FeedbackWidgetProps) {
     const pathname = usePathname();
-    const isReducedMotion = useReducedMotion();
     const [isOpen, setIsOpen] = React.useState(false);
     const formRef = React.useRef<HTMLFormElement>(null);
     const submitButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -39,22 +37,6 @@ export function FeedbackWidget({
             const nextState = await createFeedback(previousState, formData);
             if (nextState.status !== "success") {
                 return nextState;
-            }
-
-            if (!isReducedMotion) {
-                const rect = submitButtonRef.current?.getBoundingClientRect();
-                if (rect) {
-                    import(/* webpackIgnore: true */ "react-confetti-burst")
-                        .then(({ createConfettiExplosion }) => {
-                            createConfettiExplosion({
-                                x: rect.left + rect.width / 2,
-                                y: rect.top + rect.height / 2,
-                            });
-                        })
-                        .catch(() => {
-                            // Optional celebration; form success already committed.
-                        });
-                }
             }
 
             formRef.current?.reset();
