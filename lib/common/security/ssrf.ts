@@ -2,7 +2,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import * as ipaddr from "ipaddr.js";
 import { unwrapIpv6Brackets } from "./hostnames";
 
-const logger = createLogger("security/ssrf");
+const log = createLogger("security/ssrf");
 
 /**
  * The SSRF gate: fail closed on anything that is not public unicast. regexes
@@ -56,7 +56,7 @@ function parseIp(ip: string): ipaddr.IPv4 | ipaddr.IPv6 | null {
         return ipaddr.process(ip);
     } catch {
         if (ipaddr.isValid(ip)) {
-            logger.warn("SSRF IP parser failed on a valid literal — closed", {
+            log.warn("SSRF IP parser failed on a valid literal — closed", {
                 ip,
             });
         }

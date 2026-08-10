@@ -238,7 +238,7 @@ export function canonicalBookmarkUrl(
     return canonical;
 }
 
-export function openExternal(url: string) {
+export function openExternalUrl(url: string) {
     if (typeof window === "undefined") {
         return;
     }

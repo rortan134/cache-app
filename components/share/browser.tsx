@@ -6,13 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Ticker } from "@/components/ui/ticker";
 import { cn } from "@/lib/common/cn";
 import {
-    cachePreviewDimensions,
-    clampPreviewDimensions,
-    DEFAULT_PREVIEW_DIMENSIONS,
-    pinDefaultPreviewDimensionsIfMissing,
-    readCachedPreviewDimensions,
-    type PreviewDimensions,
-} from "@/lib/common/preview-dimensions";
+    cacheDimensions,
+    clampDimensions,
+    DEFAULT_DIMENSIONS,
+    pinDefaultDimensionsIfMissing,
+    readCachedDimensions,
+    type Dimensions,
+} from "@/lib/common/dimensions";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
@@ -103,16 +103,15 @@ function PreviewMedia({
 }: PreviewMediaProps): React.ReactElement {
     const imgRef = React.useRef<HTMLImageElement | null>(null);
     const [didFail, setDidFail] = React.useState(false);
-    const [dimensions, setDimensions] =
-        React.useState<PreviewDimensions | null>(() =>
-            readCachedPreviewDimensions(src)
-        );
+    const [dimensions, setDimensions] = React.useState<Dimensions | null>(() =>
+        readCachedDimensions(src)
+    );
     const [prevSrc, setPrevSrc] = React.useState(src);
 
     if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setDidFail(false);
-        setDimensions(readCachedPreviewDimensions(src));
+        setDimensions(readCachedDimensions(src));
     }
 
     const canRenderImage = Boolean(src) && !didFail;
@@ -130,8 +129,8 @@ function PreviewMedia({
             if (!(w > 0 && h > 0)) {
                 return;
             }
-            const next: PreviewDimensions = { h, w };
-            cachePreviewDimensions(src, next);
+            const next: Dimensions = { h, w };
+            cacheDimensions(src, next);
             setDimensions((current) =>
                 current?.w === w && current.h === h ? current : next
             );
@@ -143,7 +142,7 @@ function PreviewMedia({
             if (!src || event.currentTarget.getAttribute("src") !== src) {
                 return;
             }
-            setDimensions(pinDefaultPreviewDimensionsIfMissing(src));
+            setDimensions(pinDefaultDimensionsIfMissing(src));
             setDidFail(true);
         }
     );
@@ -161,9 +160,7 @@ function PreviewMedia({
         }
     }, [applyNaturalDimensions, src]);
 
-    const displayDimensions = clampPreviewDimensions(
-        dimensions ?? DEFAULT_PREVIEW_DIMENSIONS
-    );
+    const displayDimensions = clampDimensions(dimensions ?? DEFAULT_DIMENSIONS);
 
     return (
         <div

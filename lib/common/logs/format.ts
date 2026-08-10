@@ -27,59 +27,28 @@ export interface LogValueFormatOptions {
     readonly unsupportedValueBehavior?: UnsupportedLogValueBehavior;
 }
 
-export function truncateLogString(value: string): string {
-    if (value.length <= LOG_STRING_MAX_LENGTH) {
-        return value;
-    }
-
-    return `${value.slice(0, LOG_STRING_MAX_LENGTH)}... [truncated ${value.length - LOG_STRING_MAX_LENGTH} chars]`;
-}
-
-export function formatLogValue(
+function formatValueForLog(
+    key: string,
     value: unknown,
-    options: LogValueFormatOptions = {}
-): unknown {
-    return formatValueForLog("", value, {
-        options: resolveFormatOptions(options),
-        visitedObjects: new WeakSet(),
-    });
-}
-
-function resolveFormatOptions(
-    options: LogValueFormatOptions
-): RequiredLogValueFormatOptions {
-    return {
-        formatString: options.formatString ?? truncateLogString,
-        includeErrorStack: options.includeErrorStack ?? true,
-        unsupportedValueBehavior:
-            options.unsupportedValueBehavior ?? "describe",
-    };
-}
-
-function formatErrorForLog(
-    error: Error,
     context: LogValueFormatContext
-): Record<string, unknown> {
-    const record: Record<string, unknown> = {
-        message: context.options.formatString(error.message),
-        name: error.name,
-    };
-
-    if (context.options.includeErrorStack) {
-        record.stack =
-            error.stack === undefined
-                ? error.stack
-                : context.options.formatString(error.stack);
+): unknown {
+    if (SENSITIVE_LOG_KEY_PATTERN.test(key)) {
+        return REDACTED_LOG_VALUE;
+    }
+    if (typeof value === "string") {
+        return context.options.formatString(value);
+    }
+    if (typeof value === "bigint") {
+        return value.toString();
+    }
+    if (typeof value === "function" || typeof value === "symbol") {
+        return formatUnsupportedValueForLog(value, context);
+    }
+    if (typeof value === "object" && value !== null) {
+        return formatObjectForLog(value, context);
     }
 
-    for (const [key, value] of Object.entries(error)) {
-        if (ERROR_STANDARD_FIELD_NAMES.has(key)) {
-            continue;
-        }
-        record[key] = formatValueForLog(key, value, context);
-    }
-
-    return record;
+    return value;
 }
 
 function formatObjectForLog(
@@ -119,6 +88,32 @@ function formatObjectForLog(
     return record;
 }
 
+function formatErrorForLog(
+    error: Error,
+    context: LogValueFormatContext
+): Record<string, unknown> {
+    const record: Record<string, unknown> = {
+        message: context.options.formatString(error.message),
+        name: error.name,
+    };
+
+    if (context.options.includeErrorStack) {
+        record.stack =
+            error.stack === undefined
+                ? error.stack
+                : context.options.formatString(error.stack);
+    }
+
+    for (const [key, value] of Object.entries(error)) {
+        if (ERROR_STANDARD_FIELD_NAMES.has(key)) {
+            continue;
+        }
+        record[key] = formatValueForLog(key, value, context);
+    }
+
+    return record;
+}
+
 function formatUnsupportedValueForLog(
     value: unknown,
     context: LogValueFormatContext
@@ -135,26 +130,30 @@ function formatUnsupportedValueForLog(
     return typeof value === "symbol" ? value.toString() : String(value);
 }
 
-function formatValueForLog(
-    key: string,
-    value: unknown,
-    context: LogValueFormatContext
-): unknown {
-    if (SENSITIVE_LOG_KEY_PATTERN.test(key)) {
-        return REDACTED_LOG_VALUE;
-    }
-    if (typeof value === "string") {
-        return context.options.formatString(value);
-    }
-    if (typeof value === "bigint") {
-        return value.toString();
-    }
-    if (typeof value === "function" || typeof value === "symbol") {
-        return formatUnsupportedValueForLog(value, context);
-    }
-    if (typeof value === "object" && value !== null) {
-        return formatObjectForLog(value, context);
-    }
+function resolveFormatOptions(
+    options: LogValueFormatOptions
+): RequiredLogValueFormatOptions {
+    return {
+        formatString: options.formatString ?? truncateLogString,
+        includeErrorStack: options.includeErrorStack ?? true,
+        unsupportedValueBehavior:
+            options.unsupportedValueBehavior ?? "describe",
+    };
+}
 
-    return value;
+export function truncateLogString(value: string): string {
+    if (value.length <= LOG_STRING_MAX_LENGTH) {
+        return value;
+    }
+    return `${value.slice(0, LOG_STRING_MAX_LENGTH)}... [truncated ${value.length - LOG_STRING_MAX_LENGTH} chars]`;
+}
+
+export function formatLogValue(
+    value: unknown,
+    options: LogValueFormatOptions = {}
+): unknown {
+    return formatValueForLog("", value, {
+        options: resolveFormatOptions(options),
+        visitedObjects: new WeakSet(),
+    });
 }

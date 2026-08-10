@@ -20,7 +20,7 @@ const MAX_CONCURRENT_DNS_LOOKUPS = 2;
 
 const DNS_RESOLVE_OPERATION = "resolveHostAddresses";
 
-const logger = createLogger("security/dns");
+const log = createLogger("security/dns");
 
 const DnsLookupErrorData = z.object({
     host: z.string(),
@@ -120,7 +120,7 @@ function acquireLookupSlot(host: string, deadline: number): Promise<void> {
             if (index !== -1) {
                 waitingLookups.splice(index, 1);
             }
-            logger.warn("DNS lookup timed out while queued", { host });
+            log.warn("DNS lookup timed out while queued", { host });
             reject(createDnsTimeoutError(host));
         }, remaining);
         waitingLookups.push(waiting);
@@ -167,7 +167,7 @@ export async function resolveHostAddresses(
         const remaining = deadline - Date.now();
         if (remaining <= 0) {
             releaseLookupSlot();
-            logger.warn("DNS timed out before the lookup started", { host });
+            log.warn("DNS timed out before the lookup started", { host });
             throw createDnsTimeoutError(host);
         }
         const lookup = dns.lookup(host, { all: true, verbatim: true });
@@ -178,13 +178,13 @@ export async function resolveHostAddresses(
         // Settlement that lost the race cannot surface anywhere else — the
         // caller has moved on — so it is logged instead of going unhandled.
         lookup.catch((error: unknown) => {
-            logger.warn("DNS lookup failed after settlement", { error, host });
+            log.warn("DNS lookup failed after settlement", { error, host });
         });
         const resolved = await Promise.race([
             lookup,
             new Promise<never>((_, reject) => {
                 timer = setTimeout(() => {
-                    logger.warn("DNS lookup timed out", { host });
+                    log.warn("DNS lookup timed out", { host });
                     reject(createDnsTimeoutError(host));
                 }, remaining);
             }),
@@ -193,7 +193,7 @@ export async function resolveHostAddresses(
             (entry) => entry.address
         );
         if (firstAddress === undefined) {
-            logger.warn("DNS lookup returned no addresses", { host });
+            log.warn("DNS lookup returned no addresses", { host });
             throw new DnsEmptyResultError({
                 host,
                 message: `No addresses for ${host}`,

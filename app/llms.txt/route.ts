@@ -1,4 +1,4 @@
-const llmsFullContent = `# [Cache](https://www.cachd.app)
+const content = `# [Cache](https://www.cachd.app)
 > Unify your bookmarks across all platforms into a single, searchable, actionable library. Save, organize, review, and synthesize content you care about.
 
 ## Core features
@@ -69,7 +69,7 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 `;
 
 export const GET = () =>
-    new Response(llmsFullContent, {
+    new Response(content, {
         headers: {
             "Cache-Control": "public, max-age=86400, s-maxage=86400",
             "Content-Type": "text/markdown; charset=utf-8",

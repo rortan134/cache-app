@@ -24,7 +24,7 @@ import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getOwnerDocument } from "@/lib/common/dom";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { openExternal, parseStandaloneUrl } from "@/lib/common/url";
+import { openExternalUrl, parseStandaloneUrl } from "@/lib/common/url";
 import {
     NOTE_EMPTY_HTML,
     convertNoteHtmlToMarkdown,
@@ -1140,7 +1140,7 @@ export function NoteHeader() {
                     message: "Sent to Notion.",
                     tone: "success",
                 });
-                openExternal(result.pageUrl);
+                openExternalUrl(result.pageUrl);
                 return;
             }
 

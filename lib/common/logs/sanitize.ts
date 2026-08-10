@@ -20,7 +20,7 @@ export type Loggable =
  * Redacts sensitive entities from text using Arcjet.
  * Detects email addresses, phone numbers, IP addresses, and credit cards.
  */
-async function redactSensitiveEntities(text: string): Promise<string> {
+async function redactSensitive(text: string): Promise<string> {
     if (text.length === 0) {
         return text;
     }
@@ -51,7 +51,7 @@ async function redactSanitizedStrings(value: unknown): Promise<unknown> {
     }
 
     if (typeof value === "string") {
-        return await redactSensitiveEntities(value);
+        return await redactSensitive(value);
     }
 
     if (Array.isArray(value)) {
