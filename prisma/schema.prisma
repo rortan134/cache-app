@@ -133,6 +133,7 @@ model User {
   libraryActivityEvents   LibraryActivityEvent[]
   automations             Automation[]
   automationRuns          AutomationRun[]
+  comments                Comment[]
 
   feedbackEntries  Feedback[]
   rssFeeds         RssFeed[]
@@ -248,6 +249,7 @@ model LibraryItem {
   deletedAt        DateTime?
   collections      Collection[]
   activityEvents   LibraryActivityEvent[]
+  comment          Comment?
   /// Null means the item has not entered the review workflow yet.
   reviewedAt       DateTime?
   /// When the user marked this item as a favorite. Null means not favorited.
@@ -276,6 +278,21 @@ model LibraryItem {
   @@index([userId, deletedAt])
   @@index([userId, linkReachability])
   @@map("library_item")
+}
+
+/// User-authored single comment attached to an item. One row per item; clearing
+/// the comment deletes the row. Notes cannot carry comments.
+model Comment {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  libraryItemId String      @unique
+  libraryItem   LibraryItem @relation(fields: [libraryItemId], references: [id], onDelete: Cascade)
+  contentText   String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("comment")
 }
 
 /// Scheduled assistant behavior owned by a user. Paused seeded automations may

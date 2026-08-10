@@ -37,13 +37,14 @@ import {
     useNoteContext,
     type NoteDraft,
 } from "@/components/library/new";
+import { CommentTextarea } from "@/components/library/comments";
 import { OnboardingMenu } from "@/components/library/onboarding";
 import {
-    openQuickLookDrawer,
+    openQuickLook,
     QuickLookDrawer,
     QuickLookDrawerContent,
     QuickLookDrawerTrigger,
-    useIsQuickLookDrawerOpen,
+    useIsQuickLookOpen,
 } from "@/components/library/quick-look";
 import {
     Attachment,
@@ -104,7 +105,6 @@ import {
     DrawerPopup,
     DrawerTitle,
     DrawerViewport,
-    DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -207,13 +207,13 @@ import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
-    cachePreviewDimensions,
-    clampPreviewDimensions,
-    DEFAULT_PREVIEW_DIMENSIONS,
-    pinDefaultPreviewDimensionsIfMissing,
-    readCachedPreviewDimensions,
-    type PreviewDimensions,
-} from "@/lib/common/preview-dimensions";
+    cacheDimensions,
+    clampDimensions,
+    DEFAULT_DIMENSIONS,
+    pinDefaultDimensionsIfMissing,
+    readCachedDimensions,
+    type Dimensions,
+} from "@/lib/common/dimensions";
 import {
     getNoteExcerpt,
     normalizeWhitespace,
@@ -222,7 +222,7 @@ import {
 } from "@/lib/common/strings";
 import {
     normalizeURL,
-    openExternal,
+    openExternalUrl,
     parseDisplayUrl,
     toValidUrl,
 } from "@/lib/common/url";
@@ -633,7 +633,7 @@ function buildCommandSuggestions({
             icon: <DownloadIcon className={SUGGESTION_ICON_CLASS} />,
             label: "Get extension",
             onSelect: commitSelection(() =>
-                openExternal(CACHE_EXTENSION_DOWNLOAD_URL)
+                openExternalUrl(CACHE_EXTENSION_DOWNLOAD_URL)
             ),
         });
     }
@@ -2527,7 +2527,7 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
     } = useBrowserContext();
     const { state: sidebarState } = useSidebar();
 
-    const isQuickLookDrawerOpen = useIsQuickLookDrawerOpen();
+    const isQuickLookDrawerOpen = useIsQuickLookOpen();
     const sidebarStateDebounced = useDebouncedValue(sidebarState, 150);
     const quickLookDrawerOpenDebounced = useDebouncedValue(
         isQuickLookDrawerOpen,
@@ -2617,7 +2617,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
     return (
         <img
             alt=""
-            className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform duration-150 ease-out group-data-highlighted:-translate-y-1"
+            className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform ease-out group-data-highlighted:-translate-y-1"
             decoding="async"
             draggable="false"
             fetchPriority="high"
@@ -3647,7 +3647,7 @@ function useLibraryItemActions(args: {
 
     const handleOpenInNewTab = useStableCallback(
         (item: LibraryItemWithCollections) => {
-            openExternal(normalizeURL(item.url));
+            openExternalUrl(normalizeURL(item.url));
         }
     );
 
@@ -3924,10 +3924,10 @@ function CollectionComboboxPicker({
                                         {collection.name}
                                     </span>
                                     <div className="relative flex w-fit items-center justify-end pl-4">
-                                        <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-0">
+                                        <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity ease-out group-data-highlighted/item:opacity-0">
                                             {collection.itemCount}
                                         </span>
-                                        <span className="absolute right-0 shrink-0 text-nowrap text-muted-foreground text-xs opacity-0 transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-100">
+                                        <span className="absolute right-0 shrink-0 text-nowrap text-muted-foreground text-xs opacity-0 transition-opacity ease-out group-data-highlighted/item:opacity-100">
                                             Save
                                         </span>
                                     </div>
@@ -3990,16 +3990,15 @@ function MediaPreview({
     const [hasImageFailed, setHasImageFailed] = React.useState(false);
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
     const [hasVideoStarted, setHasVideoStarted] = React.useState(false);
-    const [dimensions, setDimensions] =
-        React.useState<PreviewDimensions | null>(() =>
-            readCachedPreviewDimensions(src)
-        );
+    const [dimensions, setDimensions] = React.useState<Dimensions | null>(() =>
+        readCachedDimensions(src)
+    );
     const [prevSrc, setPrevSrc] = React.useState(src);
 
     if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setHasImageFailed(false);
-        setDimensions(readCachedPreviewDimensions(src));
+        setDimensions(readCachedDimensions(src));
     }
 
     const canRenderImage = Boolean(src) && !hasImageFailed;
@@ -4064,8 +4063,8 @@ function MediaPreview({
             if (!(w > 0 && h > 0)) {
                 return;
             }
-            const next: PreviewDimensions = { h, w };
-            cachePreviewDimensions(src, next);
+            const next: Dimensions = { h, w };
+            cacheDimensions(src, next);
             setDimensions((current) =>
                 current?.w === w && current.h === h ? current : next
             );
@@ -4079,7 +4078,7 @@ function MediaPreview({
             }
             // Pin a default slot when nothing is known yet so virtualization
             // remounts (and MediaPlaceholder) keep a stable aspect ratio.
-            setDimensions(pinDefaultPreviewDimensionsIfMissing(src));
+            setDimensions(pinDefaultDimensionsIfMissing(src));
             setHasImageFailed(true);
         }
     );
@@ -4163,9 +4162,7 @@ function MediaPreview({
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
-    const displayDimensions = clampPreviewDimensions(
-        dimensions ?? DEFAULT_PREVIEW_DIMENSIONS
-    );
+    const displayDimensions = clampDimensions(dimensions ?? DEFAULT_DIMENSIONS);
 
     return (
         <div
@@ -4203,7 +4200,7 @@ function MediaPreview({
                 <>
                     <video
                         className={cn(
-                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain transition-opacity duration-150 ease-out",
+                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain transition-opacity ease-out",
                             { "z-1": isHovered }
                         )}
                         crossOrigin="use-credentials"
@@ -4220,7 +4217,7 @@ function MediaPreview({
                     {isVideoLoading ? (
                         <div
                             className={cn(
-                                "pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out",
+                                "pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity ease-out",
                                 { "opacity-100": isHovered }
                             )}
                         >
@@ -4239,7 +4236,7 @@ function MediaPreview({
                             }
                             aria-pressed={isSoundEnabled}
                             className={cn(
-                                "pointer-events-auto absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
+                                "pointer-events-auto absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
                                 { "opacity-100": isHovered }
                             )}
                             onClick={handleSoundToggle}
@@ -4276,6 +4273,7 @@ interface MediaCardInteractionState {
 
 interface MediaCardSurfaceState {
     isMenuOpen: boolean;
+    isOverlayOpen: boolean;
     onMenuOpenChange: (open: boolean) => void;
 }
 
@@ -4881,7 +4879,7 @@ function useMediaCardWaybackActions() {
     const { item } = useMediaCardData();
 
     const handleWayback30 = useStableCallback(() =>
-        openExternal(
+        openExternalUrl(
             "https://web.archive.org/web/" +
                 formatWaybackDate(-30) +
                 "/" +
@@ -4890,7 +4888,7 @@ function useMediaCardWaybackActions() {
     );
 
     const handleWayback90 = useStableCallback(() =>
-        openExternal(
+        openExternalUrl(
             "https://web.archive.org/web/" +
                 formatWaybackDate(-90) +
                 "/" +
@@ -4899,7 +4897,7 @@ function useMediaCardWaybackActions() {
     );
 
     const handleWayback180 = useStableCallback(() =>
-        openExternal(
+        openExternalUrl(
             "https://web.archive.org/web/" +
                 formatWaybackDate(-180) +
                 "/" +
@@ -4908,7 +4906,7 @@ function useMediaCardWaybackActions() {
     );
 
     const handleWayback365 = useStableCallback(() =>
-        openExternal(
+        openExternalUrl(
             "https://web.archive.org/web/" +
                 formatWaybackDate(-365) +
                 "/" +
@@ -4917,7 +4915,7 @@ function useMediaCardWaybackActions() {
     );
 
     const handleWaybackAll = useStableCallback(() =>
-        openExternal(`https://web.archive.org/web/*/${item.url}`)
+        openExternalUrl(`https://web.archive.org/web/*/${item.url}`)
     );
 
     return {
@@ -5174,10 +5172,22 @@ function MediaCardContextMenuActionList() {
     );
 }
 
+function MediaCardMenuCommentTextarea() {
+    const { isNote, item } = useMediaCardData();
+    const { isOverlayOpen } = useMediaCardSurface();
+
+    if (isNote) {
+        return null;
+    }
+
+    return <CommentTextarea item={item} open={isOverlayOpen} />;
+}
+
 function MediaCardMenuContent() {
     return (
         <>
             <MediaCardMenuDetails />
+            <MediaCardMenuCommentTextarea />
             <MenuSeparator />
             <MediaCardMenuActionList />
         </>
@@ -5188,6 +5198,7 @@ function MediaCardContextMenuContent() {
     return (
         <>
             <MediaCardMenuDetails />
+            <MediaCardMenuCommentTextarea />
             <ContextMenuSeparator />
             <MediaCardContextMenuActionList />
         </>
@@ -5199,7 +5210,7 @@ function MediaCardMenuSurface() {
     const { isMenuOpen, onMenuOpenChange } = useMediaCardSurface();
 
     return (
-        <Menu onOpenChange={onMenuOpenChange} open={isMenuOpen}>
+        <Menu modal={false} onOpenChange={onMenuOpenChange} open={isMenuOpen}>
             <MenuTrigger
                 render={
                     <Button
@@ -5282,12 +5293,13 @@ function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
         <MediaCardSurfaceContext
             value={{
                 isMenuOpen,
+                isOverlayOpen: isMenuOpen || isContextMenuOpen,
                 onMenuOpenChange: setIsMenuOpen,
             }}
         >
             <ContextMenu onOpenChange={setIsContextMenuOpen}>
                 <ContextMenuTrigger
-                    className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
+                    className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-transform before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.98] active:before:opacity-80!"
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                 >
@@ -5548,29 +5560,27 @@ function NoteDrawerContent({
             position="right"
             swipeDirection="right"
         >
-            <DrawerVirtualKeyboardProvider>
-                <DrawerViewport>
-                    <DrawerPopup
-                        className="max-w-2xl"
-                        initialFocus={contentEditableRef}
-                        variant="straight"
+            <DrawerViewport>
+                <DrawerPopup
+                    className="max-w-2xl"
+                    initialFocus={contentEditableRef}
+                    variant="straight"
+                >
+                    <DrawerHeader
+                        allowSelection
+                        className="flex-row items-center justify-between"
                     >
-                        <DrawerHeader
-                            allowSelection
-                            className="flex-row items-center justify-between"
-                        >
-                            <DrawerTitle className="sr-only">
-                                <NoteTitle />
-                            </DrawerTitle>
-                            <NoteHeader />
-                        </DrawerHeader>
-                        <DrawerPanel allowSelection>
-                            <NoteEditor />
-                            <NoteMetrics />
-                        </DrawerPanel>
-                    </DrawerPopup>
-                </DrawerViewport>
-            </DrawerVirtualKeyboardProvider>
+                        <DrawerTitle className="sr-only">
+                            <NoteTitle />
+                        </DrawerTitle>
+                        <NoteHeader />
+                    </DrawerHeader>
+                    <DrawerPanel allowSelection>
+                        <NoteEditor />
+                        <NoteMetrics />
+                    </DrawerPanel>
+                </DrawerPopup>
+            </DrawerViewport>
         </Drawer>
     );
 }
@@ -5989,7 +5999,7 @@ function useCardHoverHotkeys({
                 return;
             }
             event.preventDefault();
-            openQuickLookDrawer(
+            openQuickLook(
                 {
                     description: getLibraryItemDomain(item.url),
                     title: getLibraryItemTitle(item),
