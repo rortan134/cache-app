@@ -140,7 +140,7 @@ import {
     normalizeWhitespace,
     slugify,
 } from "@/lib/common/strings";
-import { normalizeURL, openExternal } from "@/lib/common/url";
+import { normalizeURL, openExternalUrl } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
 import { sendCollectionToNotion } from "@/lib/integrations/notion/actions";
 import { getSourceLabel } from "@/lib/integrations/support";
@@ -156,6 +156,7 @@ import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T } from "gt-next";
+import { findAll as findTextMatches } from "highlight-words-core";
 import {
     ArchiveIcon,
     ArchiveX,
@@ -1818,7 +1819,7 @@ function useCollectionRowActions() {
             );
 
             for (const url of urls) {
-                openExternal(url);
+                openExternalUrl(url);
             }
         }
     );
@@ -3709,6 +3710,7 @@ function CollectionsListItemPreviewImage({
 
 function CollectionsListItemValue() {
     const { collection, isSelected } = useCollectionsListItemContext();
+    const { textMatchQuery } = useCollectionsListStore();
 
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
@@ -3716,7 +3718,7 @@ function CollectionsListItemValue() {
                 className="max-w-full shrink-0 truncate font-medium text-sm tracking-tight"
                 title={collection.description ?? undefined}
             >
-                {collection.name}
+                {renderQueryMatch(collection.name, textMatchQuery)}
             </span>
             {isSelected ? (
                 <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground opacity-100">
@@ -4143,7 +4145,7 @@ function CollectionsListItemExportSubMenu() {
                 });
                 if (result.status === ACTION_STATUS.SUCCESS) {
                     showSuccess(`${collection.name} sent to Notion.`);
-                    openExternal(result.pageUrl);
+                    openExternalUrl(result.pageUrl);
                 } else {
                     showError(result.message);
                 }
@@ -5096,4 +5098,40 @@ function CollectionsListPriorityBreakdown({
             ))}
         </ul>
     );
+}
+
+function renderQueryMatch(
+    textToHighlight: string,
+    query: string
+): React.ReactNode {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length === 0) {
+        return textToHighlight;
+    }
+
+    const chunks = findTextMatches({
+        autoEscape: true,
+        caseSensitive: false,
+        searchWords: [normalizedQuery],
+        textToHighlight,
+    });
+
+    if (chunks.length === 1 && !chunks[0]?.highlight) {
+        return textToHighlight;
+    }
+
+    return chunks.map(({ end, highlight, start }) => {
+        const text = textToHighlight.slice(start, end);
+
+        return highlight ? (
+            <mark
+                className="bg-(--accent-color) text-(--collection-background)"
+                key={start}
+            >
+                {text}
+            </mark>
+        ) : (
+            text
+        );
+    });
 }
