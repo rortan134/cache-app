@@ -10,7 +10,7 @@ export function GET() {
 # RFC 9116: https://www.rfc-editor.org/rfc/rfc9116.html
 
 # Required: Contact information for security reports
-Contact: mailto:security@cachd.app
+Contact: mailto:notices@cachd.app
 
 # Required: When this file expires (ISO 8601 format, within 1 year)
 Expires: ${expires}
