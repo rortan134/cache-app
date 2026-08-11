@@ -1,5 +1,7 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useEffect, useSyncExternalStore } from "react";
 import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 import type { Theme } from "@/lib/common/theme";
 import {
@@ -7,8 +9,6 @@ import {
     THEME_MEDIA_QUERY,
     THEME_STORAGE_KEY,
 } from "@/lib/common/theme";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { useEffect, useSyncExternalStore } from "react";
 
 export type { Theme } from "@/lib/common/theme";
 

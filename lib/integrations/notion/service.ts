@@ -1,18 +1,20 @@
 import "server-only";
 
-import { extractNoteText } from "@/lib/integrations/notes/utils";
+import {
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    toLibraryItemWithCollections,
+} from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { convertNoteHtmlToMarkdown } from "@/lib/integrations/notes/utils";
 import { IntegrationUserError } from "@/lib/integrations/error";
+import {
+    convertNoteHtmlToMarkdown,
+    extractNoteText,
+} from "@/lib/integrations/notes/utils";
 import { createNotionMarkdownPage } from "@/lib/integrations/notion/api";
 import {
     buildNotionCollectionMarkdown,
     buildNotionNoteMarkdown,
 } from "@/lib/integrations/notion/markdown";
-import {
-    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-    toLibraryItemWithCollections,
-} from "@/lib/collections/utils";
 import { prisma } from "@/prisma";
 
 const log = createLogger("integrations:notion");

@@ -1,9 +1,9 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth/server";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
-import { headers } from "next/headers";
 import {
     compareProviderAccountsForScopePreference,
     getProviderTokenApiErrorCode,

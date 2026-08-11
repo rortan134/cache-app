@@ -1,39 +1,9 @@
 import "server-only";
 
-import { serverEnv } from "@/env/server";
-import { templateDescriptionForNameKey } from "@/lib/collections/templates";
-import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
-import { createLogger } from "@/lib/common/logs/console/logger";
-import { GenAiProtectionError } from "@/lib/intelligence/error";
-import {
-    SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
-    SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH,
-} from "@/lib/intelligence/overview";
-import {
-    estimateGenAiTokens,
-    protectGenAiRequest,
-} from "@/lib/intelligence/protection";
-
-import { abortAfter } from "@/lib/common/abort";
-import { unique } from "@/lib/common/arrays";
-import {
-    ITEM_KIND_BOOKMARK,
-    MIME_TYPES,
-    SORT_ASC,
-} from "@/lib/common/constants";
-import {
-    decodeHtmlEntities,
-    normalizeCollectionName,
-    normalizeWhitespace,
-    truncateText,
-} from "@/lib/common/strings";
-import { isHttpUrl } from "@/lib/common/url";
-import { fetchPublicRedirect } from "@/lib/common/security/fetch";
-import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
-import { resolveGenAIModels, type ModelId } from "@/lib/intelligence/models";
-import { prisma } from "@/prisma";
-
-import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
+import { randomUUID } from "node:crypto";
+import { open, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, extname, join } from "node:path";
 import {
     ApiError,
     createPartFromText,
@@ -44,11 +14,39 @@ import {
     Type,
 } from "@google/genai";
 import mime from "mime-types";
-import { randomUUID } from "node:crypto";
-import { open, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { basename, extname, join } from "node:path";
 import * as z from "zod";
+import { serverEnv } from "@/env/server";
+import { templateDescriptionForNameKey } from "@/lib/collections/templates";
+import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
+import { abortAfter } from "@/lib/common/abort";
+import { unique } from "@/lib/common/arrays";
+import {
+    ITEM_KIND_BOOKMARK,
+    MIME_TYPES,
+    SORT_ASC,
+} from "@/lib/common/constants";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { fetchPublicRedirect } from "@/lib/common/security/fetch";
+import {
+    decodeHtmlEntities,
+    normalizeCollectionName,
+    normalizeWhitespace,
+    truncateText,
+} from "@/lib/common/strings";
+import { isHttpUrl } from "@/lib/common/url";
+import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
+import { GenAiProtectionError } from "@/lib/intelligence/error";
+import { type ModelId, resolveGenAIModels } from "@/lib/intelligence/models";
+import {
+    SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
+    SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH,
+} from "@/lib/intelligence/overview";
+import {
+    estimateGenAiTokens,
+    protectGenAiRequest,
+} from "@/lib/intelligence/protection";
+import { prisma } from "@/prisma";
+import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
 
 const log = createLogger("library:smart-collections");
 const serviceLog = createLogger("intelligence:service");

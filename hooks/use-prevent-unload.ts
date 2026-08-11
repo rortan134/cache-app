@@ -1,5 +1,5 @@
-import { getOwnerWindow } from "@/lib/common/dom";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { getOwnerWindow } from "@/lib/common/dom";
 
 /**
  * Prevents the browser window from unloading when the given condition is met.

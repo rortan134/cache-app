@@ -1,42 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Group } from "@/components/ui/group";
-import {
-    ClaudeIcon,
-    CursorIcon,
-    GoogleDocsIcon,
-    NotionIcon,
-    OpenAIIcon,
-    V0Icon,
-} from "@/components/ui/icons";
-import {
-    Menu,
-    MenuItem,
-    MenuPopup,
-    MenuSeparator,
-    MenuTrigger,
-} from "@/components/ui/menu";
-import { useAutosave, type SaveStatus } from "@/hooks/use-autosave";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import type { LibraryItemWithCollections } from "@/lib/collections/utils";
-import { cn } from "@/lib/common/cn";
-import { getOwnerDocument } from "@/lib/common/dom";
-import { saveFile } from "@/lib/common/file";
-import { createLogger } from "@/lib/common/logs/console/logger";
-import { openExternalUrl, parseStandaloneUrl } from "@/lib/common/url";
-import {
-    NOTE_EMPTY_HTML,
-    convertNoteHtmlToMarkdown,
-    extractNoteText,
-    isNoteSerializedEditorState,
-    normalizeNoteHtml,
-    serializeNoteEditorStateToHtml,
-    type NoteSerializedEditorState,
-} from "@/lib/integrations/notes/utils";
-import { sendNoteToNotion } from "@/lib/integrations/notion/actions";
-import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     AriaLiveRegionExtension,
@@ -74,14 +37,14 @@ import {
     $isRangeSelection,
     $isRootNode,
     COMMAND_PRIORITY_LOW,
-    FORMAT_TEXT_COMMAND,
-    PASTE_COMMAND,
-    SELECTION_CHANGE_COMMAND,
-    mergeRegister,
     type EditorState,
+    FORMAT_TEXT_COMMAND,
     type LexicalEditor,
+    mergeRegister,
+    PASTE_COMMAND,
     type PasteCommandType,
     type RangeSelection,
+    SELECTION_CHANGE_COMMAND,
     type TextFormatType,
 } from "lexical";
 import {
@@ -94,25 +57,62 @@ import {
     ExternalLinkIcon,
     FileTextIcon,
     ItalicIcon,
+    type LucideIcon,
     MessageCircleIcon,
     StrikethroughIcon,
     UnderlineIcon,
     XIcon,
-    type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import {
+    type ComponentType,
     createContext,
+    type ReactNode,
+    type SVGProps,
     use,
     useDeferredValue,
     useEffect,
     useRef,
     useState,
     useTransition,
-    type ComponentType,
-    type ReactNode,
-    type SVGProps,
 } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Group } from "@/components/ui/group";
+import {
+    ClaudeIcon,
+    CursorIcon,
+    GoogleDocsIcon,
+    NotionIcon,
+    OpenAIIcon,
+    V0Icon,
+} from "@/components/ui/icons";
+import {
+    Menu,
+    MenuItem,
+    MenuPopup,
+    MenuSeparator,
+    MenuTrigger,
+} from "@/components/ui/menu";
+import { type SaveStatus, useAutosave } from "@/hooks/use-autosave";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import type { LibraryItemWithCollections } from "@/lib/collections/utils";
+import { cn } from "@/lib/common/cn";
+import { getOwnerDocument } from "@/lib/common/dom";
+import { saveFile } from "@/lib/common/file";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { openExternalUrl, parseStandaloneUrl } from "@/lib/common/url";
+import {
+    convertNoteHtmlToMarkdown,
+    extractNoteText,
+    isNoteSerializedEditorState,
+    NOTE_EMPTY_HTML,
+    type NoteSerializedEditorState,
+    normalizeNoteHtml,
+    serializeNoteEditorStateToHtml,
+} from "@/lib/integrations/notes/utils";
+import { sendNoteToNotion } from "@/lib/integrations/notion/actions";
+import AppIconSmall from "@/public/cache-icon-small.png";
 
 export interface NoteDraft {
     contentHtml: string;

@@ -1,6 +1,6 @@
+import Parser from "rss-parser";
 import { abortAfter } from "@/lib/common/abort";
 import { fetchPublicRedirect } from "@/lib/common/security/fetch";
-import Parser from "rss-parser";
 import { RssFeedError } from "./errors";
 
 const FETCH_TIMEOUT_MS = 15_000;

@@ -1,5 +1,5 @@
-import { PageShell } from "@/components/ui/page-shell";
 import * as React from "react";
+import { PageShell } from "@/components/ui/page-shell";
 
 export default function LegalLayout({
     children,

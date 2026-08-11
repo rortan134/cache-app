@@ -1,7 +1,7 @@
 import "server-only";
 
-import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
 import { after } from "next/server";
+import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
 
 /**
  * Uses `after()` so it only works inside Next.js route handlers or server actions.

@@ -1,3 +1,10 @@
+import type {
+    CallToolResult,
+    McpServer,
+    ServerContext,
+} from "@modelcontextprotocol/server";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import * as z from "zod";
 import { LibraryCollectionError } from "@/lib/collections/error";
 import {
     deleteLibraryItem,
@@ -23,21 +30,14 @@ import {
     McpLibraryItemSchema,
 } from "@/lib/integrations/mcp/protocol";
 import {
-    MCP_RATE_BUCKETS,
     incrementMcpRateCounter,
     isOverLimit,
+    MCP_RATE_BUCKETS,
 } from "@/lib/integrations/mcp/rate-limit";
 import {
     addLibraryItem,
     toMcpLibraryItem,
 } from "@/lib/integrations/mcp/service";
-import type {
-    CallToolResult,
-    McpServer,
-    ServerContext,
-} from "@modelcontextprotocol/server";
-import { createMcpHandler, withMcpAuth } from "mcp-handler";
-import * as z from "zod";
 
 const log = createLogger("mcp.route");
 

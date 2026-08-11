@@ -1,7 +1,7 @@
-import { collectionNameSchema } from "@/lib/collections/utils";
-import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 import { createHash } from "node:crypto";
 import * as z from "zod";
+import { collectionNameSchema } from "@/lib/collections/utils";
+import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 
 export const extensionClipBodySchema = z.object({
     caption: z.string().trim().max(2000).optional(),

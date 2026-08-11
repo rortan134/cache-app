@@ -1,3 +1,5 @@
+import { Bot, Rss } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 import {
     ChromeIcon,
     GithubIcon,
@@ -12,8 +14,6 @@ import {
 } from "@/components/ui/icons";
 import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
-import { Bot, Rss } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
 
 export type IntegrationCategory = "developer" | "media" | "social";
 

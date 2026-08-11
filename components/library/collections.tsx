@@ -1,5 +1,53 @@
 "use client";
 
+import type { BaseUIEvent } from "@base-ui/react";
+import { Toolbar } from "@base-ui/react/toolbar";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useTimeout } from "@base-ui/utils/useTimeout";
+import { T } from "gt-next";
+import { findAll as findTextMatches } from "highlight-words-core";
+import {
+    ArchiveIcon,
+    ArchiveX,
+    ArrowUpDown,
+    ChevronRight,
+    Clock,
+    ClockFading,
+    Component,
+    CopyIcon,
+    CopyPlus,
+    Download,
+    EllipsisIcon,
+    ExternalLinkIcon,
+    FileSpreadsheetIcon,
+    Globe,
+    GlobeCheck,
+    Info,
+    LayoutList,
+    LibraryBig,
+    Lightbulb,
+    LinkIcon,
+    ListFilter,
+    LockKeyhole,
+    PencilIcon,
+    PencilSparkles,
+    PlusIcon,
+    SignalHigh,
+    SignalMedium,
+    Sparkle,
+    Star,
+    Trash2Icon,
+    UserRoundPlus,
+    X,
+} from "lucide-react";
+import { useReducedMotion } from "motion/react";
+import Image from "next/image";
+import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -78,13 +126,13 @@ import { useCollectionRecommendations } from "@/hooks/queries/use-collection-rec
 import { useSmartCollectionsPreference } from "@/hooks/queries/use-smart-collections-preference";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import {
+    type CollectionCreateResult,
     createCollection,
     deleteCollection,
     duplicateCollection,
     renameCollection,
     setSmartCollectionsPreference,
     updateCollectionPriority,
-    type CollectionCreateResult,
 } from "@/lib/collections/actions";
 import type {
     LibraryItemCollectionsUpdateResult,
@@ -96,9 +144,9 @@ import {
 } from "@/lib/collections/sharing/actions";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
 import {
+    type CollectionTemplateOption,
     TEMPLATE_BY_VALUE,
     TEMPLATES,
-    type CollectionTemplateOption,
     type TemplateValue,
 } from "@/lib/collections/templates";
 import {
@@ -124,6 +172,7 @@ import {
     ITEM_KIND_NOTE,
     MIME_TYPES,
 } from "@/lib/common/constants";
+import { dayjs } from "@/lib/common/dayjs";
 import { canUseDOM } from "@/lib/common/dom";
 import { saveFile } from "@/lib/common/file";
 import {
@@ -141,7 +190,6 @@ import {
     slugify,
 } from "@/lib/common/strings";
 import { normalizeURL, openExternalUrl } from "@/lib/common/url";
-import { dayjs } from "@/lib/common/dayjs";
 import { sendCollectionToNotion } from "@/lib/integrations/notion/actions";
 import { getSourceLabel } from "@/lib/integrations/support";
 import { getCollectionDescription } from "@/lib/intelligence/actions";
@@ -149,54 +197,6 @@ import type { CollectionPriority } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import EmptyCollectionStateImage from "@/public/empty-collection-state.png";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
-import type { BaseUIEvent } from "@base-ui/react";
-import { Toolbar } from "@base-ui/react/toolbar";
-import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
-import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { useTimeout } from "@base-ui/utils/useTimeout";
-import { T } from "gt-next";
-import { findAll as findTextMatches } from "highlight-words-core";
-import {
-    ArchiveIcon,
-    ArchiveX,
-    ArrowUpDown,
-    ChevronRight,
-    Clock,
-    ClockFading,
-    Component,
-    CopyIcon,
-    CopyPlus,
-    Download,
-    EllipsisIcon,
-    ExternalLinkIcon,
-    FileSpreadsheetIcon,
-    Globe,
-    GlobeCheck,
-    Info,
-    LayoutList,
-    LibraryBig,
-    Lightbulb,
-    LinkIcon,
-    ListFilter,
-    LockKeyhole,
-    PencilIcon,
-    PencilSparkles,
-    PlusIcon,
-    SignalHigh,
-    SignalMedium,
-    Sparkle,
-    Star,
-    Trash2Icon,
-    UserRoundPlus,
-    X,
-} from "lucide-react";
-import { useReducedMotion } from "motion/react";
-import Image from "next/image";
-import * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { createStore } from "stan-js";
-import { storage } from "stan-js/storage";
 
 const NAME_REQUIRED_MESSAGE = "Enter a collection name.";
 const CREATE_ERROR_MESSAGE = "We couldn't create this collection right now.";

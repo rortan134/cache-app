@@ -1,5 +1,5 @@
+import { type BuiltInLocales, localization } from "better-auth-localization";
 import { DEFAULT_LOCALE } from "@/lib/common/constants";
-import { localization, type BuiltInLocales } from "better-auth-localization";
 
 const LOCALE_COOKIE_NAME = "generaltranslation.locale";
 const LOCALE_FALLBACK = "default" satisfies BuiltInLocales;

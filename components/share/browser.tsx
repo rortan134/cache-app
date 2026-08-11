@@ -1,5 +1,9 @@
 "use client";
 
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
+import * as React from "react";
 import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,15 +11,11 @@ import { Ticker } from "@/components/ui/ticker";
 import { cn } from "@/lib/common/cn";
 import {
     cacheDimensions,
+    type Dimensions,
     pinDefaultDimensionsIfMissing,
     readCachedDimensions,
     resolveDisplayDimensions,
-    type Dimensions,
 } from "@/lib/common/dimensions";
-import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T } from "gt-next";
-import * as React from "react";
 
 const SHARE_SKELETON_PLACEHOLDERS = [
     { aspect: "aspect-[3/4]", id: "share-skel-0" },

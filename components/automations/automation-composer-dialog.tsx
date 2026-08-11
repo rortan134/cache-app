@@ -1,5 +1,20 @@
 "use client";
 
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { parseDate } from "chrono-node";
+import { useLocale } from "gt-next";
+import {
+    CalendarDays,
+    ChevronDown,
+    ChevronRight,
+    Clock,
+    FolderOpen,
+    type LucideIcon,
+} from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,21 +58,6 @@ import {
     updateAutomation,
 } from "@/lib/intelligence/automations/actions";
 import AppIconSmall from "@/public/cache-icon-small.png";
-import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { parseDate } from "chrono-node";
-import { useLocale } from "gt-next";
-import {
-    CalendarDays,
-    ChevronDown,
-    ChevronRight,
-    Clock,
-    FolderOpen,
-    type LucideIcon,
-} from "lucide-react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import * as React from "react";
 
 const ALL_LIBRARY_COLLECTION_ID = "all_library";
 const SAVE_AUTOMATION_FAILURE_MESSAGE =

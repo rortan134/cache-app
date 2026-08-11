@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { APP_NAME } from "@/lib/common/constants";
 import LogoIconImage from "@/public/cache-app-icon.png";
-import Link from "next/link";
 
 export default function NotFoundPage() {
     return (

@@ -1,12 +1,12 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { type Theme, useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/common/cn";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { Monitor, Moon, Sun } from "lucide-react";
-import { useHotkeys } from "react-hotkeys-hook";
 
 const THEME_OPTIONS = [
     { icon: Sun, label: "Use light theme", value: "light" },

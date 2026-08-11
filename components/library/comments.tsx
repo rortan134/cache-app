@@ -1,5 +1,10 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
+import { T, useGT } from "gt-next";
+import * as React from "react";
+import useSWR from "swr";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutosave } from "@/hooks/use-autosave";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
@@ -13,11 +18,6 @@ import {
 } from "@/lib/comments/utils";
 import { ACTION_STATUS } from "@/lib/common/constants";
 import { stopPropagationForMenuTextInputKeys } from "@/lib/common/dom";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
-import { T, useGT } from "gt-next";
-import * as React from "react";
-import useSWR from "swr";
 
 const COMMENT_SWR_KEY_PREFIX = "library-item-comment";
 

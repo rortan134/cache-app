@@ -1,8 +1,8 @@
+import type { RedisClientType } from "redis";
+import { createClient } from "redis";
+import * as z from "zod";
 import { NamedError } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { createClient } from "redis";
-import type { RedisClientType } from "redis";
-import * as z from "zod";
 
 const log = createLogger("Redis");
 

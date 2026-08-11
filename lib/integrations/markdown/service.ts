@@ -1,5 +1,9 @@
 import "server-only";
 
+import type { Nodes, Root } from "mdast";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 import {
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     type LibraryItemWithCollections,
@@ -13,8 +17,8 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { normalizeCollectionName } from "@/lib/common/strings";
 import { IntegrationUserError } from "@/lib/integrations/error";
 import {
-    normalizeNotePayload,
     type NormalizedNotePayload,
+    normalizeNotePayload,
 } from "@/lib/integrations/notes/service";
 import { scheduleSmartCollections } from "@/lib/intelligence/schedule";
 import { prisma } from "@/prisma";
@@ -24,10 +28,6 @@ import {
     DbNull,
     type InputJsonValue,
 } from "@/prisma/client/internal/prismaNamespace";
-import type { Nodes, Root } from "mdast";
-import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
 
 const PATH_TRAVERSAL = /(?:^|\/|\\|%2f)\.\.(?:\/|\\|%2f|$)/i;
 const LEADING_SLASH = /^[/\\]+/;

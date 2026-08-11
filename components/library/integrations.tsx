@@ -1,10 +1,21 @@
 "use client";
 
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T, Var } from "gt-next";
+import { ArrowUpRight } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
 import {
     MarkdownImportDialog,
     openMarkdownImportDialog,
 } from "@/components/library/markdown";
-import { RssManageDialog, openRssManageDialog } from "@/components/library/rss";
+import { openRssManageDialog, RssManageDialog } from "@/components/library/rss";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,12 +46,12 @@ import {
 import { IntegrationUserError } from "@/lib/integrations/error";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
-    INTEGRATIONS,
-    listIntegrationActions,
     type ExtensionOpenBehavior,
+    INTEGRATIONS,
     type IntegrationActionRole,
     type IntegrationDirection,
     type IntegrationId,
+    listIntegrationActions,
     type OAuthLinkConnectBehavior,
     type RssManageConnectBehavior,
     type SocialSignInConnectBehavior,
@@ -48,17 +59,6 @@ import {
     type SupportedIntegrationAction,
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
-import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T, Var } from "gt-next";
-import { ArrowUpRight } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { createStore } from "stan-js";
-import { storage } from "stan-js/storage";
 
 const log = createLogger("library:integrations");
 

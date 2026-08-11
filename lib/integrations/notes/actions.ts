@@ -1,16 +1,16 @@
 "use server";
 
+import * as z from "zod";
 import { getSessionUserId } from "@/lib/auth/session";
+import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
-import { IntegrationUserError } from "@/lib/integrations/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { IntegrationUserError } from "@/lib/integrations/error";
 import {
     createNote as createNoteService,
     normalizeNotePayload,
     updateNote as updateNoteService,
 } from "@/lib/integrations/notes/service";
-import * as z from "zod";
-import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 
 const log = createLogger("integrations:notes:actions");
 const NOTE_CONTENT_HTML_MAX_LENGTH = 100_000;

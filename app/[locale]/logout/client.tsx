@@ -1,11 +1,11 @@
 "use client";
 
-import { Spinner } from "@/components/ui/spinner";
-import { authClient } from "@/lib/auth/client";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import { T } from "gt-next";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Spinner } from "@/components/ui/spinner";
+import { authClient } from "@/lib/auth/client";
+import { createLogger } from "@/lib/common/logs/console/logger";
 
 const log = createLogger("logout-page-client");
 

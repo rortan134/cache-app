@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
+import { cn } from "@/lib/common/cn";
 
 export function Collapsible({
     className,

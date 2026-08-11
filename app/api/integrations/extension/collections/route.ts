@@ -1,3 +1,4 @@
+import { LibraryCollectionError } from "@/lib/collections/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createExtensionCollection,
@@ -8,7 +9,6 @@ import {
     authenticateExtensionIngest,
     extensionIngestCorsHeaders,
 } from "@/lib/integrations/extension-ingest/route";
-import { LibraryCollectionError } from "@/lib/collections/error";
 
 const log = createLogger("api:integrations:extension:collections");
 

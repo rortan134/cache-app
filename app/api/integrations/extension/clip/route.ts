@@ -1,8 +1,8 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     clipPageFromExtension,
-    extensionClipBodySchema,
     ExtensionClipError,
+    extensionClipBodySchema,
 } from "@/lib/integrations/extension-clip/service";
 import {
     authenticateExtensionIngest,

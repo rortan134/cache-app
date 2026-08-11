@@ -6,13 +6,13 @@ import {
     type LibraryQualityItem,
     type LinkReachabilityStatus,
 } from "@/lib/collections/library-quality";
-import { mapConcurrent } from "@/lib/common/arrays";
 import { isAbortError } from "@/lib/common/abort";
+import { mapConcurrent } from "@/lib/common/arrays";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getRedisClient } from "@/lib/common/redis";
 import {
-    fetchPublicRedirect,
     type FetchHttpRedirectResult,
+    fetchPublicRedirect,
 } from "@/lib/common/security/fetch";
 import { prisma } from "@/prisma";
 import type { LibraryItemLinkReachability } from "@/prisma/client/client";

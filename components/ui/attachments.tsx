@@ -1,12 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-    PreviewCard,
-    PreviewCardPopup,
-    PreviewCardTrigger,
-} from "@/components/ui/preview-card";
-import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import {
@@ -19,6 +12,13 @@ import {
     XIcon,
 } from "lucide-react";
 import * as React from "react";
+import { Button } from "@/components/ui/button";
+import {
+    PreviewCard,
+    PreviewCardPopup,
+    PreviewCardTrigger,
+} from "@/components/ui/preview-card";
+import { cn } from "@/lib/common/cn";
 
 type AttachmentData =
     | (FileUIPart & { id: string })

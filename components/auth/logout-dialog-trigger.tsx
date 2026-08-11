@@ -1,5 +1,10 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
+import { useRouter } from "next/navigation";
+import type * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -11,11 +16,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T } from "gt-next";
-import { useRouter } from "next/navigation";
-import type * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 
 export function LogOutDialogTrigger(
     props: React.ComponentProps<typeof DialogTrigger>

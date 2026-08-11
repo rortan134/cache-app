@@ -1,14 +1,14 @@
 "use client";
 
-import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import { Check, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useHotkeys } from "react-hotkeys-hook";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 
 export function SignInButton({ hasServerSession }: SignInButtonProps) {
     const router = useRouter();

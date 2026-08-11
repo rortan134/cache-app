@@ -1,10 +1,10 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
+import { cn } from "@/lib/common/cn";
 
 export const Menu: typeof MenuPrimitive.Root = MenuPrimitive.Root;
 

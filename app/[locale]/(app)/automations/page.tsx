@@ -1,3 +1,9 @@
+import { T } from "gt-next";
+import { getGT } from "gt-next/server";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import * as React from "react";
 import { buildPageMetadata } from "@/app/metadata";
 import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { AutomationsList } from "@/components/automations/automations";
@@ -7,12 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
 import { listAutomations } from "@/lib/intelligence/automations/service";
-import { T } from "gt-next";
-import { getGT } from "gt-next/server";
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import * as React from "react";
 
 const AUTOMATION_SKELETON_KEYS = ["a0", "a1", "a2"] as const;
 

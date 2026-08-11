@@ -1,5 +1,5 @@
-import { auth } from "@/lib/auth/server";
 import { toNextJsHandler } from "better-auth/next-js";
+import { auth } from "@/lib/auth/server";
 
 // NOTE: This catch-all route also mounts the @better-auth/stripe webhook
 // handler at POST /api/auth/stripe/webhook. Ensure the Stripe Dashboard

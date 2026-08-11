@@ -1,12 +1,12 @@
 "use client";
 
+import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
+import { XIcon } from "lucide-react";
+import * as React from "react";
 import { CheckmarkIcon } from "@/components/ui/icons";
 import { Input, type InputSize } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/common/cn";
-import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { XIcon } from "lucide-react";
-import * as React from "react";
 
 interface ComboboxContextValue {
     chipsRef: React.RefObject<HTMLDivElement | null> | null;

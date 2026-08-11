@@ -1,8 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Group } from "@/components/ui/group";
-import { cn } from "@/lib/common/cn";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
@@ -10,6 +7,9 @@ import {
     BlossomNext,
     BlossomPrev,
 } from "@blossom-carousel/react";
+import { Button } from "@/components/ui/button";
+import { Group } from "@/components/ui/group";
+import { cn } from "@/lib/common/cn";
 import "@blossom-carousel/react/style.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";

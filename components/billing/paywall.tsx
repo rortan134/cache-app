@@ -1,8 +1,8 @@
+import { T, Var } from "gt-next";
+import { ArrowUpRight } from "lucide-react";
 import { SubscriptionUpgradeButton } from "@/components/billing/subscription";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { T, Var } from "gt-next";
-import { ArrowUpRight } from "lucide-react";
 
 export function InlinePaywallBanner() {
     return (

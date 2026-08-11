@@ -1,7 +1,7 @@
-import { buildPageMetadata } from "@/app/metadata";
-import { APP_NAME } from "@/lib/common/constants";
 import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/app/metadata";
+import { APP_NAME } from "@/lib/common/constants";
 
 export async function generateMetadata({
     params,

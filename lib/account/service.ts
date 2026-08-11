@@ -1,10 +1,10 @@
 import "server-only";
 
+import { headers } from "next/headers";
+import { AccountError } from "@/lib/account/error";
 import { auth } from "@/lib/auth/server";
 import { cancelUserActiveSubscriptions } from "@/lib/billing/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { AccountError } from "@/lib/account/error";
-import { headers } from "next/headers";
 
 const log = createLogger("account:service");
 

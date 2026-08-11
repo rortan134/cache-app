@@ -5,13 +5,13 @@ import {
     IntegrationConnectionError,
 } from "@/lib/integrations/error";
 import { PickerNotReadyError } from "./error";
+import type { ImportResponse, SessionCreateResponse } from "./shared";
 import {
     ImportResponseSchema,
     parseGooglePhotosDuration,
     SessionCreateResponseSchema,
     SessionPollResponseSchema,
 } from "./shared";
-import type { ImportResponse, SessionCreateResponse } from "./shared";
 
 function createGooglePhotosApiError(args: {
     cause?: unknown;

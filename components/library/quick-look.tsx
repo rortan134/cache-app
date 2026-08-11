@@ -1,5 +1,21 @@
 "use client";
 
+import type { BaseUIEvent } from "@base-ui/react";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useTimeout } from "@base-ui/utils/useTimeout";
+import { T } from "gt-next";
+import {
+    AlertCircleIcon,
+    ExternalLinkIcon,
+    PanelRight,
+    PanelRightOpen,
+    XIcon,
+} from "lucide-react";
+import * as React from "react";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
@@ -17,22 +33,6 @@ import { clamp } from "@/lib/common/numbers";
 import type { Oembed } from "@/lib/common/oembed";
 import { OembedSchema } from "@/lib/common/oembed";
 import { parseValidUrl } from "@/lib/common/url";
-import type { BaseUIEvent } from "@base-ui/react";
-import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { useTimeout } from "@base-ui/utils/useTimeout";
-import { T } from "gt-next";
-import {
-    AlertCircleIcon,
-    ExternalLinkIcon,
-    PanelRight,
-    PanelRightOpen,
-    XIcon,
-} from "lucide-react";
-import * as React from "react";
-import { createStore } from "stan-js";
-import { storage } from "stan-js/storage";
-import useSWR from "swr";
 import { MediaPlaceholder } from "../ui/media-placeholder";
 
 const QUICK_LOOK_BLOCKED_URL = "about:blank";

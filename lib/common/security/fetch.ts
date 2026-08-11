@@ -1,9 +1,9 @@
 import type dns from "node:dns";
-import undici, { Agent } from "undici";
 import * as ipaddr from "ipaddr.js";
+import undici, { Agent } from "undici";
 import { abortAfterAny } from "@/lib/common/abort";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { resolveHostAddresses, type ResolvedHost } from "./dns";
+import { type ResolvedHost, resolveHostAddresses } from "./dns";
 import { unwrapIpv6Brackets } from "./hostnames";
 import { isBlockedHostname, isIpLiteral, parseHttpUrl } from "./ssrf";
 

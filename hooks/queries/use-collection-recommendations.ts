@@ -1,5 +1,5 @@
-import { getCollectionRecommendations } from "@/lib/intelligence/actions";
 import useSWR from "swr";
+import { getCollectionRecommendations } from "@/lib/intelligence/actions";
 
 const COLLECTION_RECOMMENDATIONS_KEY = "collection-recommendations";
 

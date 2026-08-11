@@ -1,12 +1,13 @@
 "use server";
 
+import * as z from "zod";
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
+import { extractNamedErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getIntegrationAccountId,
     resolveProviderAccountAccessToken,
 } from "@/lib/integrations/account";
-import { extractNamedErrorMessage } from "@/lib/common/error";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     IntegrationApiError,
     IntegrationUserError,
@@ -15,7 +16,6 @@ import {
     sendCollectionToNotion as sendCollectionToNotionService,
     sendNoteToNotion as sendNoteToNotionService,
 } from "@/lib/integrations/notion/service";
-import * as z from "zod";
 
 const log = createLogger("integrations:notion:actions");
 

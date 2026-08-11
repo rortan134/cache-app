@@ -1,5 +1,23 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { LocaleSelector, T, useGT, Var } from "gt-next";
+import {
+    ArrowUpRight,
+    ChevronDown,
+    Download,
+    Ellipsis,
+    Globe,
+    LoaderCircle,
+    LogOut,
+    UserRoundPlus,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import useSWR from "swr";
 import { DeleteAccountDialogTrigger } from "@/components/auth/delete-account-dialog-trigger";
 import { LogOutDialogTrigger } from "@/components/auth/logout-dialog-trigger";
 import { WithUserSessionOnly } from "@/components/auth/session";
@@ -41,29 +59,11 @@ import { getDesktopDownloads } from "@/lib/desktop/actions";
 import { DESKTOP_ASSETS } from "@/lib/desktop/constants";
 import { detectDesktopPlatform } from "@/lib/desktop/platform";
 import {
+    type DesktopDownload,
     getDesktopReleasesPageUrl,
     getStaticDesktopDownloads,
-    type DesktopDownload,
 } from "@/lib/desktop/releases";
 import AppIconSmall from "@/public/cache-icon-small.png";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { LocaleSelector, T, useGT, Var } from "gt-next";
-import {
-    ArrowUpRight,
-    ChevronDown,
-    Download,
-    Ellipsis,
-    Globe,
-    LoaderCircle,
-    LogOut,
-    UserRoundPlus,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import useSWR from "swr";
 
 const log = createLogger("auth-user-menu");
 

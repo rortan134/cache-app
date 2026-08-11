@@ -1,6 +1,6 @@
+import { useSyncExternalStore } from "react";
 import { CACHE_EXTENSION_READY_EVENT } from "@/lib/common/constants";
 import { getOwnerWindow } from "@/lib/common/dom";
-import { useSyncExternalStore } from "react";
 
 function readExtensionInstalledFlag(window: Window): boolean {
     try {

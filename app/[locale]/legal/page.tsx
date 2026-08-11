@@ -1,11 +1,11 @@
-import { buildPageMetadata } from "@/app/metadata";
-import { APP_NAME } from "@/lib/common/constants";
 import { T, Var } from "gt-next";
 import { getGT } from "gt-next/server";
-import { ArrowRight, Scale, Shield, FileText } from "lucide-react";
+import { ArrowRight, FileText, Scale, Shield } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { buildPageMetadata } from "@/app/metadata";
+import { APP_NAME } from "@/lib/common/constants";
 
 export async function generateMetadata({
     params,

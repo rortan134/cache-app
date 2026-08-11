@@ -1,7 +1,7 @@
 import "server-only";
 
-import { IntegrationApiError } from "@/lib/integrations/error";
 import * as z from "zod";
+import { IntegrationApiError } from "@/lib/integrations/error";
 
 const NOTION_API_BASE_URL = "https://api.notion.com/v1";
 

@@ -1,9 +1,9 @@
+import { describe, expect, test } from "bun:test";
 import {
     isTikTokUrl,
     tiktokOembedThumbnailUrl,
     tiktokOembedUrl,
 } from "@/lib/integrations/tiktok/oembed";
-import { describe, expect, test } from "bun:test";
 
 describe("isTikTokUrl", () => {
     test("accepts TikTok video hosts", () => {

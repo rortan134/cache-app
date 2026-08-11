@@ -1,6 +1,6 @@
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth/server";
 import { generateMcpSetupPrompt } from "@/lib/integrations/mcp/service";
-import { headers } from "next/headers";
 
 /**
  * Generates an MCP setup prompt for the authenticated user.

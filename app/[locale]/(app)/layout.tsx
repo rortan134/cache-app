@@ -1,9 +1,9 @@
-import { BackToTopButton } from "@/components/ui/back-to-top-button";
-import { PageShell } from "@/components/ui/page-shell";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { T } from "gt-next";
 import { ChevronUp } from "lucide-react";
 import type * as React from "react";
+import { BackToTopButton } from "@/components/ui/back-to-top-button";
+import { PageShell } from "@/components/ui/page-shell";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function ApplicationLayout({
     children,

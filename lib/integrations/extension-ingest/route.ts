@@ -1,8 +1,8 @@
 import "server-only";
 
+import type * as z from "zod";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { resolveExtensionIngestUserId } from "@/lib/integrations/extension-ingest/service";
-import type * as z from "zod";
 
 const log = createLogger("integrations:extension-ingest");
 

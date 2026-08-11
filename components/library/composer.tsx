@@ -1,5 +1,14 @@
 "use client";
 
+import type {
+    AutocompleteRootChangeEventDetails,
+    BaseUIEvent,
+} from "@base-ui/react";
+import { Toolbar } from "@base-ui/react/toolbar";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { Calligraph } from "calligraph";
+import { ChevronDown, CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
+import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsiblePanel } from "@/components/ui/collapsible";
@@ -42,15 +51,6 @@ import type { LibraryMetricsSnapshot } from "@/lib/collections/metrics";
 import { cn } from "@/lib/common/cn";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { formatSharePercent } from "@/lib/common/numbers";
-import type {
-    AutocompleteRootChangeEventDetails,
-    BaseUIEvent,
-} from "@base-ui/react";
-import { Toolbar } from "@base-ui/react/toolbar";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { Calligraph } from "calligraph";
-import { ChevronDown, CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
-import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
 

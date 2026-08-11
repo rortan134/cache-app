@@ -1,15 +1,15 @@
+import { describe, expect, test } from "bun:test";
+import { createServer, type Server } from "node:http";
 import { isAbortError } from "@/lib/common/abort";
 import {
     crossOriginSafeHeaders,
     fetchPublicHop,
     isRedirectStatus,
     nextRedirectMethod,
+    type PublicHttpUrl,
     releaseResponseBodyBudget,
     withoutRequestBodyHeaders,
-    type PublicHttpUrl,
 } from "@/lib/common/security/fetch";
-import { describe, expect, test } from "bun:test";
-import { createServer, type Server } from "node:http";
 
 const sleep = (ms: number): Promise<void> =>
     new Promise((resolve) => setTimeout(resolve, ms));

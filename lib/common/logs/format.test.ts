@@ -1,3 +1,4 @@
+import { describe, expect, test } from "bun:test";
 import {
     formatLogValue,
     LOG_ARRAY_SAMPLE_LIMIT,
@@ -5,7 +6,6 @@ import {
     LOG_STRING_MAX_LENGTH,
 } from "@/lib/common/logs/format";
 import { safeSanitize, sanitizeForLog } from "@/lib/common/logs/sanitize";
-import { describe, expect, test } from "bun:test";
 
 describe("formatLogValue", () => {
     test("redacts sensitive keys through nested records", () => {

@@ -1,5 +1,5 @@
-import { getPreviewFromContent } from "link-preview-js";
 import { describe, expect, test } from "bun:test";
+import { getPreviewFromContent } from "link-preview-js";
 
 import { extractPreviewImageUrls } from "@/app/api/preview/extract";
 

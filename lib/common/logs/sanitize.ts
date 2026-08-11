@@ -1,5 +1,5 @@
-import { formatLogValue } from "@/lib/common/logs/format";
 import { redact } from "@arcjet/redact";
+import { formatLogValue } from "@/lib/common/logs/format";
 
 /**
  * Primitive types that can be logged as-is.

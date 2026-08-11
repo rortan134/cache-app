@@ -1,5 +1,5 @@
-import { dayjs } from "@/lib/common/dayjs";
 import type { Dayjs } from "@/lib/common/dayjs";
+import { dayjs } from "@/lib/common/dayjs";
 import type { AutomationCadence } from "@/prisma/client/enums";
 
 const MINUTES_PER_DAY = 24 * 60;

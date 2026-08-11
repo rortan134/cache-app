@@ -1,13 +1,13 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import * as React from "react";
 import { AuthErrorMessage } from "@/components/auth/auth-error-message";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/common/cn";
 import { getErrorMessage } from "@/lib/common/error";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import * as React from "react";
 
 const GOOGLE_SIGN_IN_ERROR_MESSAGE = "Could not start Google sign-in.";
 

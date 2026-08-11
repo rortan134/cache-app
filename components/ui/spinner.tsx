@@ -1,6 +1,6 @@
-import { cn } from "@/lib/common/cn";
 import { Loader2Icon } from "lucide-react";
 import type * as React from "react";
+import { cn } from "@/lib/common/cn";
 
 export function Spinner({
     className,

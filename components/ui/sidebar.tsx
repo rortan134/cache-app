@@ -1,13 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/common/cn";
-import {
-    getOwnerDocument,
-    getOwnerWindow,
-    isTextEntryTarget,
-} from "@/lib/common/dom";
-import { getSystemControlKey } from "@/lib/common/keyboard";
 import { mergeProps } from "@base-ui/react/merge-props";
 import type { BaseUIEvent } from "@base-ui/react/types";
 import { useRender } from "@base-ui/react/use-render";
@@ -16,6 +8,14 @@ import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { PanelLeft, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/common/cn";
+import {
+    getOwnerDocument,
+    getOwnerWindow,
+    isTextEntryTarget,
+} from "@/lib/common/dom";
+import { getSystemControlKey } from "@/lib/common/keyboard";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;

@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import {
     PublicShareGrid,
-    PublicShareGridSkeleton,
     type PublicShareGridItem,
+    PublicShareGridSkeleton,
 } from "@/components/share/browser";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { FadeIn } from "@/components/ui/fade-in";
@@ -11,11 +16,6 @@ import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getNoteExcerpt } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
 import LogoIconImage from "@/public/cache-app-icon.png";
-import type { Metadata } from "next";
-import { cacheLife, cacheTag } from "next/cache";
-import { notFound } from "next/navigation";
-import { connection } from "next/server";
-import { Suspense } from "react";
 
 export const instant = false;
 

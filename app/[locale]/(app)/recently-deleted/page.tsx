@@ -1,3 +1,9 @@
+import { T } from "gt-next";
+import { getGT } from "gt-next/server";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import * as React from "react";
 import { buildPageMetadata } from "@/app/metadata";
 import { RecentlyDeletedList } from "@/components/recently-deleted/list";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
@@ -5,12 +11,6 @@ import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getServerSession } from "@/lib/auth/session";
 import { listRecentlyDeletedItems } from "@/lib/collections/service";
-import { T } from "gt-next";
-import { getGT } from "gt-next/server";
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import * as React from "react";
 
 const RECENTLY_DELETED_SKELETON_KEYS = [
     "rd0",

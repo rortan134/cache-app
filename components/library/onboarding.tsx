@@ -1,5 +1,19 @@
 "use client";
 
+import { Toolbar } from "@base-ui/react";
+import { Checkbox } from "@base-ui/react/checkbox";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T, useGT } from "gt-next";
+import {
+    Check,
+    ChevronDown,
+    ChevronRight,
+    Component,
+    LibraryBig,
+} from "lucide-react";
+import * as React from "react";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
 import {
     shareCollectionPubliclySafely,
     useCollectionsContext,
@@ -37,20 +51,6 @@ import type {
 import { addUnique, unique } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
-import { Toolbar } from "@base-ui/react";
-import { Checkbox } from "@base-ui/react/checkbox";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T, useGT } from "gt-next";
-import {
-    Check,
-    ChevronDown,
-    ChevronRight,
-    Component,
-    LibraryBig,
-} from "lucide-react";
-import * as React from "react";
-import { createStore } from "stan-js";
-import { storage } from "stan-js/storage";
 
 const ONBOARDING_TASK_META = [
     {

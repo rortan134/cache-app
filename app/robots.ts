@@ -1,5 +1,5 @@
-import { BASE_URL } from "@/lib/common/constants";
 import type { MetadataRoute } from "next";
+import { BASE_URL } from "@/lib/common/constants";
 
 const DISALLOWED_PATHS = ["/mcp"];
 

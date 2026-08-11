@@ -1,5 +1,58 @@
 "use client";
 
+import type {
+    AutocompleteRootChangeEventDetails,
+    BaseUIEvent,
+} from "@base-ui/react";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useTimeout } from "@base-ui/utils/useTimeout";
+import { T, useGT, Var } from "gt-next";
+import {
+    ArrowDownWideNarrow,
+    ArrowUpRight,
+    Astroid,
+    Check,
+    ChevronDown,
+    ChevronRight,
+    ChevronsDown,
+    ChevronsUp,
+    ChevronUp,
+    CircleFadingPlus,
+    Component,
+    CopyIcon,
+    DownloadIcon,
+    Ellipsis,
+    ExternalLinkIcon,
+    EyeIcon,
+    FilePenLineIcon,
+    FileSpreadsheetIcon,
+    FolderOpen,
+    Funnel,
+    Globe,
+    History,
+    Layers3,
+    LinkIcon,
+    ListChevronsUpDown,
+    RotateCcw,
+    SearchIcon,
+    SearchX,
+    Squircle,
+    SquircleDashed,
+    Star,
+    Tags,
+    Volume2Icon,
+    VolumeXIcon,
+    XIcon,
+    ZoomIn,
+} from "lucide-react";
+import Image from "next/image";
+import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { Controlled as ControlledZoom } from "react-medium-image-zoom";
+import { Streamdown } from "streamdown";
+import useSWR from "swr";
 import {
     BlockPaywallBanner,
     InlinePaywallBanner,
@@ -9,13 +62,17 @@ import {
     buildCollectionItemIndexes,
     CollectionsProvider,
     LibraryItemsContext,
+    type LibraryItemsContextValue,
     reconcileCollectionTags,
     replaceMultipleItemCollections,
     sortCollections,
     useCollectionsContext,
-    type LibraryItemsContextValue,
 } from "@/components/library/collections";
+import { CommentTextarea } from "@/components/library/comments";
 import {
+    type CommandPaletteGroup,
+    type CommandPaletteItem,
+    type CommandSuggestion,
     Composer,
     ComposerActionMetrics,
     ComposerActionNew,
@@ -23,21 +80,17 @@ import {
     ComposerActionsList,
     ComposerInput,
     ComposerSuggestionsList,
-    type CommandPaletteGroup,
-    type CommandPaletteItem,
-    type CommandSuggestion,
     type PaletteStackEntry,
 } from "@/components/library/composer";
 import {
+    type NoteDraft,
     NoteEditor,
     NoteHeader,
     NoteMetrics,
     NoteRoot,
     NoteTitle,
     useNoteContext,
-    type NoteDraft,
 } from "@/components/library/new";
-import { CommentTextarea } from "@/components/library/comments";
 import { OnboardingMenu } from "@/components/library/onboarding";
 import {
     openQuickLook,
@@ -138,23 +191,23 @@ import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useLastVisited } from "@/hooks/use-last-visited";
 import { useSearchHistory } from "@/hooks/use-search-history";
 import {
+    type CollectionCreateFromItemsResult,
     createCollectionFromItems,
     downloadMedia,
-    type CollectionCreateFromItemsResult,
 } from "@/lib/collections/actions";
 import {
     deleteLibraryItem,
     deleteLibraryItems,
-    probeLibraryItemsReachabilityAction,
-    toggleLibraryItemFavorite,
-    updateLibraryItemCollections,
-    updateLibraryItemsCollections,
     type LibraryItemCollectionsUpdateResult,
     type LibraryItemDeleteResult,
     type LibraryItemFavoriteToggleResult,
     type LibraryItemsCollectionsUpdateResult,
     type LibraryItemsDeleteResult,
     type LibraryItemsReachabilityProbeResult,
+    probeLibraryItemsReachabilityAction,
+    toggleLibraryItemFavorite,
+    updateLibraryItemCollections,
+    updateLibraryItemsCollections,
 } from "@/lib/collections/items";
 import {
     collectDuplicateBookmarkItemIds,
@@ -193,26 +246,26 @@ import {
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
 import {
+    cacheDimensions,
+    type Dimensions,
+    pinDefaultDimensionsIfMissing,
+    readCachedDimensions,
+    resolveDisplayDimensions,
+} from "@/lib/common/dimensions";
+import {
     getOwnerDocument,
     getOwnerWindow,
     isTextEntryTarget,
 } from "@/lib/common/dom";
 import {
+    type createFileAttachment,
     revokeFileAttachmentObjectUrl,
     saveFile,
-    type createFileAttachment,
 } from "@/lib/common/file";
 import { isCollectionHoverHotkeySurface } from "@/lib/common/hover-hotkey-surface";
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import {
-    cacheDimensions,
-    pinDefaultDimensionsIfMissing,
-    readCachedDimensions,
-    resolveDisplayDimensions,
-    type Dimensions,
-} from "@/lib/common/dimensions";
 import {
     getNoteExcerpt,
     normalizeWhitespace,
@@ -226,13 +279,13 @@ import {
     toValidUrl,
 } from "@/lib/common/url";
 import {
-    createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
+    createChromeBookmarkFromUrl,
 } from "@/lib/integrations/chrome/actions";
 import {
     createNote,
-    updateNote,
     type NoteMutationResult,
+    updateNote,
 } from "@/lib/integrations/notes/actions";
 import { getSourceIcon } from "@/lib/integrations/support";
 import { askCache, getSectionDescription } from "@/lib/intelligence/actions";
@@ -251,64 +304,11 @@ import {
     SECTION_DESCRIPTION_TEXT_MAX_LENGTH,
     SECTION_DESCRIPTION_TITLE_MAX_LENGTH,
     SECTION_DESCRIPTION_URL_MAX_LENGTH,
-    SectionDescriptionRequestSchema,
     type SectionDescriptionContextItem,
+    SectionDescriptionRequestSchema,
 } from "@/lib/intelligence/overview";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
-import type {
-    AutocompleteRootChangeEventDetails,
-    BaseUIEvent,
-} from "@base-ui/react";
-import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
-import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { useTimeout } from "@base-ui/utils/useTimeout";
-import { T, useGT, Var } from "gt-next";
-import {
-    ArrowDownWideNarrow,
-    ArrowUpRight,
-    Astroid,
-    Check,
-    ChevronDown,
-    ChevronRight,
-    ChevronsDown,
-    ChevronsUp,
-    ChevronUp,
-    CircleFadingPlus,
-    Component,
-    CopyIcon,
-    DownloadIcon,
-    Ellipsis,
-    ExternalLinkIcon,
-    EyeIcon,
-    FilePenLineIcon,
-    FileSpreadsheetIcon,
-    FolderOpen,
-    Funnel,
-    Globe,
-    History,
-    Layers3,
-    LinkIcon,
-    ListChevronsUpDown,
-    RotateCcw,
-    SearchIcon,
-    SearchX,
-    Squircle,
-    SquircleDashed,
-    Star,
-    Tags,
-    Volume2Icon,
-    VolumeXIcon,
-    XIcon,
-    ZoomIn,
-} from "lucide-react";
-import Image from "next/image";
-import * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { Controlled as ControlledZoom } from "react-medium-image-zoom";
-import { Streamdown } from "streamdown";
-import useSWR from "swr";
 
 const log = createLogger("library:browser");
 

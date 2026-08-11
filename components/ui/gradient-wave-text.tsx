@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { useReducedMotion } from "motion/react";
 import * as React from "react";
+import { cn } from "@/lib/common/cn";
 
 type Align = "left" | "center" | "right";
 

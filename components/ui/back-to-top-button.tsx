@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/common/cn";
-import { getOwnerWindow } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useReducedMotion } from "motion/react";
 import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/common/cn";
+import { getOwnerWindow } from "@/lib/common/dom";
 
 const SCROLL_THRESHOLD = 800;
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { useDesktopApp } from "@/lib/desktop/use-desktop-platform";
 import { useLocale } from "gt-next";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import type * as React from "react";
+import { useEffect } from "react";
+import { useDesktopApp } from "@/lib/desktop/use-desktop-platform";
 
 export function DesktopHomeRedirect({ children }: React.PropsWithChildren) {
     const router = useRouter();

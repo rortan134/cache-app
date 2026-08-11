@@ -1,5 +1,6 @@
 "use client";
 
+import type * as React from "react";
 import { useClientOnlyValue } from "@/components/ui/client-only";
 import { cn } from "@/lib/common/cn";
 import {
@@ -7,7 +8,6 @@ import {
     getSystemControlKey,
     getSystemShiftKey,
 } from "@/lib/common/keyboard";
-import type * as React from "react";
 
 export function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
     return (

@@ -1,5 +1,5 @@
-import { FALLBACK_URL } from "@/lib/common/constants";
 import { sanitizeUrl } from "@braintree/sanitize-url";
+import { FALLBACK_URL } from "@/lib/common/constants";
 
 const URL_WHITESPACE_RE = /\s/;
 const URL_ONLY_PROTOCOLS = new Set(["http:", "https:"]);

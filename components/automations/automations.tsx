@@ -1,9 +1,25 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
 import {
-    AutomationComposerDialog,
+    CalendarClock,
+    Ellipsis,
+    History,
+    ListTodo,
+    type LucideIcon,
+    Pause,
+    Pencil,
+    Play,
+    Trash2,
+    Zap,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import {
     type AutomationCollectionOption,
     type AutomationComposerAutomation,
+    AutomationComposerDialog,
 } from "@/components/automations/automation-composer-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,12 +30,12 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { dayjs } from "@/lib/common/dayjs";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
     getMonthDayLabel,
 } from "@/lib/common/time";
-import { dayjs } from "@/lib/common/dayjs";
 import {
     deleteAutomation,
     pauseAutomation,
@@ -28,22 +44,6 @@ import {
 import { AUTOMATION_TEMPLATE_DEFINITIONS } from "@/lib/intelligence/automations/constants";
 import type { AutomationListItem } from "@/lib/intelligence/automations/service";
 import { AutomationRunStatus } from "@/prisma/client/enums";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T } from "gt-next";
-import {
-    CalendarClock,
-    Ellipsis,
-    History,
-    ListTodo,
-    Pause,
-    Pencil,
-    Play,
-    Trash2,
-    Zap,
-    type LucideIcon,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import * as React from "react";
 
 const TEMPLATE_ICON: Record<string, LucideIcon> = {
     daily_digest: CalendarClock,

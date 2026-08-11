@@ -1,6 +1,6 @@
-import { BASE_URL } from "@/lib/common/constants";
 import { getDefaultLocale, getLocales, resolveCanonicalLocale } from "gt-next";
 import type { Metadata } from "next";
+import { BASE_URL } from "@/lib/common/constants";
 
 interface BuildPageMetadataArgs {
     description: string;

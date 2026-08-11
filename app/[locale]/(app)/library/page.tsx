@@ -1,3 +1,7 @@
+import { getGT } from "gt-next/server";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { buildPageMetadata } from "@/app/metadata";
 import { BrowserRoot } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
@@ -8,13 +12,9 @@ import { userHasActiveSubscription } from "@/lib/billing/service";
 import { getLibrary, listCollections } from "@/lib/collections/service";
 import { listLinkedIntegrationAccounts } from "@/lib/integrations/account";
 import {
-    listConnectedIntegrationIds,
     type IntegrationId,
+    listConnectedIntegrationIds,
 } from "@/lib/integrations/support";
-import { getGT } from "gt-next/server";
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
 
 export const instant = false;
 

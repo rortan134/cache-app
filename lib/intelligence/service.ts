@@ -1,26 +1,26 @@
 import "server-only";
 
-import { createLogger } from "@/lib/common/logs/console/logger";
 import type { ArcjetNextRequest } from "@arcjet/next";
 import { ApiError } from "@google/genai";
 import { cacheLife } from "next/cache";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import {
-    generateExpandedSectionDescription,
     generateCollectionDescription as generateCollectionDescriptionText,
+    generateExpandedSectionDescription,
     generateSectionDescription,
 } from ".";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
-    buildExpandedSummaryPrompt,
     buildCollectionDescriptionPrompt,
+    buildExpandedSummaryPrompt,
     buildOverviewPrompt,
     COLLECTION_DESCRIPTION_TITLE_MAX_LENGTH,
+    type DescriptionRequest,
     normalizeExpandedSummary,
     normalizeSummary,
     SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
     SECTION_DESCRIPTION_FALLBACK_TEXT,
     truncateContextItems,
-    type DescriptionRequest,
 } from "./overview";
 import { estimateGenAiTokens, protectGenAiRequest } from "./protection";
 

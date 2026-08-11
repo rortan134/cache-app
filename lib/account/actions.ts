@@ -1,8 +1,8 @@
 "use server";
 
-import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import { AccountError } from "@/lib/account/error";
 import * as service from "@/lib/account/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 
 export interface DeleteAccountActionState {
     message: string;

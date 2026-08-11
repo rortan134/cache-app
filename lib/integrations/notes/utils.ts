@@ -1,5 +1,3 @@
-import { isRecord } from "@/lib/common/objects";
-import { decodeHtmlEntities } from "@/lib/common/strings";
 import type { SerializedHeadingNode } from "@lexical/rich-text";
 import {
     IS_BOLD,
@@ -12,6 +10,8 @@ import {
     type SerializedLexicalNode,
     type SerializedTextNode,
 } from "lexical";
+import { isRecord } from "@/lib/common/objects";
+import { decodeHtmlEntities } from "@/lib/common/strings";
 
 export const NOTE_EMPTY_HTML = "<p></p>";
 

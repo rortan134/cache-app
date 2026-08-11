@@ -1,5 +1,7 @@
 import "server-only";
 
+import crypto from "node:crypto";
+import type * as z from "zod";
 import {
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     type LibraryItemWithCollections,
@@ -16,8 +18,6 @@ import type { McpLibraryItemSchema } from "@/lib/integrations/mcp/protocol";
 import { createNoteFromPlainText } from "@/lib/integrations/notes/service";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
-import crypto from "node:crypto";
-import type * as z from "zod";
 
 const log = createLogger("mcp.service");
 

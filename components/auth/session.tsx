@@ -1,5 +1,9 @@
 "use client";
 
+import { T, Var } from "gt-next";
+import { Info } from "lucide-react";
+import Link from "next/link";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
     authClient,
@@ -8,10 +12,6 @@ import {
 } from "@/lib/auth/client";
 import type { Session } from "@/lib/auth/session";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { T, Var } from "gt-next";
-import { Info } from "lucide-react";
-import Link from "next/link";
-import * as React from "react";
 
 const log = createLogger("auth-session");
 

@@ -1,5 +1,9 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { Send } from "lucide-react";
+import { usePathname } from "next/navigation";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,10 +11,6 @@ import { cn } from "@/lib/common/cn";
 import { stopPropagationForPrintableKeys } from "@/lib/common/dom";
 import { createFeedback } from "@/lib/feedback/actions";
 import type { FeedbackActionState } from "@/lib/feedback/schema";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { Send } from "lucide-react";
-import { usePathname } from "next/navigation";
-import * as React from "react";
 
 const INITIAL_FEEDBACK_ACTION_STATE = {
     message: "",

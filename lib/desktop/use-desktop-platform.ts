@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { DesktopPlatform } from "@/lib/desktop/constants";
 import { detectDesktopPlatform, isDesktopApp } from "@/lib/desktop/platform";
-import { useEffect, useState } from "react";
 
 export function useDesktopPlatform(): {
     isDesktop: boolean;

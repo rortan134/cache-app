@@ -1,6 +1,6 @@
+import * as z from "zod";
 import { isAbortError } from "@/lib/common/abort";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import * as z from "zod";
 
 const log = createLogger("integrations:cobalt");
 

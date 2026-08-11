@@ -1,48 +1,3 @@
-import { JsonLdScript } from "@/components/ui/json-ld-script";
-import { buildPageMetadata } from "@/app/metadata";
-import { DesktopHomeRedirect } from "@/components/auth/desktop-home-redirect";
-import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
-import { SignInButton } from "@/components/auth/sign-in-button";
-import { BrandLogo } from "@/components/ui/brand-logo";
-import { Button } from "@/components/ui/button";
-import {
-    Carousel,
-    CarouselControls,
-    CarouselPanel,
-} from "@/components/ui/carousel";
-import { Footer } from "@/components/ui/footer";
-import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import {
-    ClaudeIcon,
-    ChromeIcon,
-    GeminiIcon,
-    GithubIcon,
-    GrokIcon,
-    ModelContextProtocolIcon,
-    OpenAIIcon,
-    PerplexityIcon,
-    TikTokIcon,
-} from "@/components/ui/icons";
-import { PageShell } from "@/components/ui/page-shell";
-import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
-import {
-    Sidebar,
-    SidebarFooter,
-    SidebarContent,
-} from "@/components/ui/sidebar";
-import { getServerSession } from "@/lib/auth/session";
-import { cn } from "@/lib/common/cn";
-import { BASE_URL, CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
-import { INTEGRATIONS } from "@/lib/integrations/support";
-import AiSectionLifestyleImage from "@/public/ai-section-lifestyle.webp";
-import AiSectionTravelImage from "@/public/ai-section-travel.webp";
-import LogoIconImage from "@/public/cache-app-icon.png";
-import IconSmallImage from "@/public/cache-icon-small.png";
-import CollectionsSectionImage from "@/public/collections-section-image.webp";
-import HeroImage from "@/public/hero-image.webp";
-import LibrarySectionImage from "@/public/library-section.webp";
-import OrganizeSectionImage from "@/public/organize-section.webp";
-import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import { LocaleSelector, T } from "gt-next";
 import { getGT } from "gt-next/server";
 import {
@@ -61,6 +16,51 @@ import {
 import type { Metadata } from "next";
 import Image from "next/image";
 import type * as React from "react";
+import { buildPageMetadata } from "@/app/metadata";
+import { DesktopHomeRedirect } from "@/components/auth/desktop-home-redirect";
+import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
+import { SignInButton } from "@/components/auth/sign-in-button";
+import { BrandLogo } from "@/components/ui/brand-logo";
+import { Button } from "@/components/ui/button";
+import {
+    Carousel,
+    CarouselControls,
+    CarouselPanel,
+} from "@/components/ui/carousel";
+import { Footer } from "@/components/ui/footer";
+import { GradientWaveText } from "@/components/ui/gradient-wave-text";
+import {
+    ChromeIcon,
+    ClaudeIcon,
+    GeminiIcon,
+    GithubIcon,
+    GrokIcon,
+    ModelContextProtocolIcon,
+    OpenAIIcon,
+    PerplexityIcon,
+    TikTokIcon,
+} from "@/components/ui/icons";
+import { JsonLdScript } from "@/components/ui/json-ld-script";
+import { PageShell } from "@/components/ui/page-shell";
+import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+} from "@/components/ui/sidebar";
+import { getServerSession } from "@/lib/auth/session";
+import { cn } from "@/lib/common/cn";
+import { BASE_URL, CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
+import { INTEGRATIONS } from "@/lib/integrations/support";
+import AiSectionLifestyleImage from "@/public/ai-section-lifestyle.webp";
+import AiSectionTravelImage from "@/public/ai-section-travel.webp";
+import LogoIconImage from "@/public/cache-app-icon.png";
+import IconSmallImage from "@/public/cache-icon-small.png";
+import CollectionsSectionImage from "@/public/collections-section-image.webp";
+import HeroImage from "@/public/hero-image.webp";
+import LibrarySectionImage from "@/public/library-section.webp";
+import OrganizeSectionImage from "@/public/organize-section.webp";
+import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 
 export const instant = false;
 

@@ -1,9 +1,9 @@
-import { normalizeFile } from "@/lib/common/blob";
-import { MIME_TYPES } from "@/lib/common/constants";
 import {
     fileOpen as _fileOpen,
     fileSave as _fileSave,
 } from "browser-fs-access";
+import { normalizeFile } from "@/lib/common/blob";
+import { MIME_TYPES } from "@/lib/common/constants";
 
 export type FILE_EXTENSION = Exclude<keyof typeof MIME_TYPES, "binary">;
 
@@ -99,5 +99,5 @@ export function revokeFileAttachmentObjectUrl(url: string): void {
     URL.revokeObjectURL(url);
 }
 
-export { supported as nativeFileSystemSupported } from "browser-fs-access";
 export type { FileSystemHandle } from "browser-fs-access";
+export { supported as nativeFileSystemSupported } from "browser-fs-access";

@@ -1,11 +1,3 @@
-import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
-import { getPlanPriceIds } from "@/lib/billing/prices";
-import { APP_NAME, BASE_URL, CACHE_EXTENSION_ID } from "@/lib/common/constants";
-import { getErrorMessage } from "@/lib/common/error";
-import { createLogger } from "@/lib/common/logs/console/logger";
-import { GOOGLE_PHOTOS_PICKER_SCOPE } from "@/lib/integrations/google-photos/shared";
-import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
-import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -14,6 +6,14 @@ import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
 import * as z from "zod";
+import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
+import { getPlanPriceIds } from "@/lib/billing/prices";
+import { APP_NAME, BASE_URL, CACHE_EXTENSION_ID } from "@/lib/common/constants";
+import { getErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { GOOGLE_PHOTOS_PICKER_SCOPE } from "@/lib/integrations/google-photos/shared";
+import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
+import { prisma } from "@/prisma";
 import { i18nPlugin } from "./i18n";
 
 const log = createLogger("Auth:server");

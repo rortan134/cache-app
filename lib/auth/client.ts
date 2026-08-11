@@ -1,5 +1,3 @@
-import { clientEnv } from "@/env/client";
-import type { auth } from "@/lib/auth/server";
 import { stripeClient } from "@better-auth/stripe/client";
 import {
     genericOAuthClient,
@@ -8,6 +6,8 @@ import {
     oneTapClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
+import { clientEnv } from "@/env/client";
+import type { auth } from "@/lib/auth/server";
 
 const GOOGLE_ONE_TAP_CLIENT_ID = clientEnv.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
 export const HAS_GOOGLE_ONE_TAP_CLIENT_ID = !!GOOGLE_ONE_TAP_CLIENT_ID;

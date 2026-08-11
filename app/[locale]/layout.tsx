@@ -1,6 +1,12 @@
 import "@/lib/common/dayjs/locales";
 import "../globals.css";
 
+import { GTProvider, getLocales } from "gt-next";
+import { getGT, getLocale } from "gt-next/server";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import Script from "next/script";
+import type * as React from "react";
 import { ConsoleBanner } from "@/components/ui/console-banner";
 import { ShortcutsProvider } from "@/components/ui/shortcuts";
 import { ThemeHotkey } from "@/components/ui/theme";
@@ -9,12 +15,6 @@ import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/common/theme";
 import { INTEGRATIONS } from "@/lib/integrations/support";
 import packageJson from "@/package.json" with { type: "json" };
-import { GTProvider, getLocales } from "gt-next";
-import { getGT, getLocale } from "gt-next/server";
-import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import type * as React from "react";
-import Script from "next/script";
 
 export function generateStaticParams() {
     return getLocales().map((locale) => ({ locale }));

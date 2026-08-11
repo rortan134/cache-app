@@ -1,18 +1,19 @@
 import "server-only";
 
+import * as z from "zod";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import * as z from "zod";
 
 const log = createLogger("google-photos:api");
+
+import type {
+    GooglePhotosPickedMediaItem,
+    GooglePhotosPickerSession,
+} from "./shared";
 import {
     GooglePhotosMediaItemsPageSchema,
     GooglePhotosPickerSessionSchema,
     parseGooglePhotosDuration,
-} from "./shared";
-import type {
-    GooglePhotosPickedMediaItem,
-    GooglePhotosPickerSession,
 } from "./shared";
 
 const GOOGLE_PHOTOS_PICKER_API = "https://photospicker.googleapis.com/v1";

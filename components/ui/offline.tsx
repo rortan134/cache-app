@@ -1,9 +1,9 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { RadioOff } from "lucide-react";
 import { useOffline } from "next/offline";
 import type * as React from "react";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * Renders `children` only while the app is offline. There is no loading

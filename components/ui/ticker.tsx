@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
+import { cn } from "@/lib/common/cn";
 
 const DEFAULT_DURATION_SECONDS = 5;
 const MAX_SPEED_PX_PER_SECOND = 92;

@@ -1,8 +1,8 @@
+import dns from "node:dns/promises";
+import * as ipaddr from "ipaddr.js";
+import * as z from "zod";
 import { NamedError } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import * as ipaddr from "ipaddr.js";
-import dns from "node:dns/promises";
-import * as z from "zod";
 
 /**
  * A guard that awaits a hung resolver holds its caller open, so lookups are

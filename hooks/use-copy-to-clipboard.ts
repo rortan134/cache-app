@@ -1,8 +1,8 @@
-import { canUseDOM } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import copy from "copy-to-clipboard";
 import * as React from "react";
+import { canUseDOM } from "@/lib/common/dom";
 
 interface UseCopyToClipboardOptions {
     onCopy?: () => void;

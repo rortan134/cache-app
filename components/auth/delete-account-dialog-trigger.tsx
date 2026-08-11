@@ -1,5 +1,9 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 import { AuthErrorMessage } from "@/components/auth/auth-error-message";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +19,6 @@ import {
 import { deleteAccountAction } from "@/lib/account/actions";
 import { authClient } from "@/lib/auth/client";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T } from "gt-next";
-import { useRouter } from "next/navigation";
-import * as React from "react";
 
 const DELETE_ACCOUNT_FAILURE_MESSAGE =
     "We couldn't delete your account. Please try again.";

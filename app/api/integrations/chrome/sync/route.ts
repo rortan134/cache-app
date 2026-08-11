@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { requireRouteUserId } from "@/lib/auth/session";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
@@ -10,7 +11,6 @@ import {
     extensionIngestCorsHeaders,
 } from "@/lib/integrations/extension-ingest/route";
 import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
-import { after } from "next/server";
 
 const log = createLogger("api:sync:chrome-bookmarks");
 

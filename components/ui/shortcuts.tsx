@@ -1,5 +1,8 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import * as React from "react";
+import { useHotkeys, useHotkeysContext } from "react-hotkeys-hook";
 import {
     Command,
     CommandCollection,
@@ -19,9 +22,6 @@ import {
 } from "@/components/ui/drawer";
 import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
 import { stopPropagationForPrintableKeys } from "@/lib/common/dom";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import * as React from "react";
-import { useHotkeys, useHotkeysContext } from "react-hotkeys-hook";
 
 interface ShortcutItem {
     description: string;

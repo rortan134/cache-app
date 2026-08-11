@@ -1,6 +1,6 @@
+import { google } from "@workflow/ai/google";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_AGENT_MODEL } from "@/lib/intelligence/models";
-import { google } from "@workflow/ai/google";
 import { AUTOMATION_INSPECTED_ITEM_COUNT_MAX } from "./constants";
 import {
     AutomationPayloadItemsInputSchema,

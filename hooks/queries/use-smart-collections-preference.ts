@@ -1,5 +1,5 @@
-import { getSmartCollectionsPreference } from "@/lib/collections/actions";
 import useSWR from "swr";
+import { getSmartCollectionsPreference } from "@/lib/collections/actions";
 
 const SMART_COLLECTIONS_PREFERENCE_KEY = "smart-collections-preference";
 

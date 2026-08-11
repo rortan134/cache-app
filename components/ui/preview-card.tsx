@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
+import { cn } from "@/lib/common/cn";
 
 export const PreviewCard: typeof PreviewCardPrimitive.Root =
     PreviewCardPrimitive.Root;

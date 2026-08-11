@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
+import { cn } from "@/lib/common/cn";
 
 export const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
 

@@ -1,6 +1,6 @@
-import { GDPRIcon } from "@/components/ui/icons";
 import { T } from "gt-next";
 import Link from "next/link";
+import { GDPRIcon } from "@/components/ui/icons";
 
 export function Footer() {
     return (

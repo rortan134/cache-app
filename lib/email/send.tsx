@@ -1,6 +1,6 @@
-import { serverEnv } from "@/env/server";
 import type * as React from "react";
-import { Resend, type Attachment } from "resend";
+import { type Attachment, Resend } from "resend";
+import { serverEnv } from "@/env/server";
 
 const resend = new Resend(serverEnv.EMAIL_SERVER_PASSWORD);
 

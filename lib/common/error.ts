@@ -1,5 +1,5 @@
-import { isRecord } from "@/lib/common/objects";
 import * as z from "zod";
+import { isRecord } from "@/lib/common/objects";
 
 export abstract class NamedError extends Error {
     abstract readonly data: unknown;

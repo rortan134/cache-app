@@ -1,4 +1,6 @@
-import { OfflineBadge } from "@/components/ui/offline";
+import { T } from "gt-next";
+import { Compass, Ellipsis, History, Workflow } from "lucide-react";
+import type * as React from "react";
 import {
     UserMenu,
     UserMenuContent,
@@ -14,17 +16,15 @@ import {
     MenuPopup,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { OfflineBadge } from "@/components/ui/offline";
 import {
     Sidebar,
-    SidebarGroup,
     SidebarContent,
+    SidebarGroup,
     SidebarItem,
     SidebarRail,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { T } from "gt-next";
-import { Compass, Ellipsis, History, Workflow } from "lucide-react";
-import type * as React from "react";
 import { cn } from "@/lib/common/cn";
 
 export function ApplicationSidebar({

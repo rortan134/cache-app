@@ -1,5 +1,6 @@
 "use server";
 
+import { request as getArcjetRequest } from "@arcjet/next";
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import type { CollectionTemplateOption } from "@/lib/collections/templates";
 import { TEMPLATES } from "@/lib/collections/templates";
@@ -8,20 +9,19 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { normalizeCollectionName } from "@/lib/common/strings";
 import { recommendCollectionTemplates } from "@/lib/intelligence/recommendations";
 import { prisma } from "@/prisma";
-import { request as getArcjetRequest } from "@arcjet/next";
 import {
-    AskCacheRequestSchema,
     type AskCacheRequest,
+    AskCacheRequestSchema,
     type AskCacheResult,
 } from "./composer/ask-cache";
 import { runAskCacheAgent } from "./composer/service";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
+    type CollectionDescriptionRequest,
     CollectionDescriptionRequestSchema,
+    type DescriptionRequest,
     SECTION_DESCRIPTION_FALLBACK_TEXT,
     SectionDescriptionRequestSchema,
-    type CollectionDescriptionRequest,
-    type DescriptionRequest,
 } from "./overview";
 import {
     generateCollectionDescription,

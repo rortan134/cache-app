@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
 import { ChevronRightIcon } from "lucide-react";
+import { cn } from "@/lib/common/cn";
 
 export const ContextMenu: typeof ContextMenuPrimitive.Root =
     ContextMenuPrimitive.Root;

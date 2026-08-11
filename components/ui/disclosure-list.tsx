@@ -1,5 +1,7 @@
 "use client";
 
+import { Calligraph } from "calligraph";
+import * as React from "react";
 import {
     Collapsible,
     CollapsiblePanel,
@@ -7,8 +9,6 @@ import {
 } from "@/components/ui/collapsible";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/common/cn";
-import { Calligraph } from "calligraph";
-import * as React from "react";
 
 const MAX_VISIBLE_VERTICAL_DEFAULT = 15;
 const MAX_VISIBLE_HORIZONTAL_DEFAULT = 5;

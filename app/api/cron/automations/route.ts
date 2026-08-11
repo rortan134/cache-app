@@ -1,3 +1,4 @@
+import { start } from "workflow/api";
 import { automationRunWorkflow } from "@/app/workflows/automation-run";
 import { serverEnv } from "@/env/server";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -8,7 +9,6 @@ import {
     markAutomationRunStartFailed,
     recoverStaleAutomationRuns,
 } from "@/lib/intelligence/automations/service";
-import { start } from "workflow/api";
 
 const log = createLogger("automations:cron");
 

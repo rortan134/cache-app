@@ -1,3 +1,4 @@
+import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import {
     getNoteExcerpt,
@@ -5,7 +6,6 @@ import {
     truncateText,
 } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
-import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 
 export const NOTION_COLLECTION_ITEM_LIMIT = 100;
 

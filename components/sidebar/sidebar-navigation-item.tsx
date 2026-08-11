@@ -1,13 +1,13 @@
 "use client";
 
-import { ActivePathname } from "@/components/ui/active-pathname";
-import { CmdKbd, Kbd } from "@/components/ui/kbd";
-import { SidebarItem } from "@/components/ui/sidebar";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { ActivePathname } from "@/components/ui/active-pathname";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
+import { SidebarItem } from "@/components/ui/sidebar";
 
 interface SidebarNavigationItemProps extends React.ComponentProps<typeof Link> {
     href: string;

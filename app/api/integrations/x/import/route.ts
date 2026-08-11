@@ -1,6 +1,6 @@
+import type { IntegrationApiError } from "@/lib/integrations/error";
 import { runOAuthImport } from "@/lib/integrations/oauth-import/route";
 import { importXBookmarks } from "@/lib/integrations/x/service";
-import type { IntegrationApiError } from "@/lib/integrations/error";
 
 function messageForXApiError(error: IntegrationApiError): string {
     if (error.data.status === 401) {

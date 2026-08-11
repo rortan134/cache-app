@@ -1,5 +1,9 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T, Var } from "gt-next";
+import * as React from "react";
+import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
@@ -8,10 +12,6 @@ import { authClient, useSession } from "@/lib/auth/client";
 import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
 import { getActiveSubscription } from "@/lib/billing/subscriptions";
 import { cn } from "@/lib/common/cn";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T, Var } from "gt-next";
-import * as React from "react";
-import useSWR from "swr";
 
 const PERIOD_END_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
     day: "numeric",

@@ -1,13 +1,13 @@
 "use client";
 
-import { Input, type InputSize } from "@/components/ui/input";
-import { Kbd } from "@/components/ui/kbd";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/common/cn";
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import type * as React from "react";
+import { Input, type InputSize } from "@/components/ui/input";
+import { Kbd } from "@/components/ui/kbd";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/common/cn";
 
 export function Command({
     autoHighlight = "always",

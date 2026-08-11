@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { motion } from "motion/react";
 import type * as React from "react";
+import { cn } from "@/lib/common/cn";
 
 const FADE_IN_DURATION = 0.5;
 const STAY_DURATION = 1.5;

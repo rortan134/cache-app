@@ -1,5 +1,10 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { FileText, Loader2, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { createStore } from "stan-js";
 import {
     useCollectionsContext,
     useLibraryItemsContext,
@@ -18,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { LibraryCollectionSummary } from "@/lib/collections/utils";
-import { fileOpen, type FILE_EXTENSION } from "@/lib/common/file";
+import { type FILE_EXTENSION, fileOpen } from "@/lib/common/file";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createMarkdownImport,
@@ -26,11 +31,6 @@ import {
     listMarkdownImports,
 } from "@/lib/integrations/markdown/actions";
 import type { MarkdownImportResult } from "@/lib/integrations/markdown/service";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { FileText, Loader2, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { createStore } from "stan-js";
 
 const log = createLogger("library:markdown-import-dialog");
 

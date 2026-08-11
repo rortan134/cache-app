@@ -4,9 +4,9 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import {
     buildDesktopReleaseDownloads,
-    getDesktopLatestReleaseApiUrl,
     type DesktopReleaseDownloads,
     type GitHubRelease,
+    getDesktopLatestReleaseApiUrl,
 } from "@/lib/desktop/releases";
 
 const log = createLogger("desktop:releases");

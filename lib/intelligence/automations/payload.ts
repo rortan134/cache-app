@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isAbortError, abortAfter } from "@/lib/common/abort";
+import { abortAfter, isAbortError } from "@/lib/common/abort";
 import { HttpError } from "@/lib/common/http";
 import { withRetry } from "@/lib/common/retry";
 import {
@@ -23,6 +23,7 @@ import {
     AUTOMATION_WEB_FETCH_TIMEOUT_MS,
     AUTOMATION_WEB_FETCH_TOTAL_TIMEOUT_MS,
 } from "./constants";
+
 export {
     AutomationPayloadItemsInputSchema,
     AutomationWebFetchInputSchema,
@@ -319,8 +320,10 @@ export async function automationWebFetch(args: { url: string }) {
                 const redirectUrl = resolveRedirectLocation(location, host.url);
                 if (!redirectUrl) {
                     return {
-                        error: "URL is blocked because it points to a local or private host.",
+                        error: "URL redirected to an invalid or unsupported location.",
                         ok: false,
+                        status: response.status,
+                        url: host.url.href,
                     };
                 }
                 if (redirectUrl.origin !== host.url.origin) {

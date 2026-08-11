@@ -1,13 +1,13 @@
 "use client";
 
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import Link from "next/link";
+import { useEffect } from "react";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import LogoIconImage from "@/public/cache-app-icon.png";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import Link from "next/link";
-import { useEffect } from "react";
 
 const log = createLogger("ErrorComponent");
 

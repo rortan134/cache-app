@@ -11,9 +11,9 @@ import {
     escapeNoteHtmlText,
     extractNoteText,
     isNoteSerializedEditorState,
+    type NoteSerializedEditorState,
     sanitizeNoteHtml,
     serializeNoteEditorStateToHtml,
-    type NoteSerializedEditorState,
 } from "@/lib/integrations/notes/utils";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
