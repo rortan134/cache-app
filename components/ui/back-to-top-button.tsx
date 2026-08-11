@@ -20,12 +20,13 @@ export function BackToTopButton({
 
     const handleScroll = useStableCallback(() => {
         const ownerWindow = getOwnerWindow(containerRef.current);
+
         setIsVisible(ownerWindow.scrollY > SCROLL_THRESHOLD);
     });
 
     React.useEffect(() => {
         const ownerWindow = getOwnerWindow(containerRef.current);
-        // Initial render
+
         handleScroll();
         ownerWindow.addEventListener("scroll", handleScroll, { passive: true });
         return () => ownerWindow.removeEventListener("scroll", handleScroll);

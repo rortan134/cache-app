@@ -60,8 +60,6 @@ import {
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
 
-const log = createLogger("library:integrations");
-
 const INTEGRATIONS_LIST_OPEN_STORAGE_KEY = "cache:integrations:list-open";
 
 type IntegrationActionStatusTone = "error" | "success";
@@ -90,49 +88,106 @@ interface UseIntegrationActionsResult {
     actions: IntegrationActionViewModel[];
 }
 
-interface IntegrationsProps {
-    connectedIntegrations: Set<IntegrationId>;
-}
+const log = createLogger("library:integrations");
 
-interface IntegrationsListActionStatusProps extends React.ComponentProps<"p"> {
-    tone?: IntegrationActionStatusTone;
-}
+function useIntegrationActions({
+    direction,
+    integration,
+    isExtensionInstalled,
+    isConnected,
+}: UseIntegrationActionsArgs): UseIntegrationActionsResult {
+    const router = useRouter();
 
-interface IntegrationsListItemProps
-    extends React.ComponentProps<typeof IntegrationsListItemPreviewTrigger> {
-    direction?: IntegrationDirection;
-    isConnected: boolean;
-}
+    const [actionStatus, setActionStatus] =
+        React.useState<IntegrationActionStatus | null>(null);
 
-interface IntegrationsListItemPreviewTriggerProps
-    extends React.ComponentProps<typeof PreviewCardTrigger> {
-    integration: SupportedIntegration;
-}
+    // synchronous guard so a same-role click is blocked before the state
+    // update commits
+    const [activeActionRoles, setActiveActionRoles] = React.useState(
+        () => new Set<IntegrationActionRole>()
+    );
 
-interface IntegrationsListTriggerProps
-    extends React.ComponentProps<typeof CollapsibleTrigger> {
-    connectedCount: number;
-}
+    const activeActionRolesRef = useRefWithInit(
+        () => new Set<IntegrationActionRole>()
+    );
 
-interface IntegrationsListItemActionsProps
-    extends Omit<React.ComponentProps<"div">, "children"> {
-    actionStatus: IntegrationActionStatus | null;
-    actions: IntegrationActionViewModel[];
-    children: (
-        action: IntegrationActionViewModel,
-        index: number
-    ) => React.ReactNode;
-}
+    const handleIntegrationAction = useStableCallback(
+        async (role: IntegrationActionRole) => {
+            if (activeActionRolesRef.current.has(role)) {
+                return;
+            }
 
-interface IntegrationsListItemActionButtonProps {
-    action: IntegrationActionViewModel;
-}
+            setActionStatus(null);
 
-interface IntegrationsListContentProps {
-    children: (
-        integration: SupportedIntegration,
-        index: number
-    ) => React.ReactNode;
+            activeActionRolesRef.current.add(role);
+            setActiveActionRoles(new Set(activeActionRolesRef.current));
+
+            try {
+                const result = await executeIntegrationAction({
+                    integration,
+                    isExtensionInstalled,
+                    role,
+                });
+
+                if (result.refresh) {
+                    router.refresh();
+                }
+
+                if (result.successMessage) {
+                    setActionStatus({
+                        message: result.successMessage,
+                        tone: "success",
+                    });
+                }
+            } catch (error) {
+                log.error("Integration action failed", {
+                    direction,
+                    error,
+                    integrationId: integration.id,
+                    role,
+                });
+
+                setActionStatus({
+                    message: getErrorMessage(
+                        error,
+                        "Could not complete this integration action."
+                    ),
+                    tone: "error",
+                });
+            } finally {
+                activeActionRolesRef.current.delete(role);
+                setActiveActionRoles(new Set(activeActionRolesRef.current));
+            }
+        }
+    );
+
+    const visibleActions: IntegrationActionViewModel[] = [];
+
+    const integrationActions = listIntegrationActions(
+        integration.id,
+        direction
+    );
+
+    for (const action of integrationActions) {
+        if (!isActionVisible(action, isConnected)) {
+            continue;
+        }
+        visibleActions.push({
+            isLoading: activeActionRoles.has(action.role),
+            label: resolveActionLabel({
+                connectBehavior: integration.behaviors.connect,
+                isConnected,
+                isExtensionInstalled,
+                label: action.label,
+                openBehavior: integration.behaviors.open,
+                role: action.role,
+            }),
+            onClick: () => handleIntegrationAction(action.role),
+            role: action.role,
+        } satisfies IntegrationActionViewModel);
+    }
+
+    return { actionStatus, actions: visibleActions };
 }
 
 export const { useStore: useIntegrationsListStore } = createStore({
@@ -309,104 +364,8 @@ async function executeIntegrationAction(args: {
     }
 }
 
-function useIntegrationActions({
-    direction,
-    integration,
-    isExtensionInstalled,
-    isConnected,
-}: UseIntegrationActionsArgs): UseIntegrationActionsResult {
-    const router = useRouter();
-
-    const [actionStatus, setActionStatus] =
-        React.useState<IntegrationActionStatus | null>(null);
-
-    // synchronous guard so a same-role click is blocked before the state
-    // update commits
-    const [activeActionRoles, setActiveActionRoles] = React.useState(
-        () => new Set<IntegrationActionRole>()
-    );
-
-    const activeActionRolesRef = useRefWithInit(
-        () => new Set<IntegrationActionRole>()
-    );
-
-    const handleIntegrationAction = useStableCallback(
-        async (role: IntegrationActionRole) => {
-            if (activeActionRolesRef.current.has(role)) {
-                return;
-            }
-
-            setActionStatus(null);
-
-            activeActionRolesRef.current.add(role);
-            setActiveActionRoles(new Set(activeActionRolesRef.current));
-
-            try {
-                const result = await executeIntegrationAction({
-                    integration,
-                    isExtensionInstalled,
-                    role,
-                });
-
-                if (result.refresh) {
-                    router.refresh();
-                }
-
-                if (result.successMessage) {
-                    setActionStatus({
-                        message: result.successMessage,
-                        tone: "success",
-                    });
-                }
-            } catch (error) {
-                log.error("Integration action failed", {
-                    direction,
-                    error,
-                    integrationId: integration.id,
-                    role,
-                });
-
-                setActionStatus({
-                    message: getErrorMessage(
-                        error,
-                        "Could not complete this integration action."
-                    ),
-                    tone: "error",
-                });
-            } finally {
-                activeActionRolesRef.current.delete(role);
-                setActiveActionRoles(new Set(activeActionRolesRef.current));
-            }
-        }
-    );
-
-    const visibleActions: IntegrationActionViewModel[] = [];
-
-    const integrationActions = listIntegrationActions(
-        integration.id,
-        direction
-    );
-
-    for (const action of integrationActions) {
-        if (!isActionVisible(action, isConnected)) {
-            continue;
-        }
-        visibleActions.push({
-            isLoading: activeActionRoles.has(action.role),
-            label: resolveActionLabel({
-                connectBehavior: integration.behaviors.connect,
-                isConnected,
-                isExtensionInstalled,
-                label: action.label,
-                openBehavior: integration.behaviors.open,
-                role: action.role,
-            }),
-            onClick: () => handleIntegrationAction(action.role),
-            role: action.role,
-        } satisfies IntegrationActionViewModel);
-    }
-
-    return { actionStatus, actions: visibleActions };
+interface IntegrationsProps {
+    connectedIntegrations: Set<IntegrationId>;
 }
 
 export function Integrations({ connectedIntegrations }: IntegrationsProps) {
@@ -464,6 +423,11 @@ function IntegrationsList({
             open={isIntegrationsListOpen}
         />
     );
+}
+
+interface IntegrationsListTriggerProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
+    connectedCount: number;
 }
 
 function IntegrationsListTrigger({
@@ -546,6 +510,13 @@ function IntegrationsListPanel(
     return <CollapsiblePanel {...props} />;
 }
 
+interface IntegrationsListContentProps {
+    children: (
+        integration: SupportedIntegration,
+        index: number
+    ) => React.ReactNode;
+}
+
 function IntegrationsListContent({ children }: IntegrationsListContentProps) {
     return (
         <DisclosureListVertical
@@ -555,6 +526,12 @@ function IntegrationsListContent({ children }: IntegrationsListContentProps) {
             {INTEGRATIONS.map(children)}
         </DisclosureListVertical>
     );
+}
+
+interface IntegrationsListItemProps
+    extends React.ComponentProps<typeof IntegrationsListItemPreviewTrigger> {
+    direction?: IntegrationDirection;
+    isConnected: boolean;
 }
 
 function IntegrationsListItem({
@@ -630,6 +607,11 @@ function IntegrationsListItem({
     );
 }
 
+interface IntegrationsListItemPreviewTriggerProps
+    extends React.ComponentProps<typeof PreviewCardTrigger> {
+    integration: SupportedIntegration;
+}
+
 function IntegrationsListItemPreviewTrigger({
     integration,
     ...props
@@ -659,6 +641,16 @@ function IntegrationsListItemPreviewTrigger({
     );
 }
 
+interface IntegrationsListItemActionsProps
+    extends Omit<React.ComponentProps<"div">, "children"> {
+    actionStatus: IntegrationActionStatus | null;
+    actions: IntegrationActionViewModel[];
+    children: (
+        action: IntegrationActionViewModel,
+        index: number
+    ) => React.ReactNode;
+}
+
 function IntegrationsListItemActions({
     actions,
     actionStatus,
@@ -686,6 +678,10 @@ function IntegrationsListItemActions({
     );
 }
 
+interface IntegrationsListActionStatusProps extends React.ComponentProps<"p"> {
+    tone?: IntegrationActionStatusTone;
+}
+
 function IntegrationsListActionStatus({
     tone = "success",
     className,
@@ -710,6 +706,10 @@ function IntegrationsListActionStatus({
             role={isError ? "alert" : "status"}
         />
     );
+}
+
+interface IntegrationsListItemActionButtonProps {
+    action: IntegrationActionViewModel;
 }
 
 function IntegrationsListItemActionButton({

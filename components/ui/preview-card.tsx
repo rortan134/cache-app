@@ -31,7 +31,6 @@ interface PreviewCardPopupProps extends PreviewCardPrimitive.Popup.Props {
 
 export function PreviewCardPopup({
     className,
-    children,
     align = "center",
     alignOffset = 0,
     anchor,
@@ -60,9 +59,7 @@ export function PreviewCardPopup({
                         className
                     )}
                     data-slot="preview-card-popup"
-                >
-                    {children}
-                </PreviewCardPrimitive.Popup>
+                />
             </PreviewCardPrimitive.Positioner>
         </PreviewCardPrimitive.Portal>
     );

@@ -32,6 +32,26 @@ import {
 } from "@/lib/integrations/markdown/actions";
 import type { MarkdownImportResult } from "@/lib/integrations/markdown/service";
 
+const MARKDOWN_FILE_EXTENSIONS: FILE_EXTENSION[] = ["md", "markdown"];
+const MAX_FILE_SIZE_BYTES = 500_000;
+const MAX_FILES_PER_BATCH = 100;
+const MAX_BATCH_BYTES = 3_000_000;
+const BATCH_IMPORT_FAILURE_MESSAGE = "We couldn't import these files.";
+const FILE_SIZE_SKIP_MESSAGE = `Exceeds the ${(MAX_FILE_SIZE_BYTES / 1000).toFixed(0)} KB file size limit.`;
+const EMPTY_FILE_SKIP_MESSAGE = "This file is empty.";
+
+type ImportStep = "choose" | "create-new" | "pick-files" | "importing" | "done";
+
+interface ImportFileEntry {
+    markdown: string;
+    relativePath: string;
+}
+
+interface SkippedFilePath {
+    message: string;
+    relativePath: string;
+}
+
 const log = createLogger("library:markdown-import-dialog");
 
 const { useStore: useMarkdownImportStore, actions: mdImportStoreActions } =
@@ -43,24 +63,99 @@ export function openMarkdownImportDialog() {
     mdImportStoreActions.setIsOpen(true);
 }
 
-type ImportStep = "choose" | "create-new" | "pick-files" | "importing" | "done";
-
-interface ImportFileEntry {
-    markdown: string;
-    relativePath: string;
+function buildResultSummary(result: MarkdownImportResult): string {
+    const parts: string[] = [];
+    if (result.createdCount > 0) {
+        parts.push(`${result.createdCount} created`);
+    }
+    if (result.updatedCount > 0) {
+        parts.push(`${result.updatedCount} updated`);
+    }
+    if (result.skippedCount > 0) {
+        parts.push(`${result.skippedCount} skipped`);
+    }
+    if (result.failedCount > 0) {
+        parts.push(`${result.failedCount} failed`);
+    }
+    return parts.length > 0
+        ? `Import finished: ${parts.join(", ")}.`
+        : "Import finished with no changes.";
 }
 
-const MARKDOWN_FILE_EXTENSIONS: FILE_EXTENSION[] = ["md", "markdown"];
-const MAX_FILE_SIZE_BYTES = 500_000;
-const MAX_FILES_PER_BATCH = 100;
-const MAX_BATCH_BYTES = 3_000_000;
-const BATCH_IMPORT_FAILURE_MESSAGE = "We couldn't import these files.";
-const FILE_SIZE_SKIP_MESSAGE = `Exceeds the ${(MAX_FILE_SIZE_BYTES / 1000).toFixed(0)} KB file size limit.`;
-const EMPTY_FILE_SKIP_MESSAGE = "This file is empty.";
+function isMarkdownFile(fileName: string): boolean {
+    return MARKDOWN_FILE_EXTENSIONS.some((extension) =>
+        fileName.endsWith(`.${extension}`)
+    );
+}
 
-interface SkippedFilePath {
-    message: string;
-    relativePath: string;
+function getFileRelativePath(file: File): string {
+    return (
+        (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
+        file.name
+    );
+}
+
+async function readMarkdownFileEntries(
+    files: File[],
+    stripRootSegment: boolean
+): Promise<{ entries: ImportFileEntry[]; skippedPaths: SkippedFilePath[] }> {
+    const entries: ImportFileEntry[] = [];
+    const skippedPaths: SkippedFilePath[] = [];
+    for (const file of files) {
+        if (!isMarkdownFile(file.name)) {
+            continue;
+        }
+        let relativePath = getFileRelativePath(file);
+        if (stripRootSegment) {
+            relativePath = relativePath.split("/").slice(1).join("/");
+        }
+        const resolvedPath = relativePath || file.name;
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            skippedPaths.push({
+                message: FILE_SIZE_SKIP_MESSAGE,
+                relativePath: resolvedPath,
+            });
+            continue;
+        }
+        const markdown = await file.text();
+        if (markdown.trim().length === 0) {
+            skippedPaths.push({
+                message: EMPTY_FILE_SKIP_MESSAGE,
+                relativePath: resolvedPath,
+            });
+            continue;
+        }
+        entries.push({ markdown, relativePath: resolvedPath });
+    }
+    return { entries, skippedPaths };
+}
+
+function buildImportBatches(files: ImportFileEntry[]): ImportFileEntry[][] {
+    const batches: ImportFileEntry[][] = [];
+    let currentBatch: ImportFileEntry[] = [];
+    let currentBatchBytes = 0;
+    for (const file of files) {
+        const fileBytes = new TextEncoder().encode(file.markdown).length;
+        if (
+            currentBatch.length > 0 &&
+            (currentBatch.length >= MAX_FILES_PER_BATCH ||
+                currentBatchBytes + fileBytes > MAX_BATCH_BYTES)
+        ) {
+            batches.push(currentBatch);
+            currentBatch = [];
+            currentBatchBytes = 0;
+        }
+        currentBatch.push(file);
+        currentBatchBytes += fileBytes;
+    }
+    if (currentBatch.length > 0) {
+        batches.push(currentBatch);
+    }
+    return batches;
+}
+
+function isPickerAbortError(error: unknown): boolean {
+    return error instanceof Error && error.name === "AbortError";
 }
 
 export function MarkdownImportDialog() {
@@ -620,15 +715,13 @@ export function MarkdownImportDialog() {
     );
 }
 
-function ImportItemButton({
-    id,
-    name,
-    onSelect,
-}: {
+interface ImportItemButtonProps {
     id: string;
     name: string;
     onSelect: (id: string) => void;
-}) {
+}
+
+function ImportItemButton({ id, name, onSelect }: ImportItemButtonProps) {
     const handleClick = useStableCallback(() => onSelect(id));
 
     return (
@@ -642,99 +735,4 @@ function ImportItemButton({
             <span className="min-w-0 flex-1 truncate">{name}</span>
         </Button>
     );
-}
-
-function buildResultSummary(result: MarkdownImportResult): string {
-    const parts: string[] = [];
-    if (result.createdCount > 0) {
-        parts.push(`${result.createdCount} created`);
-    }
-    if (result.updatedCount > 0) {
-        parts.push(`${result.updatedCount} updated`);
-    }
-    if (result.skippedCount > 0) {
-        parts.push(`${result.skippedCount} skipped`);
-    }
-    if (result.failedCount > 0) {
-        parts.push(`${result.failedCount} failed`);
-    }
-    return parts.length > 0
-        ? `Import finished: ${parts.join(", ")}.`
-        : "Import finished with no changes.";
-}
-
-function isMarkdownFile(fileName: string): boolean {
-    return MARKDOWN_FILE_EXTENSIONS.some((extension) =>
-        fileName.endsWith(`.${extension}`)
-    );
-}
-
-function getFileRelativePath(file: File): string {
-    return (
-        (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
-        file.name
-    );
-}
-
-async function readMarkdownFileEntries(
-    files: File[],
-    stripRootSegment: boolean
-): Promise<{ entries: ImportFileEntry[]; skippedPaths: SkippedFilePath[] }> {
-    const entries: ImportFileEntry[] = [];
-    const skippedPaths: SkippedFilePath[] = [];
-    for (const file of files) {
-        if (!isMarkdownFile(file.name)) {
-            continue;
-        }
-        let relativePath = getFileRelativePath(file);
-        if (stripRootSegment) {
-            relativePath = relativePath.split("/").slice(1).join("/");
-        }
-        const resolvedPath = relativePath || file.name;
-        if (file.size > MAX_FILE_SIZE_BYTES) {
-            skippedPaths.push({
-                message: FILE_SIZE_SKIP_MESSAGE,
-                relativePath: resolvedPath,
-            });
-            continue;
-        }
-        const markdown = await file.text();
-        if (markdown.trim().length === 0) {
-            skippedPaths.push({
-                message: EMPTY_FILE_SKIP_MESSAGE,
-                relativePath: resolvedPath,
-            });
-            continue;
-        }
-        entries.push({ markdown, relativePath: resolvedPath });
-    }
-    return { entries, skippedPaths };
-}
-
-function buildImportBatches(files: ImportFileEntry[]): ImportFileEntry[][] {
-    const batches: ImportFileEntry[][] = [];
-    let currentBatch: ImportFileEntry[] = [];
-    let currentBatchBytes = 0;
-    for (const file of files) {
-        const fileBytes = new TextEncoder().encode(file.markdown).length;
-        if (
-            currentBatch.length > 0 &&
-            (currentBatch.length >= MAX_FILES_PER_BATCH ||
-                currentBatchBytes + fileBytes > MAX_BATCH_BYTES)
-        ) {
-            batches.push(currentBatch);
-            currentBatch = [];
-            currentBatchBytes = 0;
-        }
-        currentBatch.push(file);
-        currentBatchBytes += fileBytes;
-    }
-    if (currentBatch.length > 0) {
-        batches.push(currentBatch);
-    }
-    return batches;
-}
-
-function isPickerAbortError(error: unknown): boolean {
-    return error instanceof Error && error.name === "AbortError";
 }

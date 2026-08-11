@@ -65,8 +65,6 @@ import {
 } from "@/lib/desktop/releases";
 import AppIconSmall from "@/public/cache-icon-small.png";
 
-const log = createLogger("auth-user-menu");
-
 const FOOTER_LINKS = [
     { href: "/legal/privacy-policy", label: "Privacy" },
     { href: "/legal/terms-of-service", label: "Terms" },
@@ -85,6 +83,182 @@ interface DeviceSession {
         token: string;
     };
     user: AccountUser;
+}
+
+const log = createLogger("auth-user-menu");
+
+function useUserMenuAccounts() {
+    const { data: activeSession, refetch } = useSession();
+    const router = useRouter();
+    const [, startTransition] = React.useTransition();
+    const [pendingSessionToken, setPendingSessionToken] = React.useState<
+        null | string
+    >(null);
+    const [switchAccountError, setSwitchAccountError] =
+        React.useState<unknown>(null);
+    const [addAccountError, setAddAccountError] = React.useState<unknown>(null);
+    const [isAddingAccount, setIsAddingAccount] = React.useState(false);
+    const {
+        data: deviceSessions = [],
+        error: deviceSessionsError,
+        isLoading: isLoadingDeviceSessions,
+        mutate: refreshDeviceSessions,
+    } = useSWR(
+        activeSession ? DEVICE_SESSIONS_SWR_KEY : null,
+        listDeviceSessions
+    );
+
+    const handleAccountChange = useStableCallback((sessionToken: string) => {
+        if (
+            !activeSession ||
+            pendingSessionToken !== null ||
+            sessionToken === activeSession.session.token
+        ) {
+            return;
+        }
+
+        setPendingSessionToken(sessionToken);
+        setSwitchAccountError(null);
+
+        startTransition(async () => {
+            try {
+                const result = await authClient.multiSession.setActive({
+                    sessionToken,
+                });
+
+                if (result.error) {
+                    log.error("Failed to switch active session", result.error);
+                    setSwitchAccountError(result.error);
+                    return;
+                }
+
+                await Promise.all([refetch(), refreshDeviceSessions()]);
+                router.refresh();
+            } catch (error) {
+                log.error("Failed to switch active session", error);
+                setSwitchAccountError(error);
+            } finally {
+                setPendingSessionToken(null);
+            }
+        });
+    });
+
+    const handleAddAccount = useStableCallback(async () => {
+        if (isAddingAccount) {
+            return;
+        }
+        setAddAccountError(null);
+        setIsAddingAccount(true);
+
+        try {
+            const result = await authClient.signIn.social({
+                callbackURL: "/library",
+                errorCallbackURL: "/library",
+                provider: "google",
+            });
+
+            if (result.error) {
+                log.error("Failed to add account session", result.error);
+                setAddAccountError(result.error);
+            }
+        } catch (error) {
+            log.error("Failed to add account session", error);
+            setAddAccountError(error);
+        } finally {
+            setIsAddingAccount(false);
+        }
+    });
+
+    const accountMenuError = getAccountMenuError(
+        addAccountError,
+        deviceSessionsError,
+        switchAccountError
+    );
+
+    const accountOptions = activeSession
+        ? getAccountOptions(deviceSessions, activeSession)
+        : [];
+
+    return {
+        accountMenuError,
+        accountOptions,
+        activeSession,
+        handleAccountChange,
+        handleAddAccount,
+        isAddingAccount,
+        isLoadingDeviceSessions,
+        pendingSessionToken,
+    };
+}
+
+function getAccountOptions(
+    deviceSessions: DeviceSession[],
+    activeSession: Session
+): DeviceSession[] {
+    const hasActiveSession = deviceSessions.some(
+        (deviceSession) =>
+            deviceSession.session.token === activeSession.session.token
+    );
+
+    if (hasActiveSession) {
+        return deviceSessions;
+    }
+
+    return [
+        {
+            session: {
+                token: activeSession.session.token,
+            },
+            user: activeSession.user,
+        },
+        ...deviceSessions,
+    ];
+}
+
+async function listDeviceSessions(): Promise<DeviceSession[]> {
+    const result = await authClient.multiSession.listDeviceSessions();
+    if (result.error) {
+        log.error("Failed to load device sessions", result.error);
+        throw new Error("Failed to load device sessions.");
+    }
+    return result.data ?? [];
+}
+
+function getAccountMenuError(
+    addAccountError: unknown,
+    deviceSessionsError: unknown,
+    switchAccountError: unknown
+): AccountMenuError | null {
+    if (addAccountError) {
+        return "add";
+    }
+    if (deviceSessionsError) {
+        return "load";
+    }
+    if (switchAccountError) {
+        return "switch";
+    }
+    return null;
+}
+
+async function fetchDesktopDownloads(): Promise<{
+    downloads: DesktopDownload[];
+    version?: string;
+}> {
+    try {
+        const result = await getDesktopDownloads();
+
+        if (result.status === ACTION_STATUS.SUCCESS) {
+            return {
+                downloads: result.data.downloads,
+                version: result.data.version,
+            };
+        }
+    } catch (error) {
+        log.warn("Desktop downloads action failed; using static URLs", error);
+    }
+
+    return { downloads: getStaticDesktopDownloads() };
 }
 
 export function UserMenu(
@@ -118,7 +292,16 @@ export function UserMenuTrigger(
             <WithUserSessionOnly fallback={<UserMenuTriggerSkeleton />}>
                 {(user) => (
                     <span className="flex min-w-0 items-center gap-2">
-                        <AccountAvatar user={user} />
+                        <Avatar className="size-5.5 rounded-md">
+                            <AvatarImage
+                                alt={user.name ?? user.email}
+                                loading="lazy"
+                                src={user.image ?? undefined}
+                            />
+                            <AvatarFallback className="rounded-md text-xs">
+                                {getInitials(user.name, user.email)}
+                            </AvatarFallback>
+                        </Avatar>
                         <span className="min-w-0 max-w-full truncate text-left font-medium text-sm">
                             {user.name ?? <T>Account</T>}
                         </span>
@@ -354,152 +537,6 @@ export function UserMenuFooter() {
     );
 }
 
-/* @internal */
-function UserMenuDesktopDownloadSubMenu() {
-    const recommendedPlatform = detectDesktopPlatform();
-    const { data } = useSWR(DESKTOP_DOWNLOADS_SWR_KEY, fetchDesktopDownloads, {
-        revalidateOnFocus: false,
-        shouldRetryOnError: false,
-    });
-
-    const downloads = data?.downloads ?? getStaticDesktopDownloads();
-    const versionLabel = data?.version;
-
-    return (
-        <MenuSub>
-            <MenuSubTrigger>
-                <T>Download desktop app</T>
-            </MenuSubTrigger>
-            <MenuSubPopup align="end" className="min-w-50">
-                <MenuGroup>
-                    {versionLabel ? (
-                        <MenuGroupLabel>
-                            <T>
-                                Version <Var>{versionLabel}</Var>
-                            </T>
-                        </MenuGroupLabel>
-                    ) : null}
-                    {downloads.map((download) => (
-                        <DesktopDownloadMenuItem
-                            download={download}
-                            isRecommended={
-                                download.platform === recommendedPlatform
-                            }
-                            key={download.platform}
-                        />
-                    ))}
-                    <MenuSeparator />
-                    <MenuItem
-                        className="justify-between"
-                        render={
-                            <a
-                                href={getDesktopReleasesPageUrl()}
-                                rel="noopener noreferrer"
-                                target="_blank"
-                            />
-                        }
-                    >
-                        <T>All releases</T>
-                        <ArrowUpRight className="ml-auto inline-block size-4 text-muted-foreground" />
-                    </MenuItem>
-                </MenuGroup>
-            </MenuSubPopup>
-        </MenuSub>
-    );
-}
-
-/* @internal */
-function DesktopDownloadMenuItem({
-    download,
-    isRecommended,
-}: {
-    download: DesktopDownload;
-    isRecommended: boolean;
-}) {
-    return (
-        <MenuItem
-            className="justify-between"
-            render={
-                <a
-                    download={download.fileName}
-                    href={download.url}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                />
-            }
-        >
-            <span className="flex min-w-0 items-center gap-2">
-                <span>{DESKTOP_ASSETS[download.platform].label}</span>
-                {isRecommended ? (
-                    <span className="text-muted-foreground text-xs">
-                        <T>Recommended</T>
-                    </span>
-                ) : null}
-            </span>
-            <Download className="ml-auto inline-block size-3.5 text-muted-foreground" />
-        </MenuItem>
-    );
-}
-
-async function fetchDesktopDownloads(): Promise<{
-    downloads: DesktopDownload[];
-    version?: string;
-}> {
-    try {
-        const result = await getDesktopDownloads();
-
-        if (result.status === ACTION_STATUS.SUCCESS) {
-            return {
-                downloads: result.data.downloads,
-                version: result.data.version,
-            };
-        }
-    } catch (error) {
-        log.warn("Desktop downloads action failed; using static URLs", error);
-    }
-
-    return {
-        downloads: getStaticDesktopDownloads(),
-    };
-}
-
-/* @internal */
-function UserMenuAccountActionsSubMenu(
-    props: React.ComponentProps<typeof MenuSubTrigger>
-) {
-    const gt = useGT();
-    const accountActionsLabel = gt("Account actions");
-
-    return (
-        <MenuSub>
-            <MenuSubTrigger
-                {...props}
-                aria-label={accountActionsLabel}
-                nativeButton
-                render={<Button size="xs" variant="ghost" />}
-                title={accountActionsLabel}
-            />
-            <MenuSubPopup align="end">
-                <MenuGroup>
-                    <DeleteAccountDialogTrigger
-                        nativeButton={false}
-                        render={
-                            <MenuItem
-                                closeOnClick={false}
-                                nativeButton={false}
-                                variant="destructive"
-                            />
-                        }
-                    >
-                        <T context="Delete account menu item">Delete account</T>
-                    </DeleteAccountDialogTrigger>
-                </MenuGroup>
-            </MenuSubPopup>
-        </MenuSub>
-    );
-}
-
-/* @internal */
 function UserMenuTriggerSkeleton() {
     return (
         <span className="flex min-w-0 items-center gap-2">
@@ -509,130 +546,6 @@ function UserMenuTriggerSkeleton() {
     );
 }
 
-/* @internal */
-function AccountAvatar({ user }: { user: AccountUser }) {
-    const label = user.name ?? user.email;
-
-    return (
-        <Avatar className="size-5.5 rounded-md">
-            <AvatarImage
-                alt={label}
-                loading="lazy"
-                src={user.image ?? undefined}
-            />
-            <AvatarFallback className="rounded-md text-xs">
-                {getInitials(user.name, user.email)}
-            </AvatarFallback>
-        </Avatar>
-    );
-}
-
-/* @internal */
-function useUserMenuAccounts() {
-    const { data: activeSession, refetch } = useSession();
-    const router = useRouter();
-    const [, startTransition] = React.useTransition();
-    const [pendingSessionToken, setPendingSessionToken] = React.useState<
-        null | string
-    >(null);
-    const [switchAccountError, setSwitchAccountError] =
-        React.useState<unknown>(null);
-    const [addAccountError, setAddAccountError] = React.useState<unknown>(null);
-    const [isAddingAccount, setIsAddingAccount] = React.useState(false);
-    const {
-        data: deviceSessions = [],
-        error: deviceSessionsError,
-        isLoading: isLoadingDeviceSessions,
-        mutate: refreshDeviceSessions,
-    } = useSWR(
-        activeSession ? DEVICE_SESSIONS_SWR_KEY : null,
-        listDeviceSessions
-    );
-
-    const handleAccountChange = useStableCallback((sessionToken: string) => {
-        if (
-            !activeSession ||
-            pendingSessionToken !== null ||
-            sessionToken === activeSession.session.token
-        ) {
-            return;
-        }
-
-        setPendingSessionToken(sessionToken);
-        setSwitchAccountError(null);
-
-        startTransition(async () => {
-            try {
-                const result = await authClient.multiSession.setActive({
-                    sessionToken,
-                });
-
-                if (result.error) {
-                    log.error("Failed to switch active session", result.error);
-                    setSwitchAccountError(result.error);
-                    return;
-                }
-
-                await Promise.all([refetch(), refreshDeviceSessions()]);
-                router.refresh();
-            } catch (error) {
-                log.error("Failed to switch active session", error);
-                setSwitchAccountError(error);
-            } finally {
-                setPendingSessionToken(null);
-            }
-        });
-    });
-
-    const handleAddAccount = useStableCallback(async () => {
-        if (isAddingAccount) {
-            return;
-        }
-        setAddAccountError(null);
-        setIsAddingAccount(true);
-
-        try {
-            const result = await authClient.signIn.social({
-                callbackURL: "/library",
-                errorCallbackURL: "/library",
-                provider: "google",
-            });
-
-            if (result.error) {
-                log.error("Failed to add account session", result.error);
-                setAddAccountError(result.error);
-            }
-        } catch (error) {
-            log.error("Failed to add account session", error);
-            setAddAccountError(error);
-        } finally {
-            setIsAddingAccount(false);
-        }
-    });
-
-    const accountMenuError = getAccountMenuError(
-        addAccountError,
-        deviceSessionsError,
-        switchAccountError
-    );
-
-    const accountOptions = activeSession
-        ? getAccountOptions(deviceSessions, activeSession)
-        : [];
-
-    return {
-        accountMenuError,
-        accountOptions,
-        activeSession,
-        handleAccountChange,
-        handleAddAccount,
-        isAddingAccount,
-        isLoadingDeviceSessions,
-        pendingSessionToken,
-    };
-}
-
-/* @internal */
 function UserMenuAccountSwitcherSubMenu(
     props: React.ComponentProps<typeof MenuSubTrigger>
 ) {
@@ -651,7 +564,6 @@ function UserMenuAccountSwitcherSubMenu(
     );
 }
 
-/* @internal */
 function UserMenuAccountSwitcherContent() {
     const {
         accountMenuError,
@@ -706,7 +618,25 @@ function UserMenuAccountSwitcherContent() {
                             value={deviceSession.session.token}
                         >
                             <span className="flex min-w-0 items-center gap-2">
-                                <AccountAvatar user={deviceSession.user} />
+                                <Avatar className="size-5.5 rounded-md">
+                                    <AvatarImage
+                                        alt={
+                                            deviceSession.user.name ??
+                                            deviceSession.user.email
+                                        }
+                                        loading="lazy"
+                                        src={
+                                            deviceSession.user.image ??
+                                            undefined
+                                        }
+                                    />
+                                    <AvatarFallback className="rounded-md text-xs">
+                                        {getInitials(
+                                            deviceSession.user.name,
+                                            deviceSession.user.email
+                                        )}
+                                    </AvatarFallback>
+                                </Avatar>
                                 <span className="min-w-0 flex-1">
                                     <span className="block truncate font-medium">
                                         {deviceSession.user.name ?? (
@@ -755,52 +685,124 @@ function AccountMenuErrorMessage({ error }: { error: AccountMenuError }) {
     }
 }
 
-function getAccountOptions(
-    deviceSessions: DeviceSession[],
-    activeSession: Session
-): DeviceSession[] {
-    const hasActiveSession = deviceSessions.some(
-        (deviceSession) =>
-            deviceSession.session.token === activeSession.session.token
+function UserMenuDesktopDownloadSubMenu() {
+    const recommendedPlatform = detectDesktopPlatform();
+    const { data } = useSWR(DESKTOP_DOWNLOADS_SWR_KEY, fetchDesktopDownloads, {
+        revalidateOnFocus: false,
+        shouldRetryOnError: false,
+    });
+
+    const downloads = data?.downloads ?? getStaticDesktopDownloads();
+    const versionLabel = data?.version;
+
+    return (
+        <MenuSub>
+            <MenuSubTrigger>
+                <T>Download desktop app</T>
+            </MenuSubTrigger>
+            <MenuSubPopup align="end" className="min-w-50">
+                <MenuGroup>
+                    {versionLabel ? (
+                        <MenuGroupLabel>
+                            <T>
+                                Version <Var>{versionLabel}</Var>
+                            </T>
+                        </MenuGroupLabel>
+                    ) : null}
+                    {downloads.map((download) => (
+                        <DesktopDownloadMenuItem
+                            download={download}
+                            isRecommended={
+                                download.platform === recommendedPlatform
+                            }
+                            key={download.platform}
+                        />
+                    ))}
+                    <MenuSeparator />
+                    <MenuItem
+                        className="justify-between"
+                        render={
+                            <a
+                                href={getDesktopReleasesPageUrl()}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            />
+                        }
+                    >
+                        <T>All releases</T>
+                        <ArrowUpRight className="ml-auto inline-block size-4 text-muted-foreground" />
+                    </MenuItem>
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
     );
-
-    if (hasActiveSession) {
-        return deviceSessions;
-    }
-
-    return [
-        {
-            session: {
-                token: activeSession.session.token,
-            },
-            user: activeSession.user,
-        },
-        ...deviceSessions,
-    ];
 }
 
-async function listDeviceSessions(): Promise<DeviceSession[]> {
-    const result = await authClient.multiSession.listDeviceSessions();
-    if (result.error) {
-        log.error("Failed to load device sessions", result.error);
-        throw new Error("Failed to load device sessions.");
-    }
-    return result.data ?? [];
+interface DesktopDownloadMenuItemProps {
+    download: DesktopDownload;
+    isRecommended: boolean;
 }
 
-function getAccountMenuError(
-    addAccountError: unknown,
-    deviceSessionsError: unknown,
-    switchAccountError: unknown
-): AccountMenuError | null {
-    if (addAccountError) {
-        return "add";
-    }
-    if (deviceSessionsError) {
-        return "load";
-    }
-    if (switchAccountError) {
-        return "switch";
-    }
-    return null;
+function DesktopDownloadMenuItem({
+    download,
+    isRecommended,
+}: DesktopDownloadMenuItemProps) {
+    return (
+        <MenuItem
+            className="justify-between"
+            render={
+                <a
+                    download={download.fileName}
+                    href={download.url}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                />
+            }
+        >
+            <span className="flex min-w-0 items-center gap-2">
+                <span>{DESKTOP_ASSETS[download.platform].label}</span>
+                {isRecommended ? (
+                    <span className="text-muted-foreground text-xs">
+                        <T>Recommended</T>
+                    </span>
+                ) : null}
+            </span>
+            <Download className="ml-auto inline-block size-3.5 text-muted-foreground" />
+        </MenuItem>
+    );
+}
+
+function UserMenuAccountActionsSubMenu(
+    props: React.ComponentProps<typeof MenuSubTrigger>
+) {
+    const gt = useGT();
+    const accountActionsLabel = gt("Account actions");
+
+    return (
+        <MenuSub>
+            <MenuSubTrigger
+                {...props}
+                aria-label={accountActionsLabel}
+                nativeButton
+                render={<Button size="xs" variant="ghost" />}
+                title={accountActionsLabel}
+            />
+            <MenuSubPopup align="end">
+                <MenuGroup>
+                    <DeleteAccountDialogTrigger
+                        nativeButton={false}
+                        render={
+                            <MenuItem
+                                closeOnClick={false}
+                                nativeButton={false}
+                                variant="destructive"
+                            />
+                        }
+                    >
+                        <T context="Delete account menu item">Delete account</T>
+                    </DeleteAccountDialogTrigger>
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
+    );
 }

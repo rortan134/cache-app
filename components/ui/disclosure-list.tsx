@@ -1,6 +1,7 @@
 "use client";
 
 import { Calligraph } from "calligraph";
+import { useGT } from "gt-next";
 import * as React from "react";
 import {
     Collapsible,
@@ -12,11 +13,6 @@ import { cn } from "@/lib/common/cn";
 
 const MAX_VISIBLE_VERTICAL_DEFAULT = 15;
 const MAX_VISIBLE_HORIZONTAL_DEFAULT = 5;
-
-interface DisclosureListHiddenProps
-    extends React.ComponentProps<typeof CollapsibleTrigger> {
-    items: React.ReactNode[];
-}
 
 interface DisclosureListVerticalProps extends React.ComponentProps<"div"> {
     maxVisible?: number;
@@ -65,6 +61,7 @@ export function DisclosureListHorizontal({
     badgeRender,
     ...props
 }: DisclosureListHorizontalProps) {
+    const gt = useGT();
     const childrenArray = React.Children.toArray(children);
 
     if (childrenArray.length === 0) {
@@ -84,11 +81,9 @@ export function DisclosureListHorizontal({
             {hidden.length > 0 ? (
                 <Popover>
                     <PopoverTrigger render={badgeRender}>
-                        +
                         <Calligraph className="-mx-0.5">
-                            {hidden.length}
-                        </Calligraph>{" "}
-                        more
+                            {gt("+{count} more", { count: hidden.length })}
+                        </Calligraph>
                     </PopoverTrigger>
                     <PopoverPopup>
                         <div className="flex flex-col gap-2">{hidden}</div>
@@ -99,11 +94,17 @@ export function DisclosureListHorizontal({
     );
 }
 
+interface DisclosureListHiddenProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
+    items: React.ReactNode[];
+}
+
 function DisclosureListOverflow({
     items,
     className,
     ...props
 }: DisclosureListHiddenProps) {
+    const gt = useGT();
     const [isOpen, setIsOpen] = React.useState(false);
 
     return (
@@ -115,7 +116,9 @@ function DisclosureListOverflow({
                     className
                 )}
             >
-                {isOpen ? "Show less" : `Show ${items.length} more`}
+                {isOpen
+                    ? gt("Show less")
+                    : gt("Show {count} more", { count: items.length })}
             </CollapsibleTrigger>
             <CollapsiblePanel>{items}</CollapsiblePanel>
         </Collapsible>

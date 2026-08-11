@@ -114,69 +114,6 @@ import {
 import { sendNoteToNotion } from "@/lib/integrations/notion/actions";
 import AppIconSmall from "@/public/cache-icon-small.png";
 
-export interface NoteDraft {
-    contentHtml: string;
-    contentState: NoteSerializedEditorState | null;
-}
-
-interface NoteProps {
-    children: ReactNode;
-    contentEditableRef?: React.RefObject<HTMLDivElement | null>;
-    isOpen: boolean;
-    isSaving: boolean;
-    note: LibraryItemWithCollections | null;
-    onOpenChange: (open: boolean) => void | Promise<void>;
-    onSave: (
-        draft: NoteDraft,
-        noteId: string | null
-    ) =>
-        | LibraryItemWithCollections
-        | null
-        | Promise<LibraryItemWithCollections | null>;
-    onUrlPaste: (url: string) => Promise<void> | void;
-}
-
-interface NoteContextValue {
-    contentEditableRef?: React.RefObject<HTMLDivElement | null>;
-    contentHtml: string;
-    editorKey: number;
-    initialDraft: NoteDraft;
-    isDirty: boolean;
-    onDraftChange: (draft: NoteDraft) => void;
-    onOpenChange: (open: boolean) => Promise<void>;
-    onUrlPaste: (url: string) => Promise<void>;
-    query: string;
-    saveStatus: SaveStatus;
-    shouldCreateBookmarkFromUrlPaste: () => boolean;
-    textMetrics: NoteTextMetrics;
-    title: string;
-}
-
-interface FormatState {
-    blockType: NoteBlockType;
-    bold: boolean;
-    italic: boolean;
-    strikeThrough: boolean;
-    underline: boolean;
-}
-
-interface NoteTextMetrics {
-    characterCount: number;
-    paragraphCount: number;
-    plainText: string;
-    readMinuteCount: number;
-    wordCount: number;
-}
-
-type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
-type NoteInlineFormatStateKey = Exclude<keyof FormatState, "blockType">;
-
-interface ExportContentProvider {
-    createUrl: (query: string) => string;
-    icon: ComponentType<SVGProps<SVGSVGElement>>;
-    title: string;
-}
-
 const INITIAL_FORMAT_STATE: FormatState = {
     blockType: "paragraph",
     bold: false,
@@ -254,8 +191,6 @@ const NOTE_EDITOR_EXTENSION = defineExtension({
     },
     theme: NOTE_EDITOR_THEME,
 });
-
-const log = createLogger("library:notes");
 
 const NOTE_NON_EMPTY_BLOCK_TAG_REGEX =
     /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/i;
@@ -348,6 +283,60 @@ const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
     },
 ];
 
+export interface NoteDraft {
+    contentHtml: string;
+    contentState: NoteSerializedEditorState | null;
+}
+
+interface NoteContextValue {
+    contentEditableRef?: React.RefObject<HTMLDivElement | null>;
+    contentHtml: string;
+    editorKey: number;
+    initialDraft: NoteDraft;
+    isDirty: boolean;
+    onDraftChange: (draft: NoteDraft) => void;
+    onOpenChange: (open: boolean) => Promise<void>;
+    onUrlPaste: (url: string) => Promise<void>;
+    query: string;
+    saveStatus: SaveStatus;
+    shouldCreateBookmarkFromUrlPaste: () => boolean;
+    textMetrics: NoteTextMetrics;
+    title: string;
+}
+
+interface FormatState {
+    blockType: NoteBlockType;
+    bold: boolean;
+    italic: boolean;
+    strikeThrough: boolean;
+    underline: boolean;
+}
+
+interface NoteTextMetrics {
+    characterCount: number;
+    paragraphCount: number;
+    plainText: string;
+    readMinuteCount: number;
+    wordCount: number;
+}
+
+type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
+
+type NoteInlineFormatStateKey = Exclude<keyof FormatState, "blockType">;
+
+interface ExportContentProvider {
+    createUrl: (query: string) => string;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+    title: string;
+}
+
+interface EditorSession {
+    editorKey: number;
+    extension: ReturnType<typeof createNoteSessionExtension>;
+}
+
+const log = createLogger("library:notes");
+
 const NoteContext = createContext<NoteContextValue | null>(null);
 
 export function useNoteContext(): NoteContextValue {
@@ -409,21 +398,6 @@ function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
     });
 }
 
-/**
- * Shallow equality check for toolbar format state.
- *
- * Used to bail out of React re-renders when the selection hasn't changed.
- */
-function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
-    return (
-        left.blockType === right.blockType &&
-        left.bold === right.bold &&
-        left.italic === right.italic &&
-        left.strikeThrough === right.strikeThrough &&
-        left.underline === right.underline
-    );
-}
-
 function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     const plainText = extractNoteText(contentHtml);
     const matchedBlocks = contentHtml.match(NOTE_NON_EMPTY_BLOCK_TAG_REGEX);
@@ -443,6 +417,99 @@ function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
         readMinuteCount: Math.ceil(wordCount / NOTE_READING_WORDS_PER_MINUTE),
         wordCount,
     };
+}
+
+function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
+    return (
+        normalizeNoteHtml(left.contentHtml) !==
+        normalizeNoteHtml(right.contentHtml)
+    );
+}
+
+function isDraftEmpty(draft: NoteDraft): boolean {
+    return extractNoteText(draft.contentHtml).length === 0;
+}
+
+function shouldCloseWithoutSaving(
+    currentDraft: NoteDraft,
+    initialDraft: NoteDraft,
+    hasPersistedNote: boolean
+): boolean {
+    if (!haveDraftsChanged(currentDraft, initialDraft)) {
+        return true;
+    }
+    return !hasPersistedNote && isDraftEmpty(currentDraft);
+}
+
+function getNotionNoteTitle(plainText: string): string {
+    for (const line of plainText.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.length > 0) {
+            return trimmed;
+        }
+    }
+    return "Cache note";
+}
+
+async function downloadMarkdownFile(contentHtml: string) {
+    const markdown = convertNoteHtmlToMarkdown(contentHtml);
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    await saveFile(blob, {
+        description: "Markdown file",
+        extension: "md",
+        name: "note",
+    });
+}
+
+/**
+ * Shallow equality check for toolbar format state.
+ *
+ * Used to bail out of React re-renders when the selection hasn't changed.
+ */
+function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
+    return (
+        left.blockType === right.blockType &&
+        left.bold === right.bold &&
+        left.italic === right.italic &&
+        left.strikeThrough === right.strikeThrough &&
+        left.underline === right.underline
+    );
+}
+
+function getSelectionBlockType(selection: RangeSelection): NoteBlockType {
+    const anchorNode = selection.anchor.getNode();
+    const topLevelNode = $isRootNode(anchorNode)
+        ? anchorNode
+        : anchorNode.getTopLevelElement();
+
+    if (!(topLevelNode && $isHeadingNode(topLevelNode))) {
+        return "paragraph";
+    }
+
+    const headingTag = topLevelNode.getTag();
+
+    if (headingTag === "h1" || headingTag === "h2" || headingTag === "h3") {
+        return headingTag;
+    }
+    return "paragraph";
+}
+
+function parseNoteBlockType(value: string | undefined): NoteBlockType | null {
+    for (const option of NOTE_BLOCK_OPTIONS) {
+        if (option.value === value) {
+            return option.value;
+        }
+    }
+    return null;
+}
+
+function parseTextFormat(value: string | undefined): TextFormatType | null {
+    for (const option of NOTE_TEXT_FORMAT_OPTIONS) {
+        if (option.format === value) {
+            return option.format;
+        }
+    }
+    return null;
 }
 
 function getInitialEditorState(
@@ -485,82 +552,581 @@ function createNoteSessionExtension(
     });
 }
 
-function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
+interface NoteProps {
+    children: ReactNode;
+    contentEditableRef?: React.RefObject<HTMLDivElement | null>;
+    isOpen: boolean;
+    isSaving: boolean;
+    note: LibraryItemWithCollections | null;
+    onOpenChange: (open: boolean) => void | Promise<void>;
+    onSave: (
+        draft: NoteDraft,
+        noteId: string | null
+    ) =>
+        | LibraryItemWithCollections
+        | null
+        | Promise<LibraryItemWithCollections | null>;
+    onUrlPaste: (url: string) => Promise<void> | void;
+}
+
+/**
+ * Root controller for the note editor.
+ *
+ * Manages draft state, dirty-checking, auto-save on close, and expansion
+ * toggling. Provides the shared context consumed by all leaf parts.
+ *
+ * Compose with leaf parts:
+ *   <NoteRoot note={note} isOpen onSave={...} ...>
+ *     <NoteHeader />
+ *     <NoteEditor />
+ *     <NoteMetrics />
+ *   </NoteRoot>
+ *
+ * Call `useNoteContext()` in custom children to read draft state and
+ * text metrics.
+ */
+export function NoteRoot({
+    children,
+    contentEditableRef,
+    isOpen,
+    isSaving,
+    note,
+    onOpenChange,
+    onSave,
+    onUrlPaste,
+}: NoteProps) {
+    const [initialDraft, setInitialDraft] = useState<NoteDraft>(() =>
+        noteDraftFromItem(note)
+    );
+    const [draft, setDraft] = useState<NoteDraft>(initialDraft);
+    const [editorKey, setEditorKey] = useState(0);
+    const isClosingRef = useRef(false);
+
+    const initialDraftRef = useRef<NoteDraft>(draft);
+    const latestDraftRef = useRef<NoteDraft>(draft);
+
+    const noteId = note?.id ?? null;
+    const savedNoteIdRef = useRef<string | null>(noteId);
+
+    const updateInitialDraft = (nextDraft: NoteDraft) => {
+        savedNoteIdRef.current = noteId;
+        initialDraftRef.current = nextDraft;
+        setInitialDraft(nextDraft);
+    };
+
+    const commitWorkingDraft = (nextDraft: NoteDraft) => {
+        latestDraftRef.current = nextDraft;
+        setDraft(nextDraft);
+        setEditorKey((key) => key + 1);
+    };
+
+    const resetDraft = () => {
+        const nextDraft = noteDraftFromItem(note);
+        updateInitialDraft(nextDraft);
+        commitWorkingDraft(nextDraft);
+    };
+
+    const syncDraftFromNote = () => {
+        const nextDraft = noteDraftFromItem(note);
+        const shouldPreserveLocalDraft =
+            noteId !== null &&
+            noteId === savedNoteIdRef.current &&
+            haveDraftsChanged(
+                latestDraftRef.current,
+                initialDraftRef.current
+            ) &&
+            haveDraftsChanged(nextDraft, latestDraftRef.current);
+
+        updateInitialDraft(nextDraft);
+
+        if (
+            shouldPreserveLocalDraft ||
+            !haveDraftsChanged(nextDraft, latestDraftRef.current)
+        ) {
+            return;
+        }
+
+        commitWorkingDraft(nextDraft);
+    };
+
+    // React to prop changes during render instead of a `useEffect` to avoid
+    // committing once for the prop change and again for the state sync.
+    const [prevOpen, setPrevOpen] = useState(isOpen);
+    const [prevNote, setPrevNote] = useState(note);
+
+    if (!Object.is(isOpen, prevOpen)) {
+        setPrevOpen(isOpen);
+        if (isOpen) {
+            resetDraft();
+        }
+    }
+
+    if (!Object.is(note, prevNote)) {
+        setPrevNote(note);
+        if (isOpen && isOpen === prevOpen) {
+            syncDraftFromNote();
+        }
+    }
+
+    const handleDraftChange = (nextDraft: NoteDraft) => {
+        const normalizedDraft = normalizeDraft(nextDraft);
+        if (!haveDraftsChanged(normalizedDraft, latestDraftRef.current)) {
+            return;
+        }
+        latestDraftRef.current = normalizedDraft;
+        setDraft(normalizedDraft);
+    };
+
+    const handleUrlPaste = async (url: string) => {
+        await onUrlPaste(url);
+        resetDraft();
+        await onOpenChange(false);
+    };
+
+    const shouldCreateBookmarkFromUrlPaste = () =>
+        !savedNoteIdRef.current && isDraftEmpty(latestDraftRef.current);
+
+    const saveLatestDraft = useStableCallback(async () => {
+        const draftToSave = latestDraftRef.current;
+        if (
+            shouldCloseWithoutSaving(
+                draftToSave,
+                initialDraftRef.current,
+                savedNoteIdRef.current !== null
+            )
+        ) {
+            return true;
+        }
+
+        const savedNote = await onSave(draftToSave, savedNoteIdRef.current);
+        if (!savedNote) {
+            return false;
+        }
+
+        savedNoteIdRef.current = savedNote.id;
+        initialDraftRef.current = draftToSave;
+        setInitialDraft(draftToSave);
+
+        return draftToSave.contentHtml;
+    });
+
+    const { isDirty, saveImmediately, saveStatus } = useAutosave({
+        content: draft.contentHtml,
+        enabled: isOpen,
+        onSave: saveLatestDraft,
+        savedContent: initialDraft.contentHtml,
+    });
+
+    const handleSaveShortcut = useStableCallback((event: KeyboardEvent) => {
+        if (
+            event.defaultPrevented ||
+            !(event.metaKey || event.ctrlKey) ||
+            event.key.toLowerCase() !== "s"
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        saveImmediately().catch((error: unknown) => {
+            log.error("Unexpected note shortcut save failure", error);
+        });
+    });
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        const ownerDocument = getOwnerDocument(contentEditableRef?.current);
+        ownerDocument.addEventListener("keydown", handleSaveShortcut);
+        return () => {
+            ownerDocument.removeEventListener("keydown", handleSaveShortcut);
+        };
+    }, [contentEditableRef, handleSaveShortcut, isOpen]);
+
+    const handleOpenChange = async (nextOpen: boolean) => {
+        if (nextOpen) {
+            onOpenChange(true);
+            return;
+        }
+
+        if (isClosingRef.current || (isSaving && saveStatus !== "saving")) {
+            return;
+        }
+
+        const currentDraft = latestDraftRef.current;
+        const shouldSkipSave = shouldCloseWithoutSaving(
+            currentDraft,
+            initialDraftRef.current,
+            savedNoteIdRef.current !== null
+        );
+
+        if (shouldSkipSave) {
+            onOpenChange(false);
+            return;
+        }
+
+        isClosingRef.current = true;
+        try {
+            const isSaved = await saveImmediately();
+            if (isSaved) {
+                onOpenChange(false);
+            }
+        } finally {
+            isClosingRef.current = false;
+        }
+    };
+
+    const deferredContentHtml = useDeferredValue(draft.contentHtml);
+    const textMetrics = getNoteTextMetrics(deferredContentHtml);
+    const query = textMetrics.plainText;
+    const title = note ? "Note" : "New entry";
+
     return (
-        normalizeNoteHtml(left.contentHtml) !==
-        normalizeNoteHtml(right.contentHtml)
+        <NoteContext
+            value={{
+                contentEditableRef,
+                contentHtml: draft.contentHtml,
+                editorKey,
+                initialDraft,
+                isDirty,
+                onDraftChange: handleDraftChange,
+                onOpenChange: handleOpenChange,
+                onUrlPaste: handleUrlPaste,
+                query,
+                saveStatus,
+                shouldCreateBookmarkFromUrlPaste,
+                textMetrics,
+                title,
+            }}
+        >
+            {children}
+        </NoteContext>
     );
 }
 
-function isDraftEmpty(draft: NoteDraft): boolean {
-    return extractNoteText(draft.contentHtml).length === 0;
-}
+export function NoteHeader() {
+    const { contentHtml, onOpenChange, query, title } = useNoteContext();
+    const hasQuery = query.length > 0;
+    const [notionStatus, setNotionStatus] = useState<{
+        message: string;
+        tone: "error" | "success";
+    } | null>(null);
+    const [isSendingToNotion, startSendToNotion] = useTransition();
+    const { copyToClipboard, isCopied } = useCopyToClipboard();
 
-function getNotionNoteTitle(plainText: string): string {
-    for (const line of plainText.split("\n")) {
-        const trimmed = line.trim();
-        if (trimmed.length > 0) {
-            return trimmed;
+    const handleCopyNote = useStableCallback(() => {
+        if (!hasQuery) {
+            return;
         }
-    }
-    return "Cache note";
-}
-
-function shouldCloseWithoutSaving(
-    currentDraft: NoteDraft,
-    initialDraft: NoteDraft,
-    hasPersistedNote: boolean
-): boolean {
-    if (!haveDraftsChanged(currentDraft, initialDraft)) {
-        return true;
-    }
-    return !hasPersistedNote && isDraftEmpty(currentDraft);
-}
-
-function getSelectionBlockType(selection: RangeSelection): NoteBlockType {
-    const anchorNode = selection.anchor.getNode();
-    const topLevelNode = $isRootNode(anchorNode)
-        ? anchorNode
-        : anchorNode.getTopLevelElement();
-
-    if (!(topLevelNode && $isHeadingNode(topLevelNode))) {
-        return "paragraph";
-    }
-
-    const headingTag = topLevelNode.getTag();
-
-    if (headingTag === "h1" || headingTag === "h2" || headingTag === "h3") {
-        return headingTag;
-    }
-    return "paragraph";
-}
-
-function parseNoteBlockType(value: string | undefined): NoteBlockType | null {
-    for (const option of NOTE_BLOCK_OPTIONS) {
-        if (option.value === value) {
-            return option.value;
-        }
-    }
-    return null;
-}
-
-function parseTextFormat(value: string | undefined): TextFormatType | null {
-    for (const option of NOTE_TEXT_FORMAT_OPTIONS) {
-        if (option.format === value) {
-            return option.format;
-        }
-    }
-    return null;
-}
-
-async function downloadMarkdownFile(contentHtml: string) {
-    const markdown = convertNoteHtmlToMarkdown(contentHtml);
-    const blob = new Blob([markdown], { type: "text/markdown" });
-    await saveFile(blob, {
-        description: "Markdown file",
-        extension: "md",
-        name: "note",
+        copyToClipboard(query);
     });
+
+    const handleExportMarkdown = useStableCallback(() => {
+        downloadMarkdownFile(contentHtml);
+    });
+
+    const handleSendToNotion = useStableCallback(() => {
+        if (!hasQuery || isSendingToNotion) {
+            return;
+        }
+
+        setNotionStatus(null);
+        startSendToNotion(async () => {
+            const result = await sendNoteToNotion({
+                contentHtml,
+                title: getNotionNoteTitle(query),
+            });
+
+            if (result.status === "SUCCESS") {
+                setNotionStatus({
+                    message: "Sent to Notion.",
+                    tone: "success",
+                });
+                openExternalUrl(result.pageUrl);
+                return;
+            }
+
+            setNotionStatus({
+                message: result.message,
+                tone: "error",
+            });
+        });
+    });
+
+    const handleClose = useStableCallback(async () => {
+        await onOpenChange(false);
+    });
+
+    return (
+        <>
+            <div className="flex items-center gap-1">
+                <Badge size="lg" variant="outline">
+                    <Image alt="" height={12} src={AppIconSmall} width={12} />
+                    Cache
+                </Badge>
+                <ChevronRight className="inline-block size-3.5 shrink-0" />
+                <span className="font-medium text-sm">{title}</span>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+                <NoteSaveStatus />
+                <Group aria-label="Note actions">
+                    <Button
+                        aria-label="Copy note"
+                        className="rounded-full"
+                        disabled={!hasQuery}
+                        onClick={handleCopyNote}
+                        size="icon-sm"
+                        variant="secondary"
+                    >
+                        {isCopied ? (
+                            <CheckIcon className="size-3.5" />
+                        ) : (
+                            <Copy className="size-3.5" />
+                        )}
+                    </Button>
+                    <Menu>
+                        <MenuTrigger
+                            render={
+                                <Button
+                                    className="rounded-full"
+                                    disabled={!hasQuery}
+                                    size="sm"
+                                    variant="secondary"
+                                />
+                            }
+                        >
+                            <T>Open...</T>
+                            <ChevronDownIcon className="size-3.5" />
+                        </MenuTrigger>
+                        <MenuPopup align="start" className="w-60">
+                            {EXPORT_CONTENT_PROVIDERS.map((provider) => (
+                                <ExportProviderMenuItem
+                                    hasQuery={hasQuery}
+                                    key={provider.title}
+                                    provider={provider}
+                                    query={query}
+                                />
+                            ))}
+                            <MenuItem
+                                disabled={!hasQuery || isSendingToNotion}
+                                onClick={handleSendToNotion}
+                            >
+                                <NotionIcon className="size-4 text-muted-foreground" />
+                                <span className="flex-1">
+                                    {isSendingToNotion
+                                        ? "Sending to Notion..."
+                                        : "Send to Notion"}
+                                </span>
+                                <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                            </MenuItem>
+                            {notionStatus ? (
+                                <p
+                                    aria-live={
+                                        notionStatus.tone === "error"
+                                            ? "assertive"
+                                            : "polite"
+                                    }
+                                    className={cn(
+                                        "px-2 py-1 text-xs leading-tight",
+                                        notionStatus.tone === "error"
+                                            ? "text-destructive"
+                                            : "text-muted-foreground"
+                                    )}
+                                    role={
+                                        notionStatus.tone === "error"
+                                            ? "alert"
+                                            : "status"
+                                    }
+                                >
+                                    {notionStatus.message}
+                                </p>
+                            ) : null}
+                            <MenuSeparator />
+                            <MenuItem
+                                disabled={!hasQuery}
+                                onClick={handleExportMarkdown}
+                            >
+                                <FileTextIcon className="size-4 text-muted-foreground" />
+                                <span className="flex-1">
+                                    <T>Export to Markdown</T>
+                                </span>
+                                <DownloadIcon className="size-4 text-muted-foreground" />
+                            </MenuItem>
+                        </MenuPopup>
+                    </Menu>
+                </Group>
+                <Group aria-label="Panel actions">
+                    <Button
+                        aria-label="Close note"
+                        className="rounded-full"
+                        onClick={handleClose}
+                        size="icon-sm"
+                        variant="secondary"
+                    >
+                        <XIcon className="inline-block size-3.5" />
+                    </Button>
+                </Group>
+            </div>
+        </>
+    );
+}
+
+/**
+ * Lexical composer that mounts the rich-text editor with a11y wiring and the
+ * correct initial state for the current note.
+ *
+ * The session extension is rebuilt only when `editorKey` changes, and
+ * `key={editorKey}` on `LexicalExtensionComposer` remounts a fresh editor —
+ * so selection, history, and focus are preserved across renders of the same
+ * note session. The `contentEditable` prop is intentionally null:
+ * `ContentPlugin` mounts `ContentEditable` beside the empty-state placeholder.
+ */
+export function NoteEditor() {
+    const {
+        contentEditableRef,
+        editorKey,
+        initialDraft,
+        onDraftChange,
+        onUrlPaste,
+        shouldCreateBookmarkFromUrlPaste,
+    } = useNoteContext();
+
+    // Lexical applies `$initialEditorState` once at construction. Cache the
+    // session extension by `editorKey` only — never rebuild when a save
+    // commits `initialDraft` with the same key (that would discard focus,
+    // selection, and undo history). `key={editorKey}` remounts the composer.
+    // Read `initialDraft` from this render when the key changes; do not use
+    // `useValueAsRef` here — it only commits `.current` in a layout effect,
+    // so a render-time session rebuild would seed the previous note.
+    const sessionRef = useRef<EditorSession | null>(null);
+
+    if (
+        sessionRef.current === null ||
+        sessionRef.current.editorKey !== editorKey
+    ) {
+        sessionRef.current = {
+            editorKey,
+            extension: createNoteSessionExtension(editorKey, initialDraft),
+        };
+    }
+
+    return (
+        <LexicalExtensionComposer
+            contentEditable={null}
+            extension={sessionRef.current.extension}
+            key={editorKey}
+        >
+            <ContentPlugin
+                contentEditableRef={contentEditableRef}
+                onDraftChange={onDraftChange}
+                onUrlPaste={onUrlPaste}
+                shouldCreateBookmarkFromUrlPaste={
+                    shouldCreateBookmarkFromUrlPaste
+                }
+            />
+        </LexicalExtensionComposer>
+    );
+}
+
+export function NoteMetrics() {
+    const { textMetrics } = useNoteContext();
+    const shouldShowReadTime = textMetrics.readMinuteCount >= 2;
+
+    return (
+        <div className="mt-3 flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
+            {shouldShowReadTime ? (
+                <T>
+                    <span>
+                        <Var>{textMetrics.readMinuteCount}</Var> minute read
+                    </span>
+                </T>
+            ) : null}
+            <T>
+                <span>
+                    <Var>{textMetrics.wordCount}</Var> words
+                </span>
+            </T>
+            <T>
+                <span>
+                    <Var>{textMetrics.paragraphCount}</Var> paragraphs
+                </span>
+            </T>
+            <T>
+                <span>
+                    <Var>{textMetrics.characterCount}</Var> characters
+                </span>
+            </T>
+        </div>
+    );
+}
+
+/**
+ * Render the current note title string.
+ *
+ * Used by parent layouts that need the title outside the note tree.
+ */
+export function NoteTitle() {
+    const { title } = useNoteContext();
+    return title;
+}
+
+function NoteSaveStatus() {
+    const { isDirty, saveStatus } = useNoteContext();
+
+    let message: ReactNode = null;
+    let isError = false;
+
+    if (saveStatus === "saving") {
+        message = <T>Saving...</T>;
+    } else if (saveStatus === "error") {
+        message = <T>Not saved</T>;
+        isError = true;
+    } else if (saveStatus === "saved") {
+        message = <T>Saved</T>;
+    } else if (isDirty) {
+        message = <T>Unsaved</T>;
+    }
+
+    if (!message) {
+        return null;
+    }
+
+    return (
+        <span
+            aria-live="polite"
+            className={cn(
+                "hidden text-right text-xs sm:block",
+                isError ? "text-destructive" : "text-muted-foreground"
+            )}
+        >
+            {message}
+        </span>
+    );
+}
+
+function ExportProviderMenuItem({
+    hasQuery,
+    provider,
+    query,
+}: {
+    hasQuery: boolean;
+    provider: ExportContentProvider;
+    query: string;
+}) {
+    const href = provider.createUrl(query);
+    const ProviderIcon = provider.icon;
+
+    return (
+        <MenuItem
+            disabled={!hasQuery}
+            render={<a href={href} rel="noopener noreferrer" target="_blank" />}
+        >
+            <ProviderIcon className="size-4 text-muted-foreground" />
+            <span className="flex-1">{provider.title}</span>
+            <ExternalLinkIcon className="size-4 text-muted-foreground" />
+        </MenuItem>
+    );
 }
 
 /**
@@ -816,570 +1382,5 @@ function NotePlaceholder() {
         >
             <T>Start typing or paste a link to add...</T>
         </div>
-    );
-}
-
-/**
- * Root controller for the note editor.
- *
- * Manages draft state, dirty-checking, auto-save on close, and expansion
- * toggling. Provides the shared context consumed by all leaf parts.
- *
- * Compose with leaf parts:
- *   <NoteRoot note={note} isOpen onSave={...} ...>
- *     <NoteHeader />
- *     <NoteEditor />
- *     <NoteMetrics />
- *   </NoteRoot>
- *
- * Call `useNoteContext()` in custom children to read draft state and
- * text metrics.
- */
-export function NoteRoot({
-    children,
-    contentEditableRef,
-    isOpen,
-    isSaving,
-    note,
-    onOpenChange,
-    onSave,
-    onUrlPaste,
-}: NoteProps) {
-    const [initialDraft, setInitialDraft] = useState<NoteDraft>(() =>
-        noteDraftFromItem(note)
-    );
-    const [draft, setDraft] = useState<NoteDraft>(initialDraft);
-    const [editorKey, setEditorKey] = useState(0);
-    const isClosingRef = useRef(false);
-
-    const initialDraftRef = useRef<NoteDraft>(draft);
-    const latestDraftRef = useRef<NoteDraft>(draft);
-
-    const noteId = note?.id ?? null;
-    const savedNoteIdRef = useRef<string | null>(noteId);
-
-    const updateInitialDraft = (nextDraft: NoteDraft) => {
-        savedNoteIdRef.current = noteId;
-        initialDraftRef.current = nextDraft;
-        setInitialDraft(nextDraft);
-    };
-
-    const commitWorkingDraft = (nextDraft: NoteDraft) => {
-        latestDraftRef.current = nextDraft;
-        setDraft(nextDraft);
-        setEditorKey((key) => key + 1);
-    };
-
-    const resetDraft = () => {
-        const nextDraft = noteDraftFromItem(note);
-        updateInitialDraft(nextDraft);
-        commitWorkingDraft(nextDraft);
-    };
-
-    const syncDraftFromNote = () => {
-        const nextDraft = noteDraftFromItem(note);
-        const shouldPreserveLocalDraft =
-            noteId !== null &&
-            noteId === savedNoteIdRef.current &&
-            haveDraftsChanged(
-                latestDraftRef.current,
-                initialDraftRef.current
-            ) &&
-            haveDraftsChanged(nextDraft, latestDraftRef.current);
-
-        updateInitialDraft(nextDraft);
-
-        if (
-            shouldPreserveLocalDraft ||
-            !haveDraftsChanged(nextDraft, latestDraftRef.current)
-        ) {
-            return;
-        }
-
-        commitWorkingDraft(nextDraft);
-    };
-
-    // React to prop changes during render instead of a `useEffect` to avoid
-    // committing once for the prop change and again for the state sync.
-    const [prevOpen, setPrevOpen] = useState(isOpen);
-    const [prevNote, setPrevNote] = useState(note);
-
-    if (!Object.is(isOpen, prevOpen)) {
-        setPrevOpen(isOpen);
-        if (isOpen) {
-            resetDraft();
-        }
-    }
-
-    if (!Object.is(note, prevNote)) {
-        setPrevNote(note);
-        if (isOpen && isOpen === prevOpen) {
-            syncDraftFromNote();
-        }
-    }
-
-    const handleDraftChange = (nextDraft: NoteDraft) => {
-        const normalizedDraft = normalizeDraft(nextDraft);
-        if (!haveDraftsChanged(normalizedDraft, latestDraftRef.current)) {
-            return;
-        }
-        latestDraftRef.current = normalizedDraft;
-        setDraft(normalizedDraft);
-    };
-
-    const handleUrlPaste = async (url: string) => {
-        await onUrlPaste(url);
-        resetDraft();
-        await onOpenChange(false);
-    };
-
-    const shouldCreateBookmarkFromUrlPaste = () =>
-        !savedNoteIdRef.current && isDraftEmpty(latestDraftRef.current);
-
-    const saveLatestDraft = useStableCallback(async () => {
-        const draftToSave = latestDraftRef.current;
-        if (
-            shouldCloseWithoutSaving(
-                draftToSave,
-                initialDraftRef.current,
-                savedNoteIdRef.current !== null
-            )
-        ) {
-            return true;
-        }
-
-        const savedNote = await onSave(draftToSave, savedNoteIdRef.current);
-        if (!savedNote) {
-            return false;
-        }
-
-        savedNoteIdRef.current = savedNote.id;
-        initialDraftRef.current = draftToSave;
-        setInitialDraft(draftToSave);
-
-        return draftToSave.contentHtml;
-    });
-
-    const { isDirty, saveImmediately, saveStatus } = useAutosave({
-        content: draft.contentHtml,
-        enabled: isOpen,
-        onSave: saveLatestDraft,
-        savedContent: initialDraft.contentHtml,
-    });
-
-    const handleSaveShortcut = useStableCallback((event: KeyboardEvent) => {
-        if (
-            event.defaultPrevented ||
-            !(event.metaKey || event.ctrlKey) ||
-            event.key.toLowerCase() !== "s"
-        ) {
-            return;
-        }
-
-        event.preventDefault();
-        saveImmediately().catch((error: unknown) => {
-            log.error("Unexpected note shortcut save failure", error);
-        });
-    });
-
-    useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
-        const ownerDocument = getOwnerDocument(contentEditableRef?.current);
-        ownerDocument.addEventListener("keydown", handleSaveShortcut);
-        return () => {
-            ownerDocument.removeEventListener("keydown", handleSaveShortcut);
-        };
-    }, [contentEditableRef, handleSaveShortcut, isOpen]);
-
-    const handleOpenChange = async (nextOpen: boolean) => {
-        if (nextOpen) {
-            onOpenChange(true);
-            return;
-        }
-
-        if (isClosingRef.current || (isSaving && saveStatus !== "saving")) {
-            return;
-        }
-
-        const currentDraft = latestDraftRef.current;
-        const shouldSkipSave = shouldCloseWithoutSaving(
-            currentDraft,
-            initialDraftRef.current,
-            savedNoteIdRef.current !== null
-        );
-
-        if (shouldSkipSave) {
-            onOpenChange(false);
-            return;
-        }
-
-        isClosingRef.current = true;
-        try {
-            const isSaved = await saveImmediately();
-            if (isSaved) {
-                onOpenChange(false);
-            }
-        } finally {
-            isClosingRef.current = false;
-        }
-    };
-
-    const deferredContentHtml = useDeferredValue(draft.contentHtml);
-    const textMetrics = getNoteTextMetrics(deferredContentHtml);
-    const query = textMetrics.plainText;
-    const title = note ? "Note" : "New entry";
-
-    return (
-        <NoteContext
-            value={{
-                contentEditableRef,
-                contentHtml: draft.contentHtml,
-                editorKey,
-                initialDraft,
-                isDirty,
-                onDraftChange: handleDraftChange,
-                onOpenChange: handleOpenChange,
-                onUrlPaste: handleUrlPaste,
-                query,
-                saveStatus,
-                shouldCreateBookmarkFromUrlPaste,
-                textMetrics,
-                title,
-            }}
-        >
-            {children}
-        </NoteContext>
-    );
-}
-
-/**
- * Render the current note title string.
- *
- * Used by parent layouts that need the title outside the note tree.
- */
-export function NoteTitle() {
-    const { title } = useNoteContext();
-    return title;
-}
-
-function NoteSaveStatus() {
-    const { isDirty, saveStatus } = useNoteContext();
-
-    let message: ReactNode = null;
-    let isError = false;
-
-    if (saveStatus === "saving") {
-        message = <T>Saving...</T>;
-    } else if (saveStatus === "error") {
-        message = <T>Not saved</T>;
-        isError = true;
-    } else if (saveStatus === "saved") {
-        message = <T>Saved</T>;
-    } else if (isDirty) {
-        message = <T>Unsaved</T>;
-    }
-
-    if (!message) {
-        return null;
-    }
-
-    return (
-        <span
-            aria-live="polite"
-            className={cn(
-                "hidden text-right text-xs sm:block",
-                isError ? "text-destructive" : "text-muted-foreground"
-            )}
-        >
-            {message}
-        </span>
-    );
-}
-
-export function NoteHeader() {
-    const { contentHtml, onOpenChange, query, title } = useNoteContext();
-    const hasQuery = query.length > 0;
-    const [notionStatus, setNotionStatus] = useState<{
-        message: string;
-        tone: "error" | "success";
-    } | null>(null);
-    const [isSendingToNotion, startSendToNotion] = useTransition();
-    const { copyToClipboard, isCopied } = useCopyToClipboard();
-
-    const handleCopyNote = useStableCallback(() => {
-        if (!hasQuery) {
-            return;
-        }
-        copyToClipboard(query);
-    });
-
-    const handleExportMarkdown = useStableCallback(() => {
-        downloadMarkdownFile(contentHtml);
-    });
-
-    const handleSendToNotion = useStableCallback(() => {
-        if (!hasQuery || isSendingToNotion) {
-            return;
-        }
-
-        setNotionStatus(null);
-        startSendToNotion(async () => {
-            const result = await sendNoteToNotion({
-                contentHtml,
-                title: getNotionNoteTitle(query),
-            });
-
-            if (result.status === "SUCCESS") {
-                setNotionStatus({
-                    message: "Sent to Notion.",
-                    tone: "success",
-                });
-                openExternalUrl(result.pageUrl);
-                return;
-            }
-
-            setNotionStatus({
-                message: result.message,
-                tone: "error",
-            });
-        });
-    });
-
-    const handleClose = useStableCallback(async () => {
-        await onOpenChange(false);
-    });
-
-    return (
-        <>
-            <div className="flex items-center gap-1">
-                <Badge size="lg" variant="outline">
-                    <Image alt="" height={12} src={AppIconSmall} width={12} />
-                    Cache
-                </Badge>
-                <ChevronRight className="inline-block size-3.5 shrink-0" />
-                <span className="font-medium text-sm">{title}</span>
-            </div>
-            <div className="flex items-center justify-end gap-2">
-                <NoteSaveStatus />
-                <Group aria-label="Note actions">
-                    <Button
-                        aria-label="Copy note"
-                        className="rounded-full"
-                        disabled={!hasQuery}
-                        onClick={handleCopyNote}
-                        size="icon-sm"
-                        variant="secondary"
-                    >
-                        {isCopied ? (
-                            <CheckIcon className="size-3.5" />
-                        ) : (
-                            <Copy className="size-3.5" />
-                        )}
-                    </Button>
-                    <Menu>
-                        <MenuTrigger
-                            render={
-                                <Button
-                                    className="rounded-full"
-                                    disabled={!hasQuery}
-                                    size="sm"
-                                    variant="secondary"
-                                />
-                            }
-                        >
-                            <T>Open...</T>
-                            <ChevronDownIcon className="size-3.5" />
-                        </MenuTrigger>
-                        <MenuPopup align="start" className="w-60">
-                            {EXPORT_CONTENT_PROVIDERS.map((provider) => (
-                                <ExportProviderMenuItem
-                                    hasQuery={hasQuery}
-                                    key={provider.title}
-                                    provider={provider}
-                                    query={query}
-                                />
-                            ))}
-                            <MenuItem
-                                disabled={!hasQuery || isSendingToNotion}
-                                onClick={handleSendToNotion}
-                            >
-                                <NotionIcon className="size-4 text-muted-foreground" />
-                                <span className="flex-1">
-                                    {isSendingToNotion
-                                        ? "Sending to Notion..."
-                                        : "Send to Notion"}
-                                </span>
-                                <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                            </MenuItem>
-                            {notionStatus ? (
-                                <p
-                                    aria-live={
-                                        notionStatus.tone === "error"
-                                            ? "assertive"
-                                            : "polite"
-                                    }
-                                    className={cn(
-                                        "px-2 py-1 text-xs leading-tight",
-                                        notionStatus.tone === "error"
-                                            ? "text-destructive"
-                                            : "text-muted-foreground"
-                                    )}
-                                    role={
-                                        notionStatus.tone === "error"
-                                            ? "alert"
-                                            : "status"
-                                    }
-                                >
-                                    {notionStatus.message}
-                                </p>
-                            ) : null}
-                            <MenuSeparator />
-                            <MenuItem
-                                disabled={!hasQuery}
-                                onClick={handleExportMarkdown}
-                            >
-                                <FileTextIcon className="size-4 text-muted-foreground" />
-                                <span className="flex-1">
-                                    <T>Export to Markdown</T>
-                                </span>
-                                <DownloadIcon className="size-4 text-muted-foreground" />
-                            </MenuItem>
-                        </MenuPopup>
-                    </Menu>
-                </Group>
-                <Group aria-label="Panel actions">
-                    <Button
-                        aria-label="Close note"
-                        className="rounded-full"
-                        onClick={handleClose}
-                        size="icon-sm"
-                        variant="secondary"
-                    >
-                        <XIcon className="inline-block size-3.5" />
-                    </Button>
-                </Group>
-            </div>
-        </>
-    );
-}
-
-interface EditorSession {
-    editorKey: number;
-    extension: ReturnType<typeof createNoteSessionExtension>;
-}
-
-/**
- * Lexical composer that mounts the rich-text editor with a11y wiring and the
- * correct initial state for the current note.
- *
- * The session extension is rebuilt only when `editorKey` changes, and
- * `key={editorKey}` on `LexicalExtensionComposer` remounts a fresh editor —
- * so selection, history, and focus are preserved across renders of the same
- * note session. The `contentEditable` prop is intentionally null:
- * `ContentPlugin` mounts `ContentEditable` beside the empty-state placeholder.
- */
-export function NoteEditor() {
-    const {
-        contentEditableRef,
-        editorKey,
-        initialDraft,
-        onDraftChange,
-        onUrlPaste,
-        shouldCreateBookmarkFromUrlPaste,
-    } = useNoteContext();
-
-    // Lexical applies `$initialEditorState` once at construction. Cache the
-    // session extension by `editorKey` only — never rebuild when a save
-    // commits `initialDraft` with the same key (that would discard focus,
-    // selection, and undo history). `key={editorKey}` remounts the composer.
-    // Read `initialDraft` from this render when the key changes; do not use
-    // `useValueAsRef` here — it only commits `.current` in a layout effect,
-    // so a render-time session rebuild would seed the previous note.
-    const sessionRef = useRef<EditorSession | null>(null);
-
-    if (
-        sessionRef.current === null ||
-        sessionRef.current.editorKey !== editorKey
-    ) {
-        sessionRef.current = {
-            editorKey,
-            extension: createNoteSessionExtension(editorKey, initialDraft),
-        };
-    }
-
-    return (
-        <LexicalExtensionComposer
-            contentEditable={null}
-            extension={sessionRef.current.extension}
-            key={editorKey}
-        >
-            <ContentPlugin
-                contentEditableRef={contentEditableRef}
-                onDraftChange={onDraftChange}
-                onUrlPaste={onUrlPaste}
-                shouldCreateBookmarkFromUrlPaste={
-                    shouldCreateBookmarkFromUrlPaste
-                }
-            />
-        </LexicalExtensionComposer>
-    );
-}
-
-export function NoteMetrics() {
-    const { textMetrics } = useNoteContext();
-    const shouldShowReadTime = textMetrics.readMinuteCount >= 2;
-
-    return (
-        <div className="mt-3 flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
-            {shouldShowReadTime ? (
-                <T>
-                    <span>
-                        <Var>{textMetrics.readMinuteCount}</Var> minute read
-                    </span>
-                </T>
-            ) : null}
-            <T>
-                <span>
-                    <Var>{textMetrics.wordCount}</Var> words
-                </span>
-            </T>
-            <T>
-                <span>
-                    <Var>{textMetrics.paragraphCount}</Var> paragraphs
-                </span>
-            </T>
-            <T>
-                <span>
-                    <Var>{textMetrics.characterCount}</Var> characters
-                </span>
-            </T>
-        </div>
-    );
-}
-
-function ExportProviderMenuItem({
-    hasQuery,
-    provider,
-    query,
-}: {
-    hasQuery: boolean;
-    provider: ExportContentProvider;
-    query: string;
-}) {
-    const href = provider.createUrl(query);
-    const ProviderIcon = provider.icon;
-
-    return (
-        <MenuItem
-            disabled={!hasQuery}
-            render={<a href={href} rel="noopener noreferrer" target="_blank" />}
-        >
-            <ProviderIcon className="size-4 text-muted-foreground" />
-            <span className="flex-1">{provider.title}</span>
-            <ExternalLinkIcon className="size-4 text-muted-foreground" />
-        </MenuItem>
     );
 }

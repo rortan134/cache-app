@@ -24,9 +24,9 @@ const groupVariants = cva(
     }
 );
 
-interface GroupProps extends useRender.ComponentProps<"div"> {
-    orientation?: VariantProps<typeof groupVariants>["orientation"];
-}
+interface GroupProps
+    extends useRender.ComponentProps<"div">,
+        VariantProps<typeof groupVariants> {}
 
 export function Group({
     className,

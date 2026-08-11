@@ -35,14 +35,44 @@ interface RecentlyDeletedItemMeta {
     deletedAt: string;
 }
 
-interface RecentlyDeletedListProps {
-    itemDaysRemainingById: Record<string, RecentlyDeletedItemMeta>;
-    items: LibraryItemWithCollections[];
-}
-
 interface PendingAction {
     item: LibraryItemWithCollections;
     kind: "purge" | "restore";
+}
+
+function displayTitle(item: LibraryItemWithCollections): string {
+    if (item.kind === ITEM_KIND_NOTE) {
+        return item.noteContentText?.trim() || "Untitled note";
+    }
+    return item.caption?.trim() || parseDisplayUrl(item.url);
+}
+
+function formatCountdownCopy(
+    daysRemaining: number | undefined
+): React.ReactNode {
+    if (daysRemaining === undefined) {
+        return "";
+    }
+    if (daysRemaining === 0) {
+        return <T>Deletes today</T>;
+    }
+    if (daysRemaining === 1) {
+        return (
+            <T>
+                Deletes in <Var>1</Var> day
+            </T>
+        );
+    }
+    return (
+        <T>
+            Deletes in <Var>{daysRemaining}</Var> days
+        </T>
+    );
+}
+
+interface RecentlyDeletedListProps {
+    itemDaysRemainingById: Record<string, RecentlyDeletedItemMeta>;
+    items: LibraryItemWithCollections[];
 }
 
 export function RecentlyDeletedList({
@@ -403,35 +433,5 @@ function CollectionsList({
                 </Var>
             </T>
         </span>
-    );
-}
-
-function displayTitle(item: LibraryItemWithCollections): string {
-    if (item.kind === ITEM_KIND_NOTE) {
-        return item.noteContentText?.trim() || "Untitled note";
-    }
-    return item.caption?.trim() || parseDisplayUrl(item.url);
-}
-
-function formatCountdownCopy(
-    daysRemaining: number | undefined
-): React.ReactNode {
-    if (daysRemaining === undefined) {
-        return "";
-    }
-    if (daysRemaining === 0) {
-        return <T>Deletes today</T>;
-    }
-    if (daysRemaining === 1) {
-        return (
-            <T>
-                Deletes in <Var>1</Var> day
-            </T>
-        );
-    }
-    return (
-        <T>
-            Deletes in <Var>{daysRemaining}</Var> days
-        </T>
     );
 }

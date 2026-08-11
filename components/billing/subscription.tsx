@@ -18,6 +18,61 @@ const PERIOD_END_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
     month: "short",
 });
 
+function readStringProperty(value: unknown, field: string): string | undefined {
+    if (!value || typeof value !== "object" || !(field in value)) {
+        return;
+    }
+    const result = Reflect.get(value, field);
+    return typeof result === "string" ? result : undefined;
+}
+
+function extractRedirectUrl(data: unknown): string | undefined {
+    const url = readStringProperty(data, "url");
+    return url && url.length > 0 ? url : undefined;
+}
+
+/**
+ * Unified action wrapper for Stripe redirects. Standardizes loading states, URL
+ * assignment, and accessibility-compliant failure notifications for checkout
+ * and portal actions.
+ */
+function useSubscriptionRedirectAction(
+    request: () => Promise<{ data?: unknown; error?: unknown }>,
+    fallbackMessage: React.ReactNode
+) {
+    const [isPending, startTransition] = React.useTransition();
+    const [errorMessage, setErrorMessage] =
+        React.useState<React.ReactNode | null>(null);
+
+    const execute = useStableCallback(() => {
+        startTransition(async () => {
+            setErrorMessage(null);
+            try {
+                const { data, error } = await request();
+
+                if (error) {
+                    setErrorMessage(
+                        readStringProperty(error, "message") ?? fallbackMessage
+                    );
+                    return;
+                }
+
+                const url = extractRedirectUrl(data);
+                if (url) {
+                    window.location.assign(url);
+                    return;
+                }
+
+                setErrorMessage(fallbackMessage);
+            } catch {
+                setErrorMessage(fallbackMessage);
+            }
+        });
+    });
+
+    return { errorMessage, execute, isPending };
+}
+
 /**
  * Returns user subscription status and access checks, unifying auth session
  * and active Stripe records. This prevents desync bugs where the local session
@@ -30,6 +85,7 @@ export function useSubscriptionAccess() {
         isPending,
         refetch: refreshSession,
     } = useSession();
+
     const sessionUserId = session?.user?.id;
 
     if (sessionError) {
@@ -70,69 +126,42 @@ export function useSubscriptionAccess() {
     };
 }
 
-type AccessData = ReturnType<typeof useSubscriptionAccess>;
-
-interface WithSubscriptionOnlyProps {
-    children: (subscription: AccessData["subscription"]) => React.ReactNode;
-    fallback?: React.ReactNode;
-}
-
-interface SubscriptionGateProps {
-    children: React.ReactNode;
-    fallback?: React.ReactNode;
-}
-
-/**
- * Renders UI dependent on subscription data once resolved. Prevents rendering
- * intermediate states (such as flashing "Free Plan" before active Stripe data returns)
- * by deferring child execution until the subscription status is fully loaded.
- */
-export function WithSubscriptionOnly({
-    children,
-    fallback = null,
-}: WithSubscriptionOnlyProps) {
-    const { isLoading, subscription } = useSubscriptionAccess();
-
-    if (isLoading) {
-        return fallback;
+function subscriptionPlanLabel(plan: string | null | undefined) {
+    if (!plan) {
+        return <T>Subscription</T>;
     }
-
-    return children(subscription);
+    return `${plan[0]?.toUpperCase()}${plan.slice(1)}`;
 }
 
-/**
- * Restricts rendering to users with active subscriptions. Use this to hide
- * premium features or promotional copy from non-paying users.
- */
-export function SubscribedOnly({
-    children,
-    fallback = null,
-}: SubscriptionGateProps) {
-    const { hasAccess, isLoading } = useSubscriptionAccess();
-
-    if (isLoading) {
-        return fallback;
+function subscriptionPeriodEndLabel(
+    periodEnd: string | Date | null | undefined
+) {
+    if (!periodEnd) {
+        return null;
     }
-
-    return hasAccess ? children : null;
+    return PERIOD_END_DATE_FORMATTER.format(new Date(periodEnd));
 }
 
-/**
- * Restricts rendering to unsubscribed users. Defers rendering during initial load
- * to prevent flashing upgrade prompts or free-tier UI while the subscription status
- * is still being verified.
- */
-export function UnsubscribedOnly({
-    children,
-    fallback = null,
-}: SubscriptionGateProps) {
-    const { hasAccess, isLoading } = useSubscriptionAccess();
-
-    if (isLoading) {
-        return fallback;
+function subscriptionBillingIntervalLabel(
+    billingInterval: string | null | undefined
+) {
+    if (billingInterval === "year") {
+        return <T>yearly</T>;
     }
+    if (billingInterval === "month") {
+        return <T>monthly</T>;
+    }
+    return null;
+}
 
-    return hasAccess ? null : children;
+function subscriptionStatusLabel(status: string | null | undefined) {
+    return status?.replaceAll("_", " ") ?? <T>Unknown</T>;
+}
+
+function getReturnUrl() {
+    return typeof window === "undefined"
+        ? "/library"
+        : `${window.location.origin}/library`;
 }
 
 /**
@@ -277,124 +306,82 @@ export function SubscriptionBillingPortalButton({
     );
 }
 
-/* @internal */
-function getReturnUrl() {
-    return typeof window === "undefined"
-        ? "/library"
-        : `${window.location.origin}/library`;
-}
-
-/* @internal */
-function getStringField(value: unknown, field: string): string | undefined {
-    if (!value || typeof value !== "object" || !(field in value)) {
-        return;
-    }
-    const result = Reflect.get(value, field);
-    return typeof result === "string" ? result : undefined;
-}
-
-/* @internal */
-function subscriptionErrorMessage(error: unknown): string | undefined {
-    return getStringField(error, "message");
-}
-
-/* @internal */
-function subscriptionRedirectUrl(data: unknown): string | undefined {
-    const url = getStringField(data, "url");
-    return url && url.length > 0 ? url : undefined;
+interface SubscriptionGateProps {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
 }
 
 /**
- * Unified action wrapper for Stripe redirects. Standardizes loading states, URL
- * assignment, and accessibility-compliant failure notifications for checkout
- * and portal actions.
+ * Restricts rendering to users with active subscriptions. Use this to hide
+ * premium features or promotional copy from non-paying users.
  */
-/* @internal */
-function useSubscriptionRedirectAction(
-    request: () => Promise<{ data?: unknown; error?: unknown }>,
-    fallbackMessage: React.ReactNode
-) {
-    const [isPending, startTransition] = React.useTransition();
-    const [errorMessage, setErrorMessage] =
-        React.useState<React.ReactNode | null>(null);
+export function SubscribedOnly({
+    children,
+    fallback = null,
+}: SubscriptionGateProps) {
+    const { hasAccess, isLoading } = useSubscriptionAccess();
 
-    const execute = useStableCallback(() => {
-        startTransition(async () => {
-            setErrorMessage(null);
-            try {
-                const { data, error } = await request();
-
-                if (error) {
-                    setErrorMessage(
-                        subscriptionErrorMessage(error) ?? fallbackMessage
-                    );
-                    return;
-                }
-
-                const url = subscriptionRedirectUrl(data);
-                if (url) {
-                    window.location.assign(url);
-                    return;
-                }
-
-                setErrorMessage(fallbackMessage);
-            } catch {
-                setErrorMessage(fallbackMessage);
-            }
-        });
-    });
-
-    return { errorMessage, execute, isPending };
-}
-
-/* @internal */
-function subscriptionPlanLabel(plan: string | null | undefined) {
-    if (!plan) {
-        return <T>Subscription</T>;
+    if (isLoading) {
+        return fallback;
     }
 
-    return `${plan[0]?.toUpperCase()}${plan.slice(1)}`;
+    return hasAccess ? children : null;
 }
 
-/* @internal */
-function subscriptionBillingIntervalLabel(
-    billingInterval: string | null | undefined
-) {
-    if (billingInterval === "year") {
-        return <T>yearly</T>;
+/**
+ * Restricts rendering to unsubscribed users. Defers rendering during initial load
+ * to prevent flashing upgrade prompts or free-tier UI while the subscription status
+ * is still being verified.
+ */
+export function UnsubscribedOnly({
+    children,
+    fallback = null,
+}: SubscriptionGateProps) {
+    const { hasAccess, isLoading } = useSubscriptionAccess();
+
+    if (isLoading) {
+        return fallback;
     }
 
-    if (billingInterval === "month") {
-        return <T>monthly</T>;
+    return hasAccess ? null : children;
+}
+
+interface WithSubscriptionOnlyProps {
+    children: (
+        subscription: ReturnType<typeof useSubscriptionAccess>["subscription"]
+    ) => React.ReactNode;
+    fallback?: React.ReactNode;
+}
+
+/**
+ * Renders UI dependent on subscription data once resolved. Prevents rendering
+ * intermediate states (such as flashing "Free Plan" before active Stripe data returns)
+ * by deferring child execution until the subscription status is fully loaded.
+ */
+export function WithSubscriptionOnly({
+    children,
+    fallback = null,
+}: WithSubscriptionOnlyProps) {
+    const { isLoading, subscription } = useSubscriptionAccess();
+
+    if (isLoading) {
+        return fallback;
     }
 
-    return null;
+    return children(subscription);
 }
 
-/* @internal */
-function subscriptionPeriodEndLabel(
-    periodEnd: string | Date | null | undefined
-) {
-    if (!periodEnd) {
-        return null;
-    }
-
-    return PERIOD_END_DATE_FORMATTER.format(new Date(periodEnd));
+interface SubscriptionBadgeProps extends React.ComponentProps<typeof Badge> {
+    shouldHideIcon?: boolean;
 }
 
-/* @internal */
-function subscriptionStatusLabel(status: string | null | undefined) {
-    return status?.replaceAll("_", " ") ?? <T>Unknown</T>;
-}
-
-/* @internal */
 function SubscriptionBadge({
     className,
     children,
     shouldHideIcon,
     variant = "secondary",
     ...props
-}: React.ComponentProps<typeof Badge> & { shouldHideIcon?: boolean }) {
+}: SubscriptionBadgeProps) {
     return (
         <Badge
             {...props}
@@ -411,7 +398,6 @@ function SubscriptionBadge({
  * Accessible error announcement for billing operations. Avoids layout shift by
  * returning null on the happy path, while exposing proper ARIA alerts if errors occur.
  */
-/* @internal */
 function SubscriptionErrorMessage(props: React.ComponentProps<"p">) {
     if (!props.children) {
         return null;

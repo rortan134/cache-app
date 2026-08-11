@@ -20,18 +20,6 @@ import {
 } from "@/components/ui/preview-card";
 import { cn } from "@/lib/common/cn";
 
-type AttachmentData =
-    | (FileUIPart & { id: string })
-    | (SourceDocumentUIPart & { id: string });
-
-type AttachmentMediaCategory =
-    | "image"
-    | "video"
-    | "audio"
-    | "document"
-    | "source"
-    | "unknown";
-
 const MEDIA_CATEGORY_ICON_BY_CATEGORY: Record<
     AttachmentMediaCategory,
     typeof ImageIcon
@@ -44,10 +32,36 @@ const MEDIA_CATEGORY_ICON_BY_CATEGORY: Record<
     video: VideoIcon,
 };
 
-export const AttachmentPreviewCard: typeof PreviewCard = PreviewCard;
+type AttachmentData =
+    | (FileUIPart & { id: string })
+    | (SourceDocumentUIPart & { id: string });
 
-export const AttachmentPreviewCardTrigger: typeof PreviewCardTrigger =
-    PreviewCardTrigger;
+type AttachmentMediaCategory =
+    | "image"
+    | "video"
+    | "audio"
+    | "document"
+    | "source"
+    | "unknown";
+
+interface AttachmentItemContextValue {
+    data: AttachmentData;
+    mediaCategory: AttachmentMediaCategory;
+    onRemove?: () => void;
+}
+
+const AttachmentItemContext =
+    React.createContext<AttachmentItemContextValue | null>(null);
+
+function useAttachmentItem() {
+    const context = React.use(AttachmentItemContext);
+    if (!context) {
+        throw new Error(
+            "Attachment components must be used within <Attachment>"
+        );
+    }
+    return context;
+}
 
 export function getMediaCategory(
     data: AttachmentData
@@ -83,24 +97,48 @@ export function getAttachmentLabel(data: AttachmentData): string {
     return data.filename || (category === "image" ? "Image" : "Attachment");
 }
 
-interface AttachmentItemContextValue {
-    data: AttachmentData;
-    mediaCategory: AttachmentMediaCategory;
-    onRemove?: () => void;
+function renderAttachmentImage(url: string, filename: string | undefined) {
+    return (
+        <img
+            alt={filename || "Image"}
+            className="size-full rounded object-cover"
+            height={20}
+            src={url}
+            width={20}
+        />
+    );
 }
 
-const AttachmentItemContext =
-    React.createContext<AttachmentItemContextValue | null>(null);
+function renderAttachmentIcon(Icon: typeof ImageIcon) {
+    return <Icon className="size-3 text-muted-foreground" />;
+}
 
-function useAttachmentItem() {
-    const context = React.use(AttachmentItemContext);
-    if (!context) {
-        throw new Error(
-            "Attachment components must be used within <Attachment>"
+function renderAttachmentPreviewContent(
+    data: AttachmentData,
+    mediaCategory: AttachmentMediaCategory,
+    fallbackIcon: React.ReactNode | undefined
+) {
+    if (mediaCategory === "image" && data.type === "file" && data.url) {
+        return renderAttachmentImage(data.url, data.filename);
+    }
+
+    if (mediaCategory === "video" && data.type === "file" && data.url) {
+        return (
+            <video className="size-full object-cover" muted src={data.url} />
         );
     }
-    return context;
+
+    if (fallbackIcon !== undefined) {
+        return fallbackIcon;
+    }
+
+    return renderAttachmentIcon(MEDIA_CATEGORY_ICON_BY_CATEGORY[mediaCategory]);
 }
+
+export const AttachmentPreviewCard: typeof PreviewCard = PreviewCard;
+
+export const AttachmentPreviewCardTrigger: typeof PreviewCardTrigger =
+    PreviewCardTrigger;
 
 export function Attachments({
     className,
@@ -239,42 +277,4 @@ export function AttachmentPreviewCardPopup({
             className={cn("w-auto p-2", className)}
         />
     );
-}
-
-function renderAttachmentImage(url: string, filename: string | undefined) {
-    return (
-        <img
-            alt={filename || "Image"}
-            className="size-full rounded object-cover"
-            height={20}
-            src={url}
-            width={20}
-        />
-    );
-}
-
-function renderAttachmentIcon(Icon: typeof ImageIcon) {
-    return <Icon className="size-3 text-muted-foreground" />;
-}
-
-function renderAttachmentPreviewContent(
-    data: AttachmentData,
-    mediaCategory: AttachmentMediaCategory,
-    fallbackIcon: React.ReactNode | undefined
-) {
-    if (mediaCategory === "image" && data.type === "file" && data.url) {
-        return renderAttachmentImage(data.url, data.filename);
-    }
-
-    if (mediaCategory === "video" && data.type === "file" && data.url) {
-        return (
-            <video className="size-full object-cover" muted src={data.url} />
-        );
-    }
-
-    if (fallbackIcon !== undefined) {
-        return fallbackIcon;
-    }
-
-    return renderAttachmentIcon(MEDIA_CATEGORY_ICON_BY_CATEGORY[mediaCategory]);
 }

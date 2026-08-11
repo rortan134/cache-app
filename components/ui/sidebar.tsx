@@ -5,6 +5,7 @@ import type { BaseUIEvent } from "@base-ui/react/types";
 import { useRender } from "@base-ui/react/use-render";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useGT } from "gt-next";
 import { PanelLeft, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -49,6 +50,23 @@ function isSidebarKeyboardShortcut(event: KeyboardEvent): boolean {
     );
 }
 
+function getSidebarToggleLabel(
+    gt: ReturnType<typeof useGT>,
+    open: boolean
+): string {
+    return open ? gt("Close sidebar") : gt("Open sidebar");
+}
+
+function getSidebarToggleTitle(
+    gt: ReturnType<typeof useGT>,
+    open: boolean
+): string {
+    const shortcut = `${getSystemControlKey()}B`;
+    return open
+        ? gt("Close sidebar ({shortcut})", { shortcut })
+        : gt("Open sidebar ({shortcut})", { shortcut });
+}
+
 function readSidebarCookieOpen(): boolean {
     try {
         const match = getOwnerDocument().cookie.match(
@@ -71,6 +89,7 @@ export function SidebarProvider({
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
 }) {
+    const gt = useGT();
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
     const open = openProp ?? uncontrolledOpen;
     const hasAppliedCookieDefaultRef = React.useRef(openProp !== undefined);
@@ -120,7 +139,7 @@ export function SidebarProvider({
     });
 
     useHotkeys("mod+b", handleKeyDown, {
-        description: "Expand or collapse sidebar",
+        description: gt("Expand or collapse sidebar"),
     });
 
     // We add a state so that we can do data-state="expanded" or "collapsed".
@@ -162,6 +181,7 @@ export function SidebarRail({
     className,
     ...props
 }: React.ComponentProps<"button">) {
+    const gt = useGT();
     const { toggleSidebar, open } = useSidebar();
 
     return (
@@ -180,11 +200,7 @@ export function SidebarRail({
             data-slot="sidebar-rail"
             onClick={toggleSidebar}
             tabIndex={-1}
-            title={
-                open
-                    ? `Close sidebar (${getSystemControlKey()}B)`
-                    : `Open sidebar (${getSystemControlKey()}B)`
-            }
+            title={getSidebarToggleTitle(gt, open)}
         />
     );
 }
@@ -211,6 +227,7 @@ export function SidebarTrigger({
     onClick,
     ...props
 }: React.ComponentProps<typeof Button>) {
+    const gt = useGT();
     const { open, toggleSidebar } = useSidebar();
 
     const handleClick = useStableCallback(
@@ -226,7 +243,7 @@ export function SidebarTrigger({
     return (
         <Button
             {...props}
-            aria-label={open ? "Close sidebar" : "Open sidebar"}
+            aria-label={getSidebarToggleLabel(gt, open)}
             className={cn(
                 "hidden h-8 min-h-8 min-w-8 shrink-0 opacity-50 hover:opacity-100 lg:inline-flex",
                 open ? "cursor-w-resize" : "cursor-e-resize",
@@ -236,11 +253,7 @@ export function SidebarTrigger({
             data-slot="sidebar-trigger"
             onClick={handleClick}
             size="icon-sm"
-            title={
-                open
-                    ? `Close sidebar (${getSystemControlKey()}B)`
-                    : `Open sidebar (${getSystemControlKey()}B)`
-            }
+            title={getSidebarToggleTitle(gt, open)}
             variant="ghost"
         >
             {open ? (
@@ -277,6 +290,23 @@ export function SidebarFooter({
     );
 }
 
+export function SidebarGroup({
+    className,
+    ...props
+}: React.ComponentProps<"ul">) {
+    return (
+        <ul
+            {...props}
+            className={cn(
+                "relative flex w-full min-w-0 list-none flex-col gap-px",
+                className
+            )}
+            data-sidebar="group"
+            data-slot="sidebar-group"
+        />
+    );
+}
+
 export function SidebarItem({
     className,
     render,
@@ -296,21 +326,4 @@ export function SidebarItem({
         props: mergeProps<"div">(defaultProps, props),
         render,
     });
-}
-
-export function SidebarGroup({
-    className,
-    ...props
-}: React.ComponentProps<"ul">) {
-    return (
-        <ul
-            {...props}
-            className={cn(
-                "relative flex w-full min-w-0 list-none flex-col gap-px",
-                className
-            )}
-            data-sidebar="group"
-            data-slot="sidebar-group"
-        />
-    );
 }

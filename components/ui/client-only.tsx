@@ -7,11 +7,6 @@ export function useClientOnlyValue<T>(value: T, fallback?: T): T | null {
     return boundaryValue === "server" ? (fallback ?? null) : value;
 }
 
-export function ClientOnly({ children }: React.PropsWithChildren) {
-    const boundaryValue = useClientBoundaryValue();
-    return boundaryValue === "server" ? null : children;
-}
-
 function useClientBoundaryValue() {
     return React.useSyncExternalStore(
         () => () => {
@@ -20,4 +15,9 @@ function useClientBoundaryValue() {
         () => "client",
         () => "server"
     );
+}
+
+export function ClientOnly({ children }: React.PropsWithChildren) {
+    const boundaryValue = useClientBoundaryValue();
+    return boundaryValue === "server" ? null : children;
 }

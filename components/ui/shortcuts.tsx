@@ -1,6 +1,7 @@
 "use client";
 
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T, useGT } from "gt-next";
 import * as React from "react";
 import { useHotkeys, useHotkeysContext } from "react-hotkeys-hook";
 import {
@@ -23,10 +24,22 @@ import {
 import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
 import { stopPropagationForPrintableKeys } from "@/lib/common/dom";
 
+// Re-exporting with "use client"
+export { HotkeysProvider as ShortcutsProvider } from "react-hotkeys-hook";
+
 interface ShortcutItem {
     description: string;
     hotkey: string;
     label: string;
+}
+
+function splitHotkeyParts(hotkey: string) {
+    const parts = hotkey.split("+");
+    let key = "";
+    return parts.map((part) => {
+        key = key ? `${key}+${part}` : part;
+        return { key, part };
+    });
 }
 
 /**
@@ -38,6 +51,7 @@ interface ShortcutItem {
 export function KeyboardShortcutsDialogTrigger(
     props: React.ComponentProps<typeof DrawerTrigger>
 ) {
+    const gt = useGT();
     const [isOpen, setIsOpen] = React.useState(false);
     const { hotkeys } = useHotkeysContext();
 
@@ -46,7 +60,7 @@ export function KeyboardShortcutsDialogTrigger(
     });
 
     useHotkeys("mod+/, ?", handleOpen, {
-        description: "Open keyboard shortcuts panel",
+        description: gt("Open keyboard shortcuts panel"),
     });
 
     const shortcutItems: ShortcutItem[] = hotkeys.map((shortcut) => ({
@@ -61,7 +75,9 @@ export function KeyboardShortcutsDialogTrigger(
             <DrawerViewport>
                 <DrawerPopup shouldShowCloseButton>
                     <DrawerHeader>
-                        <DrawerTitle>Keyboard shortcuts</DrawerTitle>
+                        <DrawerTitle>
+                            <T>Keyboard shortcuts</T>
+                        </DrawerTitle>
                     </DrawerHeader>
                     <DrawerPanel
                         className="px-5"
@@ -70,11 +86,13 @@ export function KeyboardShortcutsDialogTrigger(
                     >
                         <Command inline items={shortcutItems} open>
                             <CommandInput
-                                aria-label="Search shortcuts"
-                                placeholder="Search..."
+                                aria-label={gt("Search shortcuts")}
+                                placeholder={gt("Search...")}
                             />
                             <CommandList className="px-0">
-                                <CommandEmpty>No shortcuts found</CommandEmpty>
+                                <CommandEmpty>
+                                    <T>No shortcuts found</T>
+                                </CommandEmpty>
                                 <CommandCollection>
                                     {(item: ShortcutItem) => (
                                         <CommandItem
@@ -112,15 +130,6 @@ export function KeyboardShortcutsDialogTrigger(
     );
 }
 
-function splitHotkeyParts(hotkey: string) {
-    const parts = hotkey.split("+");
-    let key = "";
-    return parts.map((part) => {
-        key = key ? `${key}+${part}` : part;
-        return { key, part };
-    });
-}
-
 function ShortcutKeyPart({ part }: { part: string }) {
     const lowerPart = part.toLowerCase();
     if (lowerPart === "mod") {
@@ -134,6 +143,3 @@ function ShortcutKeyPart({ part }: { part: string }) {
     }
     return part;
 }
-
-// Re-exporting with "use client"
-export { HotkeysProvider as ShortcutsProvider } from "react-hotkeys-hook";

@@ -5,8 +5,6 @@ import { useReducedMotion } from "motion/react";
 import * as React from "react";
 import { cn } from "@/lib/common/cn";
 
-type Align = "left" | "center" | "right";
-
 const DEFAULT_COLORS = [
     "#ff3b30",
     "#ff5e5b",
@@ -21,6 +19,8 @@ const GRADIENT_PROGRESS_INITIAL = -25;
 const GRADIENT_PROGRESS_RANGE = 200;
 const MAX_FRAME_DELTA_MS = 64;
 
+type Align = "left" | "center" | "right";
+
 const JUSTIFY_CONTENT_BY_ALIGN: Record<
     Align,
     React.CSSProperties["justifyContent"]
@@ -32,6 +32,29 @@ const JUSTIFY_CONTENT_BY_ALIGN: Record<
 
 interface GradientWaveContainerStyle extends React.CSSProperties {
     "--gi": number;
+}
+
+function buildGradientColorStops(
+    colors: string[],
+    bandCount: number,
+    bandGap: number
+): string {
+    const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
+    const colorStop = (color: string, offset: number) =>
+        `${color} calc((var(--gi) + ${offset}) * 1%)`;
+    const bandColors = [...colors, ...colors].slice(0, bandCount);
+
+    return [
+        colorStop(baseColor, 0),
+        ...bandColors.map((color, index) =>
+            colorStop(color, (index + 2) * bandGap)
+        ),
+        colorStop(baseColor, (bandColors.length + 2) * bandGap),
+    ].join(", ");
+}
+
+function now(): number {
+    return globalThis.performance.now();
 }
 
 interface GradientWaveTextProps {
@@ -85,7 +108,7 @@ export function GradientWaveText({
         cyclesDoneRef.current = 0;
         finishedRef.current = false;
         startedRef.current = false;
-        startAtRef.current = now() + Math.max(0, (delay ?? 0) * 1000);
+        startAtRef.current = now() + Math.max(0, delay * 1000);
         node.style.setProperty("--gi", String(GRADIENT_PROGRESS_INITIAL));
     }, [delay]);
 
@@ -187,27 +210,4 @@ export function GradientWaveText({
             <span style={spanStyle}>{children}</span>
         </div>
     );
-}
-
-function buildGradientColorStops(
-    colors: string[],
-    bandCount: number,
-    bandGap: number
-): string {
-    const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
-    const colorStop = (color: string, offset: number) =>
-        `${color} calc((var(--gi) + ${offset}) * 1%)`;
-    const bandColors = [...colors, ...colors].slice(0, bandCount);
-
-    return [
-        colorStop(baseColor, 0),
-        ...bandColors.map((color, index) =>
-            colorStop(color, (index + 2) * bandGap)
-        ),
-        colorStop(baseColor, (bandColors.length + 2) * bandGap),
-    ].join(", ");
-}
-
-function now(): number {
-    return globalThis.performance.now();
 }

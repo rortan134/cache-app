@@ -1,6 +1,7 @@
 "use client";
 
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
 import { DownloadIcon } from "lucide-react";
 import type { StaticImageData } from "next/image";
 import Image from "next/image";
@@ -91,7 +92,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
             <ContextMenuPopup className="min-w-44">
                 <ContextMenuItem onClick={handleSaveLogo}>
                     <DownloadIcon className="size-4 text-muted-foreground" />
-                    Save logo as PNG
+                    <T>Save logo as PNG</T>
                 </ContextMenuItem>
             </ContextMenuPopup>
         </ContextMenu>

@@ -1,9 +1,30 @@
 "use client";
 
+import { useGT } from "gt-next";
 import { RadioOff } from "lucide-react";
 import { useOffline } from "next/offline";
 import type * as React from "react";
 import { Badge } from "@/components/ui/badge";
+
+export function OfflineBadge() {
+    const gt = useGT();
+
+    return (
+        <OfflineOnly>
+            <Badge
+                aria-live="assertive"
+                role="alert"
+                title={gt(
+                    "You are offline. Any changes you make may be lost until you regain connectivity."
+                )}
+                variant="outline"
+            >
+                <RadioOff aria-hidden className="size-4" focusable="false" />
+                <span data-sidebar-collapsible="">Offline</span>
+            </Badge>
+        </OfflineOnly>
+    );
+}
 
 /**
  * Renders `children` only while the app is offline. There is no loading
@@ -21,20 +42,4 @@ export function OfflineOnly({ children }: React.PropsWithChildren) {
  */
 export function OnlineOnly({ children }: React.PropsWithChildren) {
     return useOffline() ? null : children;
-}
-
-export function OfflineBadge() {
-    return (
-        <OfflineOnly>
-            <Badge
-                aria-live="assertive"
-                role="alert"
-                title="You are offline. Any changes you make may be lost until you regain connectivity."
-                variant="outline"
-            >
-                <RadioOff aria-hidden className="size-4" focusable="false" />
-                <span data-sidebar-collapsible="">Offline</span>
-            </Badge>
-        </OfflineOnly>
-    );
 }

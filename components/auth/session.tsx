@@ -15,20 +15,6 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 
 const log = createLogger("auth-session");
 
-interface SessionGateProps {
-    children: React.ReactNode;
-    fallback?: React.ReactNode;
-}
-
-interface WithUserSessionOnlyProps {
-    children: (user: Session["user"]) => React.ReactNode;
-    fallback?: React.ReactNode;
-}
-
-interface SessionHintProps {
-    serverSession?: Session | null;
-}
-
 /**
  * Mount once on public entry points. Repeated mounts may initialize Google's
  * script more than once.
@@ -49,6 +35,11 @@ export function GoogleOneTapTrigger() {
     }, [isPending, sessionId]);
 
     return null;
+}
+
+interface SessionGateProps {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
 }
 
 /**
@@ -89,6 +80,11 @@ export function SessionLoadingOnly({ children }: React.PropsWithChildren) {
     return isPending ? children : null;
 }
 
+interface WithUserSessionOnlyProps {
+    children: (user: Session["user"]) => React.ReactNode;
+    fallback?: React.ReactNode;
+}
+
 /**
  * Receives only `session.user` to decouple call sites from better-auth's full
  * payload. Use a server-side session read for personalized initial renders.
@@ -108,6 +104,10 @@ export function WithUserSessionOnly({
     }
 
     return children(session.user);
+}
+
+interface SessionHintProps {
+    serverSession?: Session | null;
 }
 
 /**

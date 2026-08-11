@@ -23,18 +23,6 @@ const LABEL_STYLE =
 const LINK_STYLE =
     "color:#33c482;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;";
 
-interface ConsoleBannerProps {
-    version: string;
-}
-
-export function ConsoleBanner({ version }: ConsoleBannerProps) {
-    React.useEffect(() => {
-        logConsoleBanner(version);
-    }, [version]);
-
-    return null;
-}
-
 let hasLoggedConsoleBanner = false;
 
 function logConsoleBanner(version: string): void {
@@ -52,4 +40,16 @@ function logConsoleBanner(version: string): void {
         LABEL_STYLE,
         LINK_STYLE
     );
+}
+
+interface ConsoleBannerProps {
+    version: string;
+}
+
+export function ConsoleBanner({ version }: ConsoleBannerProps) {
+    React.useEffect(() => {
+        logConsoleBanner(version);
+    }, [version]);
+
+    return null;
 }

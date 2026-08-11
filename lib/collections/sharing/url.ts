@@ -1,6 +1,5 @@
 import { BASE_URL } from "@/lib/common/constants";
 
-/* @internal */
 function getPublicCollectionSharePath(shareId: string): string {
     return `/c/${encodeURIComponent(shareId)}`;
 }

@@ -9,6 +9,9 @@ import { Kbd } from "@/components/ui/kbd";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/common/cn";
 
+export const useCommandFilter: typeof Autocomplete.useFilter =
+    Autocomplete.useFilter;
+
 export function Command({
     autoHighlight = "always",
     keepHighlight = true,
@@ -245,6 +248,19 @@ export function CommandRow(props: Autocomplete.Row.Props) {
     return <Autocomplete.Row {...props} data-slot="command-row" />;
 }
 
+export function CommandShortcut({
+    className,
+    ...props
+}: React.ComponentProps<"kbd">) {
+    return (
+        <Kbd
+            {...props}
+            className={cn("ms-auto text-muted-foreground/50", className)}
+            data-slot="command-shortcut"
+        />
+    );
+}
+
 export function CommandPanel({
     className,
     render,
@@ -260,19 +276,6 @@ export function CommandPanel({
         props: mergeProps<"div">(defaultProps, props),
         render,
     });
-}
-
-export function CommandShortcut({
-    className,
-    ...props
-}: React.ComponentProps<"kbd">) {
-    return (
-        <Kbd
-            {...props}
-            className={cn("ms-auto text-muted-foreground/50", className)}
-            data-slot="command-shortcut"
-        />
-    );
 }
 
 export function CommandFooter({
@@ -294,6 +297,3 @@ export function CommandFooter({
         render,
     });
 }
-
-export const useCommandFilter: typeof Autocomplete.useFilter =
-    Autocomplete.useFilter;

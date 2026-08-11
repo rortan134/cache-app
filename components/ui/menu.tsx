@@ -4,6 +4,7 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
+import { CheckmarkIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/common/cn";
 
 export const Menu: typeof MenuPrimitive.Root = MenuPrimitive.Root;
@@ -16,6 +17,7 @@ interface MenuPopupProps extends MenuPrimitive.Popup.Props {
     align?: MenuPrimitive.Positioner.Props["align"];
     alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
     anchor?: MenuPrimitive.Positioner.Props["anchor"];
+    "data-slot"?: string;
     portalProps?: MenuPrimitive.Portal.Props;
     positionMethod?: MenuPrimitive.Positioner.Props["positionMethod"];
     side?: MenuPrimitive.Positioner.Props["side"];
@@ -25,6 +27,7 @@ interface MenuPopupProps extends MenuPrimitive.Popup.Props {
 export function MenuPopup({
     className,
     children,
+    "data-slot": dataSlot = "menu-popup",
     align = "center",
     alignOffset,
     anchor,
@@ -52,7 +55,7 @@ export function MenuPopup({
                         "relative not-[class*='w-']:min-w-52 origin-(--transform-origin) overflow-hidden rounded-2xl border bg-popover not-dark:bg-clip-padding text-popover-foreground shadow-lg/8 outline-none transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-2xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:scale-98 data-starting-style:scale-98 data-ending-style:opacity-0 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
                         className
                     )}
-                    data-slot="menu-popup"
+                    data-slot={dataSlot}
                 >
                     <div className="max-h-(--available-height) w-full overflow-y-auto p-1">
                         {children}
@@ -299,20 +302,7 @@ function MenuCheckIndicator({ children }: { children: React.ReactNode }) {
     return (
         <>
             <MenuPrimitive.CheckboxItemIndicator className="col-start-1 -ms-0.5">
-                <svg
-                    aria-hidden="true"
-                    fill="none"
-                    height="24"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    width="24"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path d="M5.252 12.7 10.2 18.63 18.748 5.37" />
-                </svg>
+                <CheckmarkIcon aria-hidden className="size-4.5 sm:size-4" />
             </MenuPrimitive.CheckboxItemIndicator>
             <span className="col-start-2">{children}</span>
         </>

@@ -82,17 +82,6 @@ function getAutomationTemplateIcon(
     return Zap;
 }
 
-function getTemplateDefaultCadence(
-    templateKey: AutomationListItem["templateKey"]
-) {
-    if (!templateKey) {
-        return;
-    }
-    return AUTOMATION_TEMPLATE_DEFINITIONS.find(
-        (definition) => definition.templateKey === templateKey
-    )?.cadence;
-}
-
 function toComposerAutomation(
     automation: AutomationListItem
 ): AutomationComposerAutomation {
@@ -117,39 +106,6 @@ function toComposerAutomation(
     };
 }
 
-function isCompleteSchedule(
-    automation: AutomationListItem
-): automation is AutomationListItem & {
-    cadence: NonNullable<AutomationListItem["cadence"]>;
-    timeOfDayMinutes: number;
-    timezone: string;
-} {
-    if (
-        !(
-            automation.cadence &&
-            automation.timezone &&
-            automation.timeOfDayMinutes !== null
-        )
-    ) {
-        return false;
-    }
-    if (automation.cadence === "weekly" && automation.weekDay === null) {
-        return false;
-    }
-    if (automation.cadence === "monthly" && automation.monthDay === null) {
-        return false;
-    }
-    return true;
-}
-
-function isSuggestedAutomation(automation: AutomationListItem) {
-    return (
-        automation.templateKey !== null &&
-        automation.status === "paused" &&
-        !isCompleteSchedule(automation)
-    );
-}
-
 function getAutomationDescription(automation: AutomationListItem) {
     if (automation.templateKey) {
         const summary = TEMPLATE_SUMMARY[automation.templateKey];
@@ -158,6 +114,17 @@ function getAutomationDescription(automation: AutomationListItem) {
         }
     }
     return automation.prompt;
+}
+
+function getTemplateDefaultCadence(
+    templateKey: AutomationListItem["templateKey"]
+) {
+    if (!templateKey) {
+        return;
+    }
+    return AUTOMATION_TEMPLATE_DEFINITIONS.find(
+        (definition) => definition.templateKey === templateKey
+    )?.cadence;
 }
 
 function formatSchedule(automation: AutomationListItem): string | null {
@@ -199,6 +166,39 @@ function stripMarkdown(markdown: string): string {
         .replace(/\n{2,}/g, " ")
         .replace(/\s+/g, " ")
         .trim();
+}
+
+function isCompleteSchedule(
+    automation: AutomationListItem
+): automation is AutomationListItem & {
+    cadence: NonNullable<AutomationListItem["cadence"]>;
+    timeOfDayMinutes: number;
+    timezone: string;
+} {
+    if (
+        !(
+            automation.cadence &&
+            automation.timezone &&
+            automation.timeOfDayMinutes !== null
+        )
+    ) {
+        return false;
+    }
+    if (automation.cadence === "weekly" && automation.weekDay === null) {
+        return false;
+    }
+    if (automation.cadence === "monthly" && automation.monthDay === null) {
+        return false;
+    }
+    return true;
+}
+
+function isSuggestedAutomation(automation: AutomationListItem) {
+    return (
+        automation.templateKey !== null &&
+        automation.status === "paused" &&
+        !isCompleteSchedule(automation)
+    );
 }
 
 function getLastRunDisplay(
@@ -250,6 +250,11 @@ function getLastRunDisplay(
     }
 
     return null;
+}
+
+interface AutomationsListProps {
+    automations: AutomationListItem[];
+    collections: AutomationCollectionOption[];
 }
 
 export function AutomationsList({
@@ -321,8 +326,8 @@ export function AutomationsList({
     );
 }
 
-interface AutomationsListProps {
-    automations: AutomationListItem[];
+interface AutomationCardProps {
+    automation: AutomationListItem;
     collections: AutomationCollectionOption[];
 }
 
@@ -534,11 +539,6 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
             />
         </article>
     );
-}
-
-interface AutomationCardProps {
-    automation: AutomationListItem;
-    collections: AutomationCollectionOption[];
 }
 
 function SuggestedAutomationCard({

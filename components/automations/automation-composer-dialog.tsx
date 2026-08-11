@@ -111,8 +111,6 @@ const ALL_LIBRARY_OPTION: AutomationCollectionOption = {
     name: "All library",
 };
 
-const log = createLogger("automations:composer");
-
 type AutomationCadence = "daily" | "weekly" | "monthly";
 type AutomationPayloadScope = "all_library_items" | "collection";
 type AutomationStatus = "active" | "paused";
@@ -161,6 +159,110 @@ interface AutomationFormState {
     title: string;
     weekDay: number;
 }
+
+const log = createLogger("automations:composer");
+
+function getInitialFormState(
+    automation: AutomationComposerAutomation | undefined,
+    collections: AutomationCollectionOption[]
+): AutomationFormState {
+    return {
+        cadence: getCadenceOption(automation?.cadence),
+        collection: getCollectionOption(collections, automation),
+        errorMessage: null,
+        monthDay: automation?.monthDay ?? DEFAULT_MONTH_DAY,
+        prompt: automation === undefined ? "" : automation.prompt,
+        timeValue: formatTimeOfDayMinutes(
+            automation === undefined
+                ? DEFAULT_TIME_OF_DAY_MINUTES
+                : automation.timeOfDayMinutes
+        ),
+        title: automation === undefined ? "" : automation.title,
+        weekDay: automation?.weekDay ?? DEFAULT_WEEK_DAY,
+    };
+}
+
+function getSubmitLabel(args: {
+    isEditing: boolean;
+    shouldResumeAfterSave: boolean;
+}): string {
+    if (!args.isEditing) {
+        return "Create automation";
+    }
+    if (args.shouldResumeAfterSave) {
+        return "Enable automation";
+    }
+    return "Save automation";
+}
+
+function getCollectionOption(
+    collections: AutomationCollectionOption[],
+    automation: AutomationComposerAutomation | undefined
+) {
+    if (automation?.payloadScope !== "collection") {
+        return ALL_LIBRARY_OPTION;
+    }
+
+    const collection = collections.find(
+        (option) => option.id === automation.collectionId
+    );
+    if (collection) {
+        return collection;
+    }
+
+    // Keep an invalid sentinel so save revalidates server-side instead of
+    // silently rewriting the scope to "All library".
+    return {
+        id: automation.collectionId ?? "missing_collection",
+        name: "Collection missing",
+    };
+}
+
+function getCollectionComboboxOptions(
+    collections: AutomationCollectionOption[],
+    selected: AutomationCollectionOption
+): AutomationCollectionOption[] {
+    const options = [ALL_LIBRARY_OPTION, ...collections];
+    if (
+        selected.id === ALL_LIBRARY_COLLECTION_ID ||
+        options.some((option) => option.id === selected.id)
+    ) {
+        return options;
+    }
+    return [selected, ...options];
+}
+
+function getCadenceOption(cadence: AutomationCadence | undefined) {
+    return (
+        CADENCE_OPTIONS.find((option) => option.value === cadence) ??
+        DEFAULT_CADENCE_OPTION
+    );
+}
+
+function getWeekDayOption(weekDay: number) {
+    return (
+        WEEK_DAYS.find((option) => option.value === weekDay) ??
+        DEFAULT_WEEK_DAY_OPTION
+    );
+}
+
+function getMonthDayOption(monthDay: number) {
+    return (
+        MONTH_DAY_OPTIONS.find((option) => option.value === monthDay) ??
+        DEFAULT_MONTH_DAY_OPTION
+    );
+}
+
+type AutomationComposerDialogProps = {
+    automation?: AutomationComposerAutomation;
+    children?: React.ReactNode;
+    collections: AutomationCollectionOption[];
+    /** Pass `null` to hide the trigger (controlled open only). */
+    trigger?: React.ReactElement | null;
+} & (
+    | { onOpenChange?: (open: boolean) => void; open?: undefined }
+    | { onOpenChange: (open: boolean) => void; open: boolean }
+);
 
 export function AutomationComposerDialog({
     automation,
@@ -526,26 +628,17 @@ export function AutomationComposerDialog({
     );
 }
 
-type AutomationComposerDialogProps = {
-    automation?: AutomationComposerAutomation;
-    children?: React.ReactNode;
-    collections: AutomationCollectionOption[];
-    /** Pass `null` to hide the trigger (controlled open only). */
-    trigger?: React.ReactElement | null;
-} & (
-    | { onOpenChange?: (open: boolean) => void; open?: undefined }
-    | { onOpenChange: (open: boolean) => void; open: boolean }
-);
+interface AutomationOptionTriggerProps {
+    icon: LucideIcon;
+    labelId: string;
+    valueClassName?: string;
+}
 
 function AutomationOptionTrigger({
     icon: Icon,
     labelId,
     valueClassName,
-}: {
-    icon: LucideIcon;
-    labelId: string;
-    valueClassName?: string;
-}) {
+}: AutomationOptionTriggerProps) {
     return (
         <ComboboxTrigger
             render={
@@ -572,6 +665,13 @@ function AutomationOptionTrigger({
             />
         </ComboboxTrigger>
     );
+}
+
+interface AutomationCollectionComboboxProps {
+    labelId: string;
+    onValueChange: (value: AutomationCollectionOption) => void;
+    options: AutomationCollectionOption[];
+    value: AutomationCollectionOption;
 }
 
 function AutomationCollectionCombobox({
@@ -641,11 +741,10 @@ function AutomationCollectionCombobox({
     );
 }
 
-interface AutomationCollectionComboboxProps {
+interface AutomationCadenceComboboxProps {
     labelId: string;
-    onValueChange: (value: AutomationCollectionOption) => void;
-    options: AutomationCollectionOption[];
-    value: AutomationCollectionOption;
+    onValueChange: (value: CadenceOption) => void;
+    value: CadenceOption;
 }
 
 function AutomationCadenceCombobox({
@@ -706,10 +805,11 @@ function AutomationCadenceCombobox({
     );
 }
 
-interface AutomationCadenceComboboxProps {
+interface AutomationTimeComboboxProps {
     labelId: string;
-    onValueChange: (value: CadenceOption) => void;
-    value: CadenceOption;
+    onValueChange: (value: string) => void;
+    options: TimeOfDayOption[];
+    value: TimeOfDayOption;
 }
 
 function AutomationTimeCombobox({
@@ -835,11 +935,10 @@ function AutomationTimeCombobox({
     );
 }
 
-interface AutomationTimeComboboxProps {
+interface AutomationWeekDayComboboxProps {
     labelId: string;
-    onValueChange: (value: string) => void;
-    options: TimeOfDayOption[];
-    value: TimeOfDayOption;
+    onValueChange: (value: number) => void;
+    value: WeekDayOption;
 }
 
 function AutomationWeekDayCombobox({
@@ -900,10 +999,10 @@ function AutomationWeekDayCombobox({
     );
 }
 
-interface AutomationWeekDayComboboxProps {
+interface AutomationMonthDayComboboxProps {
     labelId: string;
     onValueChange: (value: number) => void;
-    value: WeekDayOption;
+    value: MonthDayOption;
 }
 
 function AutomationMonthDayCombobox({
@@ -967,102 +1066,5 @@ function AutomationMonthDayCombobox({
                 </ComboboxList>
             </ComboboxPopup>
         </Combobox>
-    );
-}
-
-interface AutomationMonthDayComboboxProps {
-    labelId: string;
-    onValueChange: (value: number) => void;
-    value: MonthDayOption;
-}
-
-function getInitialFormState(
-    automation: AutomationComposerAutomation | undefined,
-    collections: AutomationCollectionOption[]
-): AutomationFormState {
-    return {
-        cadence: getCadenceOption(automation?.cadence),
-        collection: getCollectionOption(collections, automation),
-        errorMessage: null,
-        monthDay: automation?.monthDay ?? DEFAULT_MONTH_DAY,
-        prompt: automation === undefined ? "" : automation.prompt,
-        timeValue: formatTimeOfDayMinutes(
-            automation === undefined
-                ? DEFAULT_TIME_OF_DAY_MINUTES
-                : automation.timeOfDayMinutes
-        ),
-        title: automation === undefined ? "" : automation.title,
-        weekDay: automation?.weekDay ?? DEFAULT_WEEK_DAY,
-    };
-}
-
-function getSubmitLabel(args: {
-    isEditing: boolean;
-    shouldResumeAfterSave: boolean;
-}): string {
-    if (!args.isEditing) {
-        return "Create automation";
-    }
-    if (args.shouldResumeAfterSave) {
-        return "Enable automation";
-    }
-    return "Save automation";
-}
-
-function getCollectionOption(
-    collections: AutomationCollectionOption[],
-    automation: AutomationComposerAutomation | undefined
-) {
-    if (automation?.payloadScope !== "collection") {
-        return ALL_LIBRARY_OPTION;
-    }
-
-    const collection = collections.find(
-        (option) => option.id === automation.collectionId
-    );
-    if (collection) {
-        return collection;
-    }
-
-    // Keep an invalid sentinel so save revalidates server-side instead of
-    // silently rewriting the scope to "All library".
-    return {
-        id: automation.collectionId ?? "missing_collection",
-        name: "Collection missing",
-    };
-}
-
-function getCollectionComboboxOptions(
-    collections: AutomationCollectionOption[],
-    selected: AutomationCollectionOption
-): AutomationCollectionOption[] {
-    const options = [ALL_LIBRARY_OPTION, ...collections];
-    if (
-        selected.id === ALL_LIBRARY_COLLECTION_ID ||
-        options.some((option) => option.id === selected.id)
-    ) {
-        return options;
-    }
-    return [selected, ...options];
-}
-
-function getCadenceOption(cadence: AutomationCadence | undefined) {
-    return (
-        CADENCE_OPTIONS.find((option) => option.value === cadence) ??
-        DEFAULT_CADENCE_OPTION
-    );
-}
-
-function getWeekDayOption(weekDay: number) {
-    return (
-        WEEK_DAYS.find((option) => option.value === weekDay) ??
-        DEFAULT_WEEK_DAY_OPTION
-    );
-}
-
-function getMonthDayOption(monthDay: number) {
-    return (
-        MONTH_DAY_OPTIONS.find((option) => option.value === monthDay) ??
-        DEFAULT_MONTH_DAY_OPTION
     );
 }

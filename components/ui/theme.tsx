@@ -1,7 +1,8 @@
 "use client";
 
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { useGT } from "gt-next";
+import { type LucideIcon, Monitor, Moon, Sun } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
@@ -9,12 +10,26 @@ import { type Theme, useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/common/cn";
 
 const THEME_OPTIONS = [
-    { icon: Sun, label: "Use light theme", value: "light" },
-    { icon: Moon, label: "Use dark theme", value: "dark" },
-    { icon: Monitor, label: "Use system theme", value: "system" },
+    { icon: Sun, value: "light" },
+    { icon: Moon, value: "dark" },
+    { icon: Monitor, value: "system" },
 ] as const;
 
-const THEME_CYCLE: readonly Theme[] = ["light", "dark", "system"];
+const THEME_CYCLE = THEME_OPTIONS.map(({ value }) => value);
+
+function getThemeOptionLabel(
+    gt: ReturnType<typeof useGT>,
+    value: Theme
+): string {
+    switch (value) {
+        case "light":
+            return gt("Use light theme");
+        case "dark":
+            return gt("Use dark theme");
+        default:
+            return gt("Use system theme");
+    }
+}
 
 function getNextTheme(current: Theme): Theme {
     const index = THEME_CYCLE.indexOf(current);
@@ -22,16 +37,17 @@ function getNextTheme(current: Theme): Theme {
 }
 
 export function ThemeSelector() {
+    const gt = useGT();
     const { theme } = useTheme();
 
     return (
-        <Group aria-label="Theme">
-            {THEME_OPTIONS.map(({ icon: Icon, label, value }) => (
+        <Group aria-label={gt("Theme")}>
+            {THEME_OPTIONS.map(({ icon: Icon, value }) => (
                 <ThemeButton
                     Icon={Icon}
                     isSelected={theme === value}
                     key={value}
-                    label={label}
+                    label={getThemeOptionLabel(gt, value)}
                     value={value}
                 />
             ))}
@@ -40,6 +56,7 @@ export function ThemeSelector() {
 }
 
 export function ThemeHotkey() {
+    const gt = useGT();
     const { theme, setTheme } = useTheme();
 
     const handleThemeToggle = useStableCallback(() => {
@@ -47,7 +64,7 @@ export function ThemeHotkey() {
     });
 
     useHotkeys("mod+shift+d", handleThemeToggle, {
-        description: "Cycle theme: light → dark → system",
+        description: gt("Cycle theme: light → dark → system"),
         enableOnFormTags: false,
         preventDefault: true,
     });
@@ -56,7 +73,7 @@ export function ThemeHotkey() {
 }
 
 interface ThemeButtonProps {
-    Icon: typeof Sun;
+    Icon: LucideIcon;
     isSelected: boolean;
     label: string;
     value: Theme;

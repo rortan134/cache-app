@@ -9,6 +9,70 @@ import {
 } from "@/components/ui/stacked-bar-chart";
 import { cn } from "@/lib/common/cn";
 
+interface DataListChartProps
+    extends Omit<React.ComponentProps<typeof StackedBarChart>, "segments"> {
+    segments: readonly StackedBarChartSegment[];
+}
+
+export function DataListChart({
+    className,
+    segments,
+    ...props
+}: DataListChartProps) {
+    return (
+        <StackedBarChart
+            {...props}
+            className={className}
+            data-slot="data-list-chart"
+            segments={segments}
+        />
+    );
+}
+
+interface DataListItemProps extends useRender.ComponentProps<"div"> {
+    color?: string;
+    label: React.ReactNode;
+    value: React.ReactNode;
+}
+
+export function DataListItem({
+    className,
+    color,
+    label,
+    value,
+    render,
+    ...props
+}: DataListItemProps) {
+    const defaultProps = {
+        children: (
+            <>
+                <dt className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                    {color ? (
+                        <span
+                            aria-hidden
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: color }}
+                        />
+                    ) : null}
+                    <span className="truncate font-medium">{label}</span>
+                </dt>
+                <dd className="text-foreground tabular-nums">{value}</dd>
+            </>
+        ),
+        className: cn(
+            "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs",
+            className
+        ),
+        "data-slot": "data-list-item",
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render,
+    });
+}
+
 export function DataList({
     className,
     render,
@@ -77,26 +141,6 @@ export function DataListSection({
     });
 }
 
-interface DataListChartProps
-    extends Omit<React.ComponentProps<typeof StackedBarChart>, "segments"> {
-    segments: readonly StackedBarChartSegment[];
-}
-
-export function DataListChart({
-    className,
-    segments,
-    ...props
-}: DataListChartProps) {
-    return (
-        <StackedBarChart
-            {...props}
-            className={className}
-            data-slot="data-list-chart"
-            segments={segments}
-        />
-    );
-}
-
 export function DataListItems({
     className,
     render,
@@ -110,50 +154,6 @@ export function DataListItems({
     return useRender({
         defaultTagName: "dl",
         props: mergeProps<"dl">(defaultProps, props),
-        render,
-    });
-}
-
-interface DataListItemProps extends useRender.ComponentProps<"div"> {
-    color?: string;
-    label: React.ReactNode;
-    value: React.ReactNode;
-}
-
-export function DataListItem({
-    className,
-    color,
-    label,
-    value,
-    render,
-    ...props
-}: DataListItemProps) {
-    const defaultProps = {
-        children: (
-            <>
-                <dt className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                    {color ? (
-                        <span
-                            aria-hidden
-                            className="size-2 shrink-0 rounded-full"
-                            style={{ backgroundColor: color }}
-                        />
-                    ) : null}
-                    <span className="truncate font-medium">{label}</span>
-                </dt>
-                <dd className="text-foreground tabular-nums">{value}</dd>
-            </>
-        ),
-        className: cn(
-            "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs",
-            className
-        ),
-        "data-slot": "data-list-item",
-    };
-
-    return useRender({
-        defaultTagName: "div",
-        props: mergeProps<"div">(defaultProps, props),
         render,
     });
 }

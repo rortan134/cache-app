@@ -19,6 +19,22 @@ const ComboboxContext: React.Context<ComboboxContextValue> =
         multiple: false,
     });
 
+function getTextFromReactNode(node: React.ReactNode): string {
+    if (node === null || typeof node === "boolean") {
+        return "";
+    }
+    if (typeof node === "string" || typeof node === "number") {
+        return String(node);
+    }
+    if (Array.isArray(node)) {
+        return node.map(getTextFromReactNode).join(" ");
+    }
+    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+        return getTextFromReactNode(node.props.children);
+    }
+    return "";
+}
+
 export function Combobox<Value, Multiple extends boolean | undefined = false>(
     props: ComboboxPrimitive.Root.Props<Value, Multiple>
 ) {
@@ -51,9 +67,8 @@ export function ComboboxChipsInput({
                 size === "sm" ? "ps-1.5" : "ps-2",
                 className
             )}
-            data-size={typeof size === "string" ? size : undefined}
+            data-size={size}
             data-slot="combobox-chips-input"
-            size={typeof size === "number" ? size : undefined}
         />
     );
 }
@@ -451,20 +466,4 @@ export function ComboboxChipRemove(props: ComboboxPrimitive.ChipRemove.Props) {
             <XIcon />
         </ComboboxPrimitive.ChipRemove>
     );
-}
-
-function getTextFromReactNode(node: React.ReactNode): string {
-    if (node === null || typeof node === "boolean") {
-        return "";
-    }
-    if (typeof node === "string" || typeof node === "number") {
-        return String(node);
-    }
-    if (Array.isArray(node)) {
-        return node.map(getTextFromReactNode).join(" ");
-    }
-    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
-        return getTextFromReactNode(node.props.children);
-    }
-    return "";
 }

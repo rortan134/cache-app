@@ -59,6 +59,8 @@ const YOUTUBE_IFRAME_HOSTS = new Set([
     "www.youtube-nocookie.com",
 ]);
 
+const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookEntry>();
+
 type IframeStatus = "pending" | "loaded" | "blocked";
 
 type OembedStatus = "blocked" | "loaded" | "loading" | "oembed";
@@ -71,38 +73,6 @@ type OEmbedResolution =
     | {
           resolution: "not-found" | "unsupported";
       };
-
-interface QuickLookDrawerProps extends React.PropsWithChildren {
-    description?: string;
-    title?: string;
-    url: string;
-}
-
-interface QuickLookDrawerContentProps {
-    container: HTMLDivElement | React.RefObject<HTMLDivElement | null> | null;
-}
-
-interface QuickLookDrawerPanelProps {
-    activeEntry: QuickLookEntry | null;
-}
-
-interface QuickLookOembedPreviewProps {
-    oembed: Oembed;
-}
-
-interface QuickLookListProps
-    extends Omit<React.ComponentProps<"ul">, "children"> {
-    children: (item: QuickLookEntry, index: number) => React.ReactNode;
-    items: QuickLookEntry[];
-}
-
-interface QuickLookListItemProps {
-    index: number;
-    isActive: boolean;
-    item: QuickLookEntry;
-    onRemove: (index: number) => void;
-    onSelect: (index: number) => void;
-}
 
 interface QuickLookEntry {
     description?: string;
@@ -136,256 +106,9 @@ interface QuickLookActions {
 type QuickLookStoreActions = QuickLookActions &
     Record<string, (...args: never[]) => void>;
 
-function isQuickLookBlockedUrl(url: string | null): boolean {
-    return url === null || url === QUICK_LOOK_BLOCKED_URL;
-}
-
-function clampActiveIndex(index: number, itemsLength: number): number {
-    if (itemsLength === 0) {
-        return 0;
-    }
-    return clamp(index, 0, itemsLength - 1);
-}
-
-function addQuickLookQueueEntry(
-    { items }: QuickLookQueueState,
-    entry: QuickLookEntry
-): QuickLookQueueState {
-    const existingEntry = items.find((item) => item.url === entry.url);
-    if (existingEntry) {
-        const existingIndex = items.indexOf(existingEntry);
-        // Re-triggering the same entry is a no-op unless its content changed
-        if (
-            existingEntry.title === entry.title &&
-            existingEntry.description === entry.description
-        ) {
-            return { activeIndex: existingIndex, items };
-        }
-        return {
-            activeIndex: existingIndex,
-            items: items.map((item, i) => (i === existingIndex ? entry : item)),
-        };
-    }
-
-    const nextItems = [...items, entry].slice(-QUEUE_LIMIT);
-
-    return { activeIndex: nextItems.length - 1, items: nextItems };
-}
-
-const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookEntry>();
-
 const QuickLookContext = React.createContext<QuickLookContextValue | null>(
     null
 );
-
-const { actions: quickLookStoreActions, useStore: useQuickLookStore } =
-    createStore<QuickLookStore, QuickLookStoreActions>(
-        {
-            activeIndex: storage(0, {
-                storageKey: ACTIVE_INDEX_STORAGE_KEY,
-            }),
-            isOpen: storage(false, {
-                storageKey: OPEN_STORAGE_KEY,
-            }),
-            items: storage<QuickLookEntry[]>([], {
-                storageKey: ITEMS_STORAGE_KEY,
-            }),
-            triggerId: null,
-        },
-        ({ actions, getState }) => ({
-            openWithEntry(entry: QuickLookEntry, triggerId: string) {
-                const { isOpen, items, activeIndex } = getState();
-                const queue = addQuickLookQueueEntry(
-                    { activeIndex, items },
-                    entry
-                );
-
-                actions.setItems(queue.items);
-                actions.setActiveIndex(queue.activeIndex);
-                actions.setTriggerId(triggerId);
-                actions.setIsOpen(true);
-                // Opening is a no-op while the drawer is already open — the
-                // store update above already switched the active queue item.
-                if (!isOpen) {
-                    QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
-                }
-            },
-            removeQueueItem(index: number) {
-                const { activeIndex, items } = getState();
-                if (index < 0 || index >= items.length) {
-                    return;
-                }
-                const nextItems = items.filter((_, i) => i !== index);
-                actions.setItems(nextItems);
-                // Removing a tab before the active one shifts the active tab
-                // left; removing the active tab hands the slot to its follower.
-                actions.setActiveIndex(
-                    clampActiveIndex(
-                        activeIndex - (index < activeIndex ? 1 : 0),
-                        nextItems.length
-                    )
-                );
-            },
-            selectQueueIndex(index: number) {
-                const { items } = getState();
-                if (index < 0 || index >= items.length) {
-                    return;
-                }
-                actions.setActiveIndex(index);
-            },
-        })
-    );
-
-export function openQuickLook(entry: QuickLookEntry, triggerId: string) {
-    quickLookStoreActions.openWithEntry(entry, triggerId);
-}
-
-export function useIsQuickLookOpen(): boolean {
-    const { isOpen } = useQuickLookStore();
-    return isOpen;
-}
-
-function parseOembedStatus(
-    url: string | null,
-    data: OEmbedResolution | undefined,
-    error: Error | undefined,
-    iframeStatus: IframeStatus
-): OembedStatus {
-    if (isQuickLookBlockedUrl(url)) {
-        return "blocked";
-    }
-
-    // A successful oEmbed takes priority and supplants any iframe state — the
-    // richer preview wins regardless of whether the iframe loaded in parallel.
-    if (data?.resolution === "found") {
-        return "oembed";
-    }
-
-    // `not-found` is the original "failed" path: the oEmbed endpoint reached the
-    // server but couldn't produce a result (non-404 error, malformed JSON, etc.).
-    // As in the original, surface blocked immediately and discard any pending
-    // iframe result — a server-side oEmbed failure suggests the URL won't render
-    // reliably as an iframe either, so don't make the user wait to find out.
-    if (data?.resolution === "not-found") {
-        return "blocked";
-    }
-
-    // SWR `error` means the fetcher threw (a genuine network failure, not an HTTP
-    // status — those route to resolutions). Preserves the original's liveness
-    // guard: a working iframe stays loaded; only `pending`/`blocked` fall back.
-    // This matches `markAsBlocked`, which no-ops once the iframe has loaded.
-    if (error && iframeStatus !== "loaded") {
-        return "blocked";
-    }
-
-    if (iframeStatus === "blocked") {
-        return "blocked";
-    }
-
-    if (iframeStatus === "loaded") {
-        return "loaded";
-    }
-
-    // Either SWR is still loading (iframe mounts in parallel as a hedge against
-    // an unsupported oEmbed outcome) or SWR resolved to `unsupported` and we're
-    // waiting for that iframe's onLoad/onError. Either way, show the spinner.
-    return "loading";
-}
-
-async function resolveOembed(url: string): Promise<OEmbedResolution> {
-    const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
-        headers: { Accept: "application/json" },
-    });
-    if (response.status === 404) {
-        return { resolution: "unsupported" };
-    }
-    if (!response.ok) {
-        return { resolution: "not-found" };
-    }
-    const data: unknown = await response.json();
-    const parsed = OembedSchema.safeParse(data);
-    return parsed.success
-        ? { oembed: parsed.data, resolution: "found" }
-        : { resolution: "not-found" };
-}
-
-function getOembedIframeSrc(oembed: Oembed): string | null {
-    const doc = new DOMParser().parseFromString(oembed.html, "text/html");
-    const src = doc.querySelector("iframe")?.getAttribute("src");
-    const url = src ? parseValidUrl(src) : null;
-    return url && isAllowedOembedIframeUrl(url, oembed.provider)
-        ? url.href
-        : null;
-}
-
-function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
-    if (url.protocol !== "https:") {
-        return false;
-    }
-    const hostname = url.hostname.toLowerCase();
-    const isPath = (p: string) => url.pathname.startsWith(p);
-
-    switch (provider) {
-        case "youtube":
-            return YOUTUBE_IFRAME_HOSTS.has(hostname) && isPath("/embed/");
-        case "vimeo":
-            return hostname === "player.vimeo.com" && isPath("/video/");
-        case "spotify":
-            return hostname === "open.spotify.com" && isPath("/embed/");
-        case "soundcloud":
-            return hostname === "w.soundcloud.com";
-        case "codepen":
-            return hostname === "codepen.io";
-        case "codesandbox":
-            return hostname === "codesandbox.io";
-        case "figma":
-            return hostname === "www.figma.com" && url.pathname === "/embed";
-        default:
-            return false;
-    }
-}
-
-function buildOembedSrcDocument(html: string): string {
-    return `<!doctype html>
-<html>
-<head>
-<base target="_blank">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:; frame-src https:;">
-<style>
-html,
-body {
-    align-items: center;
-    background: transparent;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: center;
-    margin: 0;
-    min-height: 100%;
-    height: 100%;
-    width: 100%;
-    padding: 0;
-}
-*,
-*::before,
-*::after {
-    box-sizing: inherit;
-}
-iframe {
-    border: 0;
-    max-height: calc(100vh - 24px);
-    max-width: 100%;
-}
-blockquote {
-    max-width: 100%;
-    height: 100%;
-}
-</style>
-</head>
-<body>${html}</body>
-</html>`;
-}
 
 function useQuickLookContext(): QuickLookContextValue {
     const context = React.use(QuickLookContext);
@@ -395,6 +118,11 @@ function useQuickLookContext(): QuickLookContextValue {
         );
     }
     return context;
+}
+
+export function useIsQuickLookOpen(): boolean {
+    const { isOpen } = useQuickLookStore();
+    return isOpen;
 }
 
 function useQuickLookStatus(url: string | null, timeoutMs: number) {
@@ -478,6 +206,252 @@ function useQuickLookStatus(url: string | null, timeoutMs: number) {
     return { markAsBlocked, markAsLoaded, oembed, status };
 }
 
+function parseOembedStatus(
+    url: string | null,
+    data: OEmbedResolution | undefined,
+    error: Error | undefined,
+    iframeStatus: IframeStatus
+): OembedStatus {
+    if (isQuickLookBlockedUrl(url)) {
+        return "blocked";
+    }
+
+    // A successful oEmbed takes priority and supplants any iframe state — the
+    // richer preview wins regardless of whether the iframe loaded in parallel.
+    if (data?.resolution === "found") {
+        return "oembed";
+    }
+
+    // `not-found` is the original "failed" path: the oEmbed endpoint reached the
+    // server but couldn't produce a result (non-404 error, malformed JSON, etc.).
+    // As in the original, surface blocked immediately and discard any pending
+    // iframe result — a server-side oEmbed failure suggests the URL won't render
+    // reliably as an iframe either, so don't make the user wait to find out.
+    if (data?.resolution === "not-found") {
+        return "blocked";
+    }
+
+    // SWR `error` means the fetcher threw (a genuine network failure, not an HTTP
+    // status — those route to resolutions). Preserves the original's liveness
+    // guard: a working iframe stays loaded; only `pending`/`blocked` fall back.
+    // This matches `markAsBlocked`, which no-ops once the iframe has loaded.
+    if (error && iframeStatus !== "loaded") {
+        return "blocked";
+    }
+
+    if (iframeStatus === "blocked") {
+        return "blocked";
+    }
+
+    if (iframeStatus === "loaded") {
+        return "loaded";
+    }
+
+    // Either SWR is still loading (iframe mounts in parallel as a hedge against
+    // an unsupported oEmbed outcome) or SWR resolved to `unsupported` and we're
+    // waiting for that iframe's onLoad/onError. Either way, show the spinner.
+    return "loading";
+}
+
+async function resolveOembed(url: string): Promise<OEmbedResolution> {
+    const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
+        headers: { Accept: "application/json" },
+    });
+    if (response.status === 404) {
+        return { resolution: "unsupported" };
+    }
+    if (!response.ok) {
+        return { resolution: "not-found" };
+    }
+    const data: unknown = await response.json();
+    const parsed = OembedSchema.safeParse(data);
+    return parsed.success
+        ? { oembed: parsed.data, resolution: "found" }
+        : { resolution: "not-found" };
+}
+
+function addQuickLookQueueEntry(
+    { items }: QuickLookQueueState,
+    entry: QuickLookEntry
+): QuickLookQueueState {
+    const existingEntry = items.find((item) => item.url === entry.url);
+    if (existingEntry) {
+        const existingIndex = items.indexOf(existingEntry);
+        // Re-triggering the same entry is a no-op unless its content changed
+        if (
+            existingEntry.title === entry.title &&
+            existingEntry.description === entry.description
+        ) {
+            return { activeIndex: existingIndex, items };
+        }
+        return {
+            activeIndex: existingIndex,
+            items: items.map((item, i) => (i === existingIndex ? entry : item)),
+        };
+    }
+
+    const nextItems = [...items, entry].slice(-QUEUE_LIMIT);
+
+    return { activeIndex: nextItems.length - 1, items: nextItems };
+}
+
+function isQuickLookBlockedUrl(url: string | null): boolean {
+    return url === null || url === QUICK_LOOK_BLOCKED_URL;
+}
+
+function getOembedIframeSrc(oembed: Oembed): string | null {
+    const doc = new DOMParser().parseFromString(oembed.html, "text/html");
+    const src = doc.querySelector("iframe")?.getAttribute("src");
+    const url = src ? parseValidUrl(src) : null;
+    return url && isAllowedOembedIframeUrl(url, oembed.provider)
+        ? url.href
+        : null;
+}
+
+function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
+    if (url.protocol !== "https:") {
+        return false;
+    }
+    const hostname = url.hostname.toLowerCase();
+    const isPath = (p: string) => url.pathname.startsWith(p);
+
+    switch (provider) {
+        case "youtube":
+            return YOUTUBE_IFRAME_HOSTS.has(hostname) && isPath("/embed/");
+        case "vimeo":
+            return hostname === "player.vimeo.com" && isPath("/video/");
+        case "spotify":
+            return hostname === "open.spotify.com" && isPath("/embed/");
+        case "soundcloud":
+            return hostname === "w.soundcloud.com";
+        case "codepen":
+            return hostname === "codepen.io";
+        case "codesandbox":
+            return hostname === "codesandbox.io";
+        case "figma":
+            return hostname === "www.figma.com" && url.pathname === "/embed";
+        default:
+            return false;
+    }
+}
+
+function buildOembedSrcDocument(html: string): string {
+    return `<!doctype html>
+<html>
+<head>
+<base target="_blank">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:; frame-src https:;">
+<style>
+html,
+body {
+    align-items: center;
+    background: transparent;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    min-height: 100%;
+    height: 100%;
+    width: 100%;
+    padding: 0;
+}
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+}
+iframe {
+    border: 0;
+    max-height: calc(100vh - 24px);
+    max-width: 100%;
+}
+blockquote {
+    max-width: 100%;
+    height: 100%;
+}
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+}
+
+function clampActiveIndex(index: number, itemsLength: number): number {
+    if (itemsLength === 0) {
+        return 0;
+    }
+    return clamp(index, 0, itemsLength - 1);
+}
+
+const { actions: quickLookStoreActions, useStore: useQuickLookStore } =
+    createStore<QuickLookStore, QuickLookStoreActions>(
+        {
+            activeIndex: storage(0, {
+                storageKey: ACTIVE_INDEX_STORAGE_KEY,
+            }),
+            isOpen: storage(false, {
+                storageKey: OPEN_STORAGE_KEY,
+            }),
+            items: storage<QuickLookEntry[]>([], {
+                storageKey: ITEMS_STORAGE_KEY,
+            }),
+            triggerId: null,
+        },
+        ({ actions, getState }) => ({
+            openWithEntry(entry: QuickLookEntry, triggerId: string) {
+                const { isOpen, items, activeIndex } = getState();
+                const queue = addQuickLookQueueEntry(
+                    { activeIndex, items },
+                    entry
+                );
+
+                actions.setItems(queue.items);
+                actions.setActiveIndex(queue.activeIndex);
+                actions.setTriggerId(triggerId);
+                actions.setIsOpen(true);
+                // Opening is a no-op while the drawer is already open — the
+                // store update above already switched the active queue item.
+                if (!isOpen) {
+                    QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
+                }
+            },
+            removeQueueItem(index: number) {
+                const { activeIndex, items } = getState();
+                if (index < 0 || index >= items.length) {
+                    return;
+                }
+                const nextItems = items.filter((_, i) => i !== index);
+                actions.setItems(nextItems);
+                // Removing a tab before the active one shifts the active tab
+                // left; removing the active tab hands the slot to its follower.
+                actions.setActiveIndex(
+                    clampActiveIndex(
+                        activeIndex - (index < activeIndex ? 1 : 0),
+                        nextItems.length
+                    )
+                );
+            },
+            selectQueueIndex(index: number) {
+                const { items } = getState();
+                if (index < 0 || index >= items.length) {
+                    return;
+                }
+                actions.setActiveIndex(index);
+            },
+        })
+    );
+
+export function openQuickLook(entry: QuickLookEntry, triggerId: string) {
+    quickLookStoreActions.openWithEntry(entry, triggerId);
+}
+
+interface QuickLookDrawerProps extends React.PropsWithChildren {
+    description?: string;
+    title?: string;
+    url: string;
+}
+
 export function QuickLookDrawer({
     description,
     title = DEFAULT_TITLE,
@@ -517,6 +491,10 @@ export function QuickLookDrawerTrigger({
             payload={entry}
         />
     );
+}
+
+interface QuickLookDrawerContentProps {
+    container: HTMLDivElement | React.RefObject<HTMLDivElement | null> | null;
 }
 
 export function QuickLookDrawerContent({
@@ -594,6 +572,10 @@ export function QuickLookDrawerContent({
     );
 }
 
+interface QuickLookDrawerPanelProps {
+    activeEntry: QuickLookEntry | null;
+}
+
 function QuickLookDrawerPanel({ activeEntry }: QuickLookDrawerPanelProps) {
     const { markAsBlocked, markAsLoaded, oembed, status } = useQuickLookStatus(
         activeEntry?.url ?? null,
@@ -649,6 +631,10 @@ function QuickLookPanelEmpty() {
     return <MediaPlaceholder className="bg-popover" />;
 }
 
+interface QuickLookOembedPreviewProps {
+    oembed: Oembed;
+}
+
 function QuickLookOembedPreview({ oembed }: QuickLookOembedPreviewProps) {
     const src = getOembedIframeSrc(oembed);
 
@@ -666,6 +652,12 @@ function QuickLookOembedPreview({ oembed }: QuickLookOembedPreviewProps) {
     );
 }
 
+interface QuickLookListProps
+    extends Omit<React.ComponentProps<"ul">, "children"> {
+    children: (item: QuickLookEntry, index: number) => React.ReactNode;
+    items: QuickLookEntry[];
+}
+
 function QuickLookList({
     items,
     className,
@@ -680,6 +672,14 @@ function QuickLookList({
             {items.map(children)}
         </ul>
     );
+}
+
+interface QuickLookListItemProps {
+    index: number;
+    isActive: boolean;
+    item: QuickLookEntry;
+    onRemove: (index: number) => void;
+    onSelect: (index: number) => void;
 }
 
 function QuickLookListItem({

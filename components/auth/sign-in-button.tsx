@@ -10,6 +10,10 @@ import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 
+interface SignInButtonProps {
+    hasServerSession: boolean;
+}
+
 export function SignInButton({ hasServerSession }: SignInButtonProps) {
     const router = useRouter();
 
@@ -54,8 +58,4 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
             </span>
         </>
     );
-}
-
-interface SignInButtonProps {
-    hasServerSession: boolean;
 }

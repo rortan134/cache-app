@@ -62,11 +62,11 @@ Inline single-use values when the expression is obvious in place. Keep a name wh
 
 ```ts
 // Good
-const journal = await Bun.file(path.join(dir, "journal.json")).json()
+const journal = await Bun.file(path.join(dir, "journal.json")).json();
 
 // Bad
-const journalPath = path.join(dir, "journal.json")
-const journal = await Bun.file(journalPath).json()
+const journalPath = path.join(dir, "journal.json");
+const journal = await Bun.file(journalPath).json();
 ```
 
 ## React components
@@ -91,17 +91,16 @@ Never show the empty state during the loading state. Loading indicators (skeleto
 
 ### File-Level Definition Order
 
-Make sure every component file follows the same vertical stack. Deviations are rare: a stateless pure helper may live above the component only when it is consumed by module-level stateless objects (step #4); helpers that close over component internals or any per-render value live below the types at the bottom (steps #8–#9).
+Make sure every component file follows the same vertical stack: one shared module block (steps 2–5) at the top, then the exported components in original order (each with its props interfaces above), then the private sub-components at the bottom. A symbol is a component when it has a PascalCase name (render-prop components like `SignedOutOnly` return `children` with no JSX literal in the body); camelCase functions that return JSX (`renderQueryMatch`, `formatShareValue`) are render helpers, not components — JSX element names must be capitalized, so they are called as functions, never rendered as elements.
 
 1. Imports
 2. Module-level constants (UPPER_SNAKE_CASE)
 3. Module-level types/interfaces that are not component props or state (e.g., TouchScrollState)
-4. Module-level stateless objects (e.g., stateAttributesMapping)
-5. Module-level pure helper functions used by #4 (if any)
-6. Component prop/state interfaces (export interface ComponentProps ...)
-7. Component definition (export const Component = forwardRef(function Component(...)))
-8. Private helper functions used only by the component
-9. Private sub-components used only by the component
+4. Module-level stateless objects (e.g., stateAttributesMapping, contexts from `React.createContext`)
+5. Module-level pure helper functions: all hooks (`use*`) — each followed directly by its exclusive utilities — plus all other helpers, shared or component-private; context-reader hooks sit immediately after their `createContext`
+6. Component prop/state interfaces, directly above their component. Only interfaces named `*Props`/`*State` that a JSX function references in its params qualify — hook state types like `TouchScrollState` stay in step 3
+7. Component definitions (exported, PascalCase), in original file order
+8. Private sub-components, at the bottom after the components, in original file order, each preceded by its props interface
 
 ### Component Body: Internal Ordering
 
@@ -221,10 +220,10 @@ Actions are the only networking boundary: they parse/validate inputs, guard with
 Instrument critical paths. Log errors with context. Emit metrics for failure rates. Trace requests across service boundaries.
 
 Logging lives at `lib/common/logs/console/logger.ts`:
-  `createLogger(module)` returns a scoped logger with `.debug/.info/.warn/.error` and a `.time()` helper for spans.
+`createLogger(module)` returns a scoped logger with `.debug/.info/.warn/.error` and a `.time()` helper for spans.
 
 Named error module lives at `lib/common/error.ts`:
-  `NamedError.create("SomeDomainError", z.object({...}))` creates a typed error class with runtime-validated `data` and a stable `name`.
+`NamedError.create("SomeDomainError", z.object({...}))` creates a typed error class with runtime-validated `data` and a stable `name`.
 
 Use these in services and actions to propagate domain failures with structured metadata (e.g., `{ operation, message, ... }`).
 

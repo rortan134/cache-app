@@ -55,26 +55,6 @@ export function DialogPopup({
     );
 }
 
-export function DialogHeader({
-    className,
-    render,
-    ...props
-}: useRender.ComponentProps<"div">) {
-    const defaultProps = {
-        className: cn(
-            "flex flex-col gap-2 p-6 in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pb-3 max-sm:pb-4",
-            className
-        ),
-        "data-slot": "dialog-header",
-    };
-
-    return useRender({
-        defaultTagName: "div",
-        props: mergeProps<"div">(defaultProps, props),
-        render,
-    });
-}
-
 interface DialogPanelProps extends useRender.ComponentProps<"div"> {
     shouldScrollFade?: boolean;
 }
@@ -104,18 +84,17 @@ export function DialogPanel({
     );
 }
 
-export function DialogFooter({
+export function DialogHeader({
     className,
     render,
     ...props
 }: useRender.ComponentProps<"div">) {
     const defaultProps = {
         className: cn(
-            "flex flex-col-reverse gap-2 px-6 sm:flex-row sm:items-center sm:justify-end sm:rounded-b-[calc(var(--radius-xl)-1px)]",
-            "in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pt-3 pt-4 pb-6",
+            "flex flex-col gap-2 p-6 in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pb-3 max-sm:pb-4",
             className
         ),
-        "data-slot": "dialog-footer",
+        "data-slot": "dialog-header",
     };
 
     return useRender({
@@ -167,6 +146,27 @@ export function DialogFieldError({
             role="alert"
         />
     );
+}
+
+export function DialogFooter({
+    className,
+    render,
+    ...props
+}: useRender.ComponentProps<"div">) {
+    const defaultProps = {
+        className: cn(
+            "flex flex-col-reverse gap-2 px-6 sm:flex-row sm:items-center sm:justify-end sm:rounded-b-[calc(var(--radius-xl)-1px)]",
+            "in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pt-3 pt-4 pb-6",
+            className
+        ),
+        "data-slot": "dialog-footer",
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render,
+    });
 }
 
 function DialogBackdrop({

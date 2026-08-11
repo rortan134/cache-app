@@ -14,19 +14,20 @@ interface TickerTrackStyle extends React.CSSProperties {
     "--duration": string;
 }
 
-interface TickerProps extends React.ComponentProps<"span"> {
-    direction?: "left" | "right";
-}
-
 function getTickerDurationSeconds(travelDistancePx: number) {
     if (travelDistancePx <= 0 || !Number.isFinite(travelDistancePx)) {
         return DEFAULT_DURATION_SECONDS;
     }
     const cappedDurationSeconds = travelDistancePx / MAX_SPEED_PX_PER_SECOND;
+    // Round up to a centisecond so the marquee never exceeds the speed cap
     return Math.max(
         DEFAULT_DURATION_SECONDS,
         Math.ceil(cappedDurationSeconds * 100) / 100
     );
+}
+
+interface TickerProps extends React.ComponentProps<"span"> {
+    direction?: "left" | "right";
 }
 
 export function Ticker({
@@ -35,30 +36,30 @@ export function Ticker({
     children,
     ...props
 }: TickerProps) {
-    const [overflowWidthPx, setOverflowWidthPx] = React.useState(0);
+    const [contentWidthPx, setContentWidthPx] = React.useState(0);
 
     const setTrackRef = useStableCallback((track: HTMLSpanElement | null) => {
         if (!track) {
             return;
         }
-        const marquee = track.firstElementChild;
-        const content = marquee?.firstElementChild;
+        const content = track.firstElementChild?.firstElementChild;
         if (!(content instanceof HTMLElement)) {
             return;
         }
-        const trackWidth = track.offsetWidth;
         const contentWidth = content.offsetWidth;
-        setOverflowWidthPx(
-            contentWidth > 0 && contentWidth > trackWidth ? contentWidth : 0
-        );
+        const trackWidth = track.offsetWidth;
+        setContentWidthPx(contentWidth > trackWidth ? contentWidth : 0);
     });
 
-    const isOverflowing = overflowWidthPx > 0;
+    const isOverflowing = contentWidthPx > 0;
 
     const trackStyle: TickerTrackStyle = {
+        // Translate by exactly one copy width so the loop restarts seamlessly.
         "--animation-distance": `${-100 / MARQUEE_REPEAT_COUNT}%`,
-        "--duration": `${getTickerDurationSeconds(overflowWidthPx)}s`,
+        "--duration": `${getTickerDurationSeconds(contentWidthPx)}s`,
     };
+
+    const repeatCount = isOverflowing ? MARQUEE_REPEAT_COUNT : 1;
 
     return (
         <span
@@ -78,18 +79,17 @@ export function Ticker({
                 )}
                 style={trackStyle}
             >
-                {MARQUEE_REPEAT_KEYS.slice(
-                    0,
-                    isOverflowing ? MARQUEE_REPEAT_COUNT : 1
-                ).map((repeatKey, index) => (
-                    <span
-                        aria-hidden={index > 0 ? true : undefined}
-                        className="shrink-0 p-px pr-4"
-                        key={repeatKey}
-                    >
-                        {children}
-                    </span>
-                ))}
+                {MARQUEE_REPEAT_KEYS.slice(0, repeatCount).map(
+                    (repeatKey, index) => (
+                        <span
+                            aria-hidden={index > 0 || undefined}
+                            className="shrink-0 p-px pr-4"
+                            key={repeatKey}
+                        >
+                            {children}
+                        </span>
+                    )
+                )}
             </span>
         </span>
     );

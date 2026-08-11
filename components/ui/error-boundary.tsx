@@ -2,6 +2,7 @@
 "use client";
 
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
 import { catchError, type ErrorInfo } from "next/error";
 import { useOffline } from "next/offline";
 import { fromError } from "zod-validation-error";
@@ -40,6 +41,7 @@ export function ErrorFallbackComponent(
         // Default: try a soft reset
         retry();
     });
+
     const errorWithDetails = fromError(error);
 
     return (
@@ -47,7 +49,7 @@ export function ErrorFallbackComponent(
             <h2>{props.title}</h2>
             <p>{errorWithDetails.message}</p>
             <Button onClick={handleClick} size="sm" variant="ghost">
-                Try again
+                <T>Try again</T>
             </Button>
         </div>
     );

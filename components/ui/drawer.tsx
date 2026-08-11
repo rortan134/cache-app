@@ -11,10 +11,6 @@ import { cn } from "@/lib/common/cn";
 
 type DrawerPosition = "right" | "left" | "top" | "bottom";
 
-interface DrawerContextValue {
-    position: DrawerPosition;
-}
-
 const SWIPE_DIRECTION_BY_POSITION: Record<
     DrawerPosition,
     DrawerPrimitive.Root.Props["swipeDirection"]
@@ -25,13 +21,28 @@ const SWIPE_DIRECTION_BY_POSITION: Record<
     top: "up",
 };
 
+interface DrawerContextValue {
+    position: DrawerPosition;
+}
+
 const DrawerContext: React.Context<DrawerContextValue> =
     React.createContext<DrawerContextValue>({ position: "bottom" });
 
+const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
+
+function wrapRender(
+    render: useRender.ComponentProps<"div">["render"],
+    allowSelection: boolean
+) {
+    return allowSelection ? (
+        <DrawerPrimitive.Content render={render} />
+    ) : (
+        render
+    );
+}
+
 export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
     DrawerPrimitive.createHandle;
-
-const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
 
 interface DrawerProps<Payload = unknown>
     extends DrawerPrimitive.Root.Props<Payload> {
@@ -193,64 +204,6 @@ export function DrawerPopup({
     );
 }
 
-interface DrawerHeaderProps extends useRender.ComponentProps<"div"> {
-    allowSelection?: boolean;
-}
-
-export function DrawerHeader({
-    className,
-    allowSelection = false,
-    render,
-    ...props
-}: DrawerHeaderProps) {
-    const defaultProps = {
-        className: cn(
-            "flex flex-col gap-2 p-5 in-[[data-slot=drawer-popup]:has([data-slot=drawer-panel])]:pb-3 max-sm:pb-4",
-            !allowSelection && "cursor-default",
-            className
-        ),
-        "data-slot": "drawer-header",
-    };
-
-    return useRender({
-        defaultTagName: "div",
-        props: mergeProps<"div">(defaultProps, props),
-        render: wrapRender(render, allowSelection),
-    });
-}
-
-interface DrawerFooterProps extends useRender.ComponentProps<"div"> {
-    allowSelection?: boolean;
-    variant?: "default" | "bare";
-}
-
-export function DrawerFooter({
-    className,
-    variant = "default",
-    allowSelection = true,
-    render,
-    ...props
-}: DrawerFooterProps) {
-    const defaultProps = {
-        className: cn(
-            "flex flex-col-reverse gap-2 px-6 pb-(--safe-area-inset-bottom,0px) sm:flex-row sm:justify-end",
-            !allowSelection && "cursor-default",
-            variant === "default" &&
-                "border-t bg-muted/72 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+--spacing(4))]",
-            variant === "bare" &&
-                "in-[[data-slot=drawer-popup]:has([data-slot=drawer-panel])]:pt-3 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+--spacing(6))]",
-            className
-        ),
-        "data-slot": "drawer-footer",
-    };
-
-    return useRender({
-        defaultTagName: "div",
-        props: mergeProps<"div">(defaultProps, props),
-        render: wrapRender(render, allowSelection),
-    });
-}
-
 export function DrawerTitle({
     className,
     ...props
@@ -323,15 +276,62 @@ export function DrawerPanel({
     return content;
 }
 
-function wrapRender(
-    render: useRender.ComponentProps<"div">["render"],
-    allowSelection: boolean
-) {
-    return allowSelection ? (
-        <DrawerPrimitive.Content render={render} />
-    ) : (
-        render
-    );
+interface DrawerHeaderProps extends useRender.ComponentProps<"div"> {
+    allowSelection?: boolean;
+}
+
+export function DrawerHeader({
+    className,
+    allowSelection = false,
+    render,
+    ...props
+}: DrawerHeaderProps) {
+    const defaultProps = {
+        className: cn(
+            "flex flex-col gap-2 p-5 in-[[data-slot=drawer-popup]:has([data-slot=drawer-panel])]:pb-3 max-sm:pb-4",
+            !allowSelection && "cursor-default",
+            className
+        ),
+        "data-slot": "drawer-header",
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render: wrapRender(render, allowSelection),
+    });
+}
+
+interface DrawerFooterProps extends useRender.ComponentProps<"div"> {
+    allowSelection?: boolean;
+    variant?: "default" | "bare";
+}
+
+export function DrawerFooter({
+    className,
+    variant = "default",
+    allowSelection = true,
+    render,
+    ...props
+}: DrawerFooterProps) {
+    const defaultProps = {
+        className: cn(
+            "flex flex-col-reverse gap-2 px-6 pb-(--safe-area-inset-bottom,0px) sm:flex-row sm:justify-end",
+            !allowSelection && "cursor-default",
+            variant === "default" &&
+                "border-t bg-muted/72 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+--spacing(4))]",
+            variant === "bare" &&
+                "in-[[data-slot=drawer-popup]:has([data-slot=drawer-panel])]:pt-3 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+--spacing(6))]",
+            className
+        ),
+        "data-slot": "drawer-footer",
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render: wrapRender(render, allowSelection),
+    });
 }
 
 function DrawerBackdrop({

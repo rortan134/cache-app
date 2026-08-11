@@ -25,19 +25,21 @@ interface CommentActionPayload {
     contentText: string | null;
 }
 
-function getCommentSWRKey(libraryItemId: string, open: boolean) {
-    return open ? [COMMENT_SWR_KEY_PREFIX, libraryItemId] : null;
-}
-
-async function fetchLibraryItemComment([
+async function fetchItemComment([
     _commentSwrKeyPrefix,
     libraryItemId,
 ]: readonly [string, string]): Promise<CommentActionPayload> {
     const result = await getLibraryItemComment(libraryItemId);
+
     if (result.status !== ACTION_STATUS.SUCCESS) {
         throw new Error(result.message);
     }
+
     return { contentText: result.contentText };
+}
+
+function getCommentSWRKey(itemId: string, open: boolean) {
+    return open ? [COMMENT_SWR_KEY_PREFIX, itemId] : null;
 }
 
 interface CommentTextareaProps {
@@ -55,7 +57,7 @@ export function CommentTextarea({ item, open }: CommentTextareaProps) {
     const gt = useGT();
     const { data, error, isLoading, mutate } = useSWR(
         getCommentSWRKey(item.id, open),
-        fetchLibraryItemComment,
+        fetchItemComment,
         { keepPreviousData: true }
     );
 

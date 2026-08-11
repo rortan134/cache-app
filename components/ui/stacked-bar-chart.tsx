@@ -11,6 +11,18 @@ export interface StackedBarChartSegment {
     value: number;
 }
 
+function buildStackedBarAriaLabel(
+    segments: readonly StackedBarChartSegment[],
+    total: number
+): string {
+    return segments
+        .map((segment) => {
+            const percent = formatSharePercent(segment.value, total);
+            return `${segment.label} ${segment.value} (${percent})`;
+        })
+        .join(", ");
+}
+
 interface StackedBarChartProps extends React.ComponentProps<"div"> {
     segments: readonly StackedBarChartSegment[];
 }
@@ -74,16 +86,4 @@ export function StackedBarChart({
             })}
         </div>
     );
-}
-
-function buildStackedBarAriaLabel(
-    segments: readonly StackedBarChartSegment[],
-    total: number
-): string {
-    return segments
-        .map((segment) => {
-            const percent = formatSharePercent(segment.value, total);
-            return `${segment.label} ${segment.value} (${percent})`;
-        })
-        .join(", ");
 }
