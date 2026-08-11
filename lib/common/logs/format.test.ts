@@ -5,7 +5,7 @@ import {
     LOG_OBJECT_KEYS_LIMIT,
     LOG_STRING_MAX_LENGTH,
 } from "@/lib/common/logs/format";
-import { safeSanitize, sanitizeForLog } from "@/lib/common/logs/sanitize";
+import { sanitizeLog, sanitizeLogSafe } from "@/lib/common/logs/sanitize";
 
 describe("formatLogValue", () => {
     test("redacts sensitive keys through nested records", () => {
@@ -97,7 +97,7 @@ describe("sanitizeForLog", () => {
         const value: Record<string, unknown> = { token: "abc123" };
         value.self = value;
 
-        await expect(sanitizeForLog(value)).resolves.toEqual({
+        await expect(sanitizeLog(value)).resolves.toEqual({
             self: "[Circular]",
             token: "[REDACTED]",
         });
@@ -105,7 +105,7 @@ describe("sanitizeForLog", () => {
 
     test("returns the fallback for unsupported values", async () => {
         await expect(
-            safeSanitize({ transform: () => "nope" }, "[fallback]")
+            sanitizeLogSafe({ transform: () => "nope" }, "[fallback]")
         ).resolves.toBe("[fallback]");
     });
 });

@@ -1,11 +1,13 @@
-export const SENSITIVE_LOG_KEY_PATTERN =
+const SENSITIVE_LOG_KEY_PATTERN =
     /pass|secret|token|key|otp|authorization|cookie/i;
+
 export const LOG_STRING_MAX_LENGTH = 2000;
 export const LOG_ARRAY_SAMPLE_LIMIT = 5;
 export const LOG_OBJECT_KEYS_LIMIT = 12;
 
 const REDACTED_LOG_VALUE = "[REDACTED]";
 const CIRCULAR_LOG_VALUE = "[Circular]";
+
 const ERROR_STANDARD_FIELD_NAMES = new Set(["message", "name", "stack"]);
 
 type UnsupportedLogValueBehavior = "describe" | "throw";
@@ -21,7 +23,7 @@ interface RequiredLogValueFormatOptions {
     readonly unsupportedValueBehavior: UnsupportedLogValueBehavior;
 }
 
-export interface LogValueFormatOptions {
+interface LogValueFormatOptions {
     readonly formatString?: (value: string) => string;
     readonly includeErrorStack?: boolean;
     readonly unsupportedValueBehavior?: UnsupportedLogValueBehavior;
@@ -123,7 +125,6 @@ function formatUnsupportedValueForLog(
             `Cannot sanitize ${typeof value} for logging. Only primitives, errors, arrays, and objects are supported.`
         );
     }
-
     if (typeof value === "function") {
         return "[Function]";
     }
