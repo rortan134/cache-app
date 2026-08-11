@@ -1,4 +1,4 @@
-import "@/lib/dayjs/locales";
+import "@/lib/common/dayjs/locales";
 import "../globals.css";
 
 import { ConsoleBanner } from "@/components/ui/console-banner";

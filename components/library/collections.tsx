@@ -141,7 +141,7 @@ import {
     slugify,
 } from "@/lib/common/strings";
 import { normalizeURL, openExternalUrl } from "@/lib/common/url";
-import { dayjs } from "@/lib/dayjs";
+import { dayjs } from "@/lib/common/dayjs";
 import { sendCollectionToNotion } from "@/lib/integrations/notion/actions";
 import { getSourceLabel } from "@/lib/integrations/support";
 import { getCollectionDescription } from "@/lib/intelligence/actions";

@@ -18,7 +18,7 @@ import {
     formatTimeOfDayMinutes,
     getMonthDayLabel,
 } from "@/lib/common/time";
-import { dayjs } from "@/lib/dayjs";
+import { dayjs } from "@/lib/common/dayjs";
 import {
     deleteAutomation,
     pauseAutomation,
