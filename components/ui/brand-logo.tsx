@@ -13,9 +13,18 @@ import {
     ContextMenuPopup,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { isAbortError } from "@/lib/common/abort";
 import { cn } from "@/lib/common/cn";
 import { APP_NAME } from "@/lib/common/constants";
 import { saveFile } from "@/lib/common/file";
+
+async function fetchLogo(url: string, signal: AbortSignal): Promise<Blob> {
+    const response = await fetch(url, { signal });
+    if (!response.ok) {
+        throw new Error(`Failed to fetch logo image (${response.status})`);
+    }
+    return response.blob();
+}
 
 interface BrandLogoProps
     extends Omit<React.ComponentProps<typeof Link>, "href"> {
@@ -30,27 +39,19 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
 
     const handleSaveLogo = useStableCallback(async () => {
         abortControllerRef.current?.abort();
-        abortControllerRef.current = new AbortController();
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
-            await saveFile(
-                fetch(src.src, {
-                    signal: abortControllerRef.current.signal,
-                }).then((response) => {
-                    if (!response.ok) {
-                        throw new Error(
-                            `Failed to fetch logo image (${response.status})`
-                        );
-                    }
-                    return response.blob();
-                }),
-                {
-                    description: "PNG image",
-                    extension: "png",
-                    name: "cache-logo",
-                }
-            );
+            const blob = await fetchLogo(src.src, controller.signal);
+            await saveFile(blob, {
+                description: "PNG image",
+                extension: "png",
+                name: "cache-logo",
+            });
         } catch (error) {
-            if (error instanceof DOMException && error.name === "AbortError") {
+            if (isAbortError(error)) {
                 return;
             }
             console.error("Failed to save logo image", error);
@@ -81,7 +82,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
             >
                 <Image
                     alt={APP_NAME}
-                    className="block h-auto w-[180px] select-none"
+                    className="block h-auto w-45 select-none"
                     draggable={false}
                     fetchPriority="high"
                     loading="eager"

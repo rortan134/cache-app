@@ -37,31 +37,25 @@ export function StackedBarChart({
         (sum, segment) => sum + segment.value,
         0
     );
-
-    if (visibleSegments.length === 0) {
-        return (
-            <div
-                {...props}
-                aria-hidden
-                className={cn(
-                    "h-2 w-full overflow-hidden rounded-full bg-muted",
-                    className
-                )}
-                data-slot="stacked-bar-chart"
-            />
-        );
-    }
+    const isEmpty = visibleSegments.length === 0;
 
     return (
+        // biome-ignore lint/a11y/useAriaPropsSupportedByRole: role is "img" exactly when aria-label is set
         <div
             {...props}
-            aria-label={buildStackedBarAriaLabel(visibleSegments, total)}
+            aria-hidden={isEmpty}
+            aria-label={
+                isEmpty
+                    ? undefined
+                    : buildStackedBarAriaLabel(visibleSegments, total)
+            }
             className={cn(
-                "flex h-2 w-full overflow-hidden rounded-full bg-muted",
+                "h-2 w-full overflow-hidden rounded-full bg-muted",
+                !isEmpty && "flex",
                 className
             )}
             data-slot="stacked-bar-chart"
-            role="img"
+            role={isEmpty ? undefined : "img"}
         >
             {visibleSegments.map((segment, index) => {
                 const isFirst = index === 0;
