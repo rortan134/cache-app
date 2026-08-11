@@ -1,11 +1,16 @@
 import "server-only";
 
 import { isAbortError, abortAfter } from "@/lib/common/abort";
-import { HttpError } from "@/lib/common/http-error";
+import { HttpError } from "@/lib/common/http";
 import { withRetry } from "@/lib/common/retry";
-import { parsePublicHttpUrl } from "@/lib/common/server-net";
+import {
+    crossOriginSafeHeaders,
+    fetchPublicHop,
+    isRedirectStatus,
+    resolvePublicHttpUrl,
+    resolveRedirectLocation,
+} from "@/lib/common/security/fetch";
 import { truncateText } from "@/lib/common/strings";
-import { fetchWithTimeout } from "@/lib/common/timeout";
 import { prisma } from "@/prisma";
 import { AutomationPayloadScope } from "@/prisma/client/enums";
 import {
@@ -36,7 +41,9 @@ function isRetryableStatus(status: number): boolean {
     return status >= 500 || status === 429 || status === 408;
 }
 
-function parseRetryAfterMs(response: Response): number | null {
+function parseRetryAfterMs(response: {
+    headers: { get: (key: string) => string | null };
+}): number | null {
     const header = response.headers.get("retry-after");
     if (!header) {
         return null;
@@ -218,13 +225,14 @@ export async function automationWebFetch(args: { url: string }) {
 
     try {
         let currentUrl = args.url;
+        let hopHeaders: HeadersInit = AUTOMATION_WEB_FETCH_HEADERS;
         for (
             let redirectCount = 0;
             redirectCount <= AUTOMATION_WEB_FETCH_REDIRECT_LIMIT;
             redirectCount += 1
         ) {
-            const publicUrl = await parsePublicHttpUrl(currentUrl);
-            if (!publicUrl) {
+            const host = await resolvePublicHttpUrl(currentUrl);
+            if (!host) {
                 return {
                     error: "URL is blocked because it points to a local or private host.",
                     ok: false,
@@ -235,15 +243,13 @@ export async function automationWebFetch(args: { url: string }) {
             try {
                 response = await withRetry(
                     async () => {
-                        const res = await fetchWithTimeout(
-                            publicUrl.href,
-                            {
-                                headers: AUTOMATION_WEB_FETCH_HEADERS,
-                                redirect: "manual",
-                            },
-                            AUTOMATION_WEB_FETCH_TIMEOUT_MS,
-                            totalTimeout.signal
-                        );
+                        const res = await fetchPublicHop(host, {
+                            headers: hopHeaders,
+                            method: "GET",
+                            redirect: "manual",
+                            signal: totalTimeout.signal,
+                            timeoutMs: AUTOMATION_WEB_FETCH_TIMEOUT_MS,
+                        });
 
                         if (isRetryableStatus(res.status)) {
                             await res.body?.cancel().catch(() => undefined);
@@ -299,7 +305,7 @@ export async function automationWebFetch(args: { url: string }) {
                 };
             }
 
-            if (isRedirectResponse(response.status)) {
+            if (isRedirectStatus(response.status)) {
                 const location = response.headers.get("location");
                 await response.body?.cancel().catch(() => undefined);
                 if (!location) {
@@ -307,10 +313,20 @@ export async function automationWebFetch(args: { url: string }) {
                         error: "URL redirected without a Location header.",
                         ok: false,
                         status: response.status,
-                        url: publicUrl.href,
+                        url: host.url.href,
                     };
                 }
-                currentUrl = new URL(location, publicUrl).href;
+                const redirectUrl = resolveRedirectLocation(location, host.url);
+                if (!redirectUrl) {
+                    return {
+                        error: "URL is blocked because it points to a local or private host.",
+                        ok: false,
+                    };
+                }
+                if (redirectUrl.origin !== host.url.origin) {
+                    hopHeaders = crossOriginSafeHeaders(hopHeaders);
+                }
+                currentUrl = redirectUrl.href;
                 continue;
             }
 
@@ -321,7 +337,7 @@ export async function automationWebFetch(args: { url: string }) {
                     error: "URL triggered a browser challenge or CAPTCHA and could not be fetched.",
                     ok: false,
                     status: response.status,
-                    url: response.url || publicUrl.href,
+                    url: response.url || host.url.href,
                 };
             }
 
@@ -330,7 +346,7 @@ export async function automationWebFetch(args: { url: string }) {
                 ok: response.ok,
                 status: response.status,
                 truncated: text.length > AUTOMATION_WEB_FETCH_BODY_LENGTH_MAX,
-                url: response.url || publicUrl.href,
+                url: response.url || host.url.href,
             };
         }
 
@@ -341,10 +357,6 @@ export async function automationWebFetch(args: { url: string }) {
     } finally {
         totalTimeout.clearTimeout();
     }
-}
-
-function isRedirectResponse(status: number): boolean {
-    return status >= 300 && status < 400;
 }
 
 function getPayloadWhere(run: AutomationRunPayloadScope) {

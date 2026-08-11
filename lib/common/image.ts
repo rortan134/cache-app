@@ -1,4 +1,4 @@
-import { parseHttpUrl } from "@/lib/common/net";
+import { parseHttpUrl } from "@/lib/common/security/ssrf";
 
 const SAME_ORIGIN_IMAGE_URL_BASE = "https://cache.local";
 

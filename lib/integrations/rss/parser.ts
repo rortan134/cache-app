@@ -1,7 +1,10 @@
-import { RssFeedError } from "./errors";
+import { abortAfter } from "@/lib/common/abort";
+import { fetchPublicRedirect } from "@/lib/common/security/fetch";
 import Parser from "rss-parser";
+import { RssFeedError } from "./errors";
 
-const parser = new Parser();
+const FETCH_TIMEOUT_MS = 15_000;
+const MAX_REDIRECTS = 5;
 
 export interface ParsedFeed {
     description?: string;
@@ -19,19 +22,34 @@ export interface ParsedFeedItem {
     title?: string;
 }
 
-const FETCH_TIMEOUT_MS = 15_000;
+const parser = new Parser();
 
 export async function parseFeed(url: string): Promise<ParsedFeed> {
+    // One budget for the whole chain: per-hop timeouts would multiply the
+    // deadline across redirects instead of bounding the total walk.
+    const deadline = abortAfter(FETCH_TIMEOUT_MS);
     let response: Response;
     let xml: string;
 
     try {
-        response = await fetch(url, {
+        const result = await fetchPublicRedirect(url, {
             headers: {
                 "User-Agent": "Cache/1.0 RSS",
             },
-            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            maxRedirects: MAX_REDIRECTS,
+            signal: deadline.signal,
+            timeoutMs: FETCH_TIMEOUT_MS,
         });
+        if (result.status !== "response") {
+            throw new RssFeedError({
+                kind: "fetch_failed",
+                message:
+                    result.status === "blocked"
+                        ? "The feed host is not publicly reachable."
+                        : "The feed did not settle on a final URL.",
+            });
+        }
+        response = result.response;
 
         if (!response.ok) {
             throw new RssFeedError({
@@ -55,6 +73,8 @@ export async function parseFeed(url: string): Promise<ParsedFeed> {
             },
             { cause: error }
         );
+    } finally {
+        deadline.clearTimeout();
     }
 
     let feed: Parser.Output<Record<string, unknown>>;

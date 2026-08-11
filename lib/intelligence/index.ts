@@ -14,6 +14,7 @@ import {
     protectGenAiRequest,
 } from "@/lib/intelligence/protection";
 
+import { abortAfter } from "@/lib/common/abort";
 import { unique } from "@/lib/common/arrays";
 import {
     ITEM_KIND_BOOKMARK,
@@ -27,6 +28,7 @@ import {
     truncateText,
 } from "@/lib/common/strings";
 import { isHttpUrl } from "@/lib/common/url";
+import { fetchPublicRedirect } from "@/lib/common/security/fetch";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
 import { resolveGenAIModels, type ModelId } from "@/lib/intelligence/models";
 import { prisma } from "@/prisma";
@@ -59,6 +61,7 @@ const SMART_COLLECTIONS_TEXT_LENGTH_MAX = 12_000;
 const SMART_COLLECTIONS_FILE_READY_ATTEMPT_COUNT_MAX = 20;
 const SMART_COLLECTIONS_FILE_READY_DELAY_MS = 1500;
 const SMART_COLLECTIONS_FETCH_TIMEOUT_MS = 20_000;
+const SMART_COLLECTIONS_FETCH_MAX_REDIRECTS = 5;
 const SMART_COLLECTIONS_MODEL_TIMEOUT_MS = 45_000;
 const DEFAULT_SUMMARIZE_MAX_LENGTH = 1500;
 const DISPLAY_NAME_MAX_LENGTH = 128;
@@ -363,22 +366,25 @@ function buildPrompt(
 async function downloadRemoteAsset(
     url: string
 ): Promise<DownloadedRemoteAsset | null> {
-    const controller = new AbortController();
-    const timeout = setTimeout(
-        () => controller.abort(),
-        SMART_COLLECTIONS_FETCH_TIMEOUT_MS
-    );
+    // One budget for the whole chain: per-hop timeouts would multiply the
+    // deadline across redirects instead of bounding the total walk.
+    const deadline = abortAfter(SMART_COLLECTIONS_FETCH_TIMEOUT_MS);
     let filePath: string | null = null;
     let shouldKeepFile = false;
 
     try {
-        const response = await fetch(url, {
+        const result = await fetchPublicRedirect(url, {
             headers: {
                 Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/*,video/*,application/pdf,*/*;q=0.8",
             },
-            redirect: "follow",
-            signal: controller.signal,
+            maxRedirects: SMART_COLLECTIONS_FETCH_MAX_REDIRECTS,
+            signal: deadline.signal,
+            timeoutMs: SMART_COLLECTIONS_FETCH_TIMEOUT_MS,
         });
+        if (result.status !== "response") {
+            return null;
+        }
+        const response = result.response;
 
         if (!(response.ok && response.body)) {
             return null;
@@ -444,7 +450,7 @@ async function downloadRemoteAsset(
     } catch {
         return null;
     } finally {
-        clearTimeout(timeout);
+        deadline.clearTimeout();
         if (!(shouldKeepFile || filePath === null)) {
             await rm(/* turbopackIgnore: true */ filePath, {
                 force: true,

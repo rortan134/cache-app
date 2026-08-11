@@ -3,8 +3,12 @@ import { createHash, randomUUID } from "node:crypto";
 import { abortAfterAny, isAbortError } from "@/lib/common/abort";
 import { MIME_TYPES } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { parseHttpUrl } from "@/lib/common/net";
-import { parsePublicHttpUrl } from "@/lib/common/server-net";
+import {
+    fetchPublicRedirect,
+    releaseResponseBodyBudget,
+} from "@/lib/common/security/fetch";
+import { parseHttpUrl } from "@/lib/common/security/ssrf";
+import { parsePublicHttpUrl } from "@/lib/common/security/ssrf-url";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { getSessionUserId } from "@/lib/auth/session";
@@ -648,13 +652,8 @@ async function proxyImageResponse(
     targetUrl: URL,
     request: Request
 ): Promise<Response> {
-    const publicImageUrl = await parsePublicHttpUrl(preview.imageUrl);
-    if (!publicImageUrl) {
-        return textResponse("Preview not found", 404);
-    }
-
     const imageResponse = await fetchWithRedirects(
-        publicImageUrl,
+        parseHttpUrl(preview.imageUrl),
         {
             headers: {
                 Accept: "image/*",
@@ -700,6 +699,7 @@ function streamImageResponse(
     }
 
     const signedUrlLifetimeSeconds = getSignedUrlLifetimeSeconds(previewUrl);
+    releaseResponseBodyBudget(imageResponse);
     return new Response(imageResponse.body, {
         headers: {
             "cache-control": previewResponseCacheControl(
@@ -918,7 +918,7 @@ async function proxyVideoResponse(
         const rangeRequest = parseRangeHeader(request.headers.get("range"));
 
         const tunnelResponse = await fetchWithRedirects(
-            await parsePublicHttpUrl(videoUrl),
+            parseHttpUrl(videoUrl),
             {
                 headers: {
                     Accept: "video/*",
@@ -966,6 +966,7 @@ async function proxyVideoResponse(
         headers.set("cache-control", CACHE_CONTROL_HEADER);
         setPreviewCacheHeaders(headers, targetUrl.href, "video");
 
+        releaseResponseBodyBudget(tunnelResponse);
         return new Response(tunnelResponse.body, {
             headers,
             status: tunnelResponse.status,
@@ -989,70 +990,28 @@ async function fetchWithRedirects(
         return textResponse("Invalid URL", 400);
     }
 
-    const redirectInit = init
-        ? { ...init, redirect: "manual" as const }
-        : { redirect: "manual" as const };
+    const result = await fetchPublicRedirect(initialUrl, {
+        headers: init?.headers,
+        maxRedirects: MAX_REDIRECTS,
+        method: init?.method,
+        signal,
+        timeoutMs: FETCH_TIMEOUT_MS,
+    });
 
-    let publicUrl = initialUrl;
-    // Hosts SSRF-checked in this chain only. Same-host multi-hop redirects
-    // skip a second dns.lookup without a process-wide positive DNS cache
-    // (which would widen rebinding across requests).
-    const hostsValidatedThisChain = new Set<string>();
-
-    for (
-        let redirectCount = 0;
-        redirectCount <= MAX_REDIRECTS;
-        redirectCount += 1
-    ) {
-        if (redirectCount > 0) {
-            const hostname = publicUrl.hostname;
-            if (!hostsValidatedThisChain.has(hostname)) {
-                const validated = await parsePublicHttpUrl(publicUrl.href);
-                if (!validated) {
-                    return textResponse("Invalid URL", 400);
-                }
-                publicUrl = validated;
-                hostsValidatedThisChain.add(validated.hostname);
-            }
-        }
-
-        const response = await fetchWithTimeout(
-            publicUrl.href,
-            redirectInit,
-            FETCH_TIMEOUT_MS,
-            signal
-        );
-
-        if (!isRedirectStatus(response.status)) {
-            return response;
-        }
-
-        const location = response.headers.get("location");
-        if (!location) {
-            return response;
-        }
-
-        const redirectUrl = resolveRedirectUrl(location, publicUrl);
-        if (!redirectUrl) {
-            return textResponse("Invalid URL", 400);
-        }
-        publicUrl = redirectUrl;
+    if (result.status === "response") {
+        return result.response;
     }
-
-    return textResponse("Too many redirects", 508);
-}
-
-function resolveRedirectUrl(location: string, baseUrl: URL): URL | null {
-    let resolved: URL;
-    try {
-        resolved = new URL(location, baseUrl);
-    } catch {
-        return null;
+    if (result.status === "too_many_redirects") {
+        return textResponse("Too many redirects", 508);
     }
-    if (resolved.protocol !== "http:" && resolved.protocol !== "https:") {
-        return null;
+    // Local/private/unresolvable host at any hop, or a redirect to a
+    // non-HTTP(S) target: fail closed.
+    if (result.status === "blocked") {
+        log.warn("Preview fetch blocked by SSRF policy", {
+            targetUrl: initialUrl.href,
+        });
     }
-    return resolved;
+    return textResponse("Invalid URL", 400);
 }
 
 function getUserAgent(url: string): string {
@@ -1239,10 +1198,6 @@ async function readTextBodyWithLimit(
         clearTimeout();
         reader.releaseLock();
     }
-}
-
-function isRedirectStatus(status: number): boolean {
-    return status >= 300 && status < 400;
 }
 
 async function readFromRedis(key: string): Promise<string | null> {

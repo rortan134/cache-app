@@ -1,14 +1,16 @@
+import { resolveHostAddresses } from "./dns";
 import {
     parsePublicHttpUrl as parsePublicHttpUrlWithResolver,
     resolvesToBlockedHostname as resolvesToBlockedHostnameWithResolver,
-} from "@/lib/common/net";
-import { lookup } from "node:dns/promises";
+} from "./ssrf";
 
-function resolveHostnameAddresses(hostname: string) {
-    return lookup(hostname, {
-        all: true,
-        verbatim: true,
+const SSRF_GATE_DNS_TIMEOUT_MS = 15_000;
+
+async function resolveHostnameAddresses(hostname: string) {
+    const resolved = await resolveHostAddresses(hostname, {
+        timeoutMs: SSRF_GATE_DNS_TIMEOUT_MS,
     });
+    return resolved.addresses.map((address) => ({ address }));
 }
 
 export function resolvesToBlockedHostname(hostname: string): Promise<boolean> {

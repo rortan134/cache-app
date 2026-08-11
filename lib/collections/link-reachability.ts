@@ -6,12 +6,14 @@ import {
     type LibraryQualityItem,
     type LinkReachabilityStatus,
 } from "@/lib/collections/library-quality";
-import { isAbortError } from "@/lib/common/abort";
 import { mapConcurrent } from "@/lib/common/arrays";
+import { isAbortError } from "@/lib/common/abort";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getRedisClient } from "@/lib/common/redis";
-import { parsePublicHttpUrl } from "@/lib/common/server-net";
-import { fetchWithTimeout } from "@/lib/common/timeout";
+import {
+    fetchPublicRedirect,
+    type FetchHttpRedirectResult,
+} from "@/lib/common/security/fetch";
 import { prisma } from "@/prisma";
 import type { LibraryItemLinkReachability } from "@/prisma/client/client";
 
@@ -153,10 +155,6 @@ function classifyHttpStatus(status: number): LinkReachabilityStatus {
     return "ambiguous";
 }
 
-function isRedirectStatus(status: number): boolean {
-    return status >= 300 && status < 400;
-}
-
 function toPrismaReachability(
     status: LinkReachabilityStatus
 ): LibraryItemLinkReachability {
@@ -164,52 +162,31 @@ function toPrismaReachability(
 }
 
 async function probeHttpUrl(url: string): Promise<LinkReachabilityStatus> {
-    let currentUrl = url;
-
-    for (let redirectCount = 0; redirectCount <= PROBE_REDIRECT_LIMIT; ) {
-        const publicUrl = await parsePublicHttpUrl(currentUrl);
-        if (!publicUrl) {
-            return "ambiguous";
-        }
-
-        let response: Response;
-        try {
-            response = await fetchWithTimeout(
-                publicUrl.href,
-                {
-                    headers: PROBE_HEADERS,
-                    method: "GET",
-                    redirect: "manual",
-                },
-                PROBE_TIMEOUT_MS
-            );
-        } catch (error) {
-            // Timeouts and transport failures are often transient; do not
-            // treat them as confirmed dead links, but log for observability.
-            log.warn("Link reachability probe transport failed", {
-                aborted: isAbortError(error),
-                error,
-                url: currentUrl,
-            });
-            return "ambiguous";
-        }
-
-        if (isRedirectStatus(response.status)) {
-            const location = response.headers.get("location");
-            await response.body?.cancel().catch(() => undefined);
-            if (!location) {
-                return "ambiguous";
-            }
-            currentUrl = new URL(location, publicUrl).href;
-            redirectCount += 1;
-            continue;
-        }
-
-        await response.body?.cancel().catch(() => undefined);
-        return classifyHttpStatus(response.status);
+    let result: FetchHttpRedirectResult;
+    try {
+        result = await fetchPublicRedirect(url, {
+            headers: PROBE_HEADERS,
+            maxRedirects: PROBE_REDIRECT_LIMIT,
+            method: "GET",
+            timeoutMs: PROBE_TIMEOUT_MS,
+        });
+    } catch (error) {
+        // Timeouts and transport failures are often transient; do not
+        // treat them as confirmed dead links, but log for observability.
+        log.warn("Link reachability probe transport failed", {
+            aborted: isAbortError(error),
+            error,
+            url,
+        });
+        return "ambiguous";
     }
 
-    return "ambiguous";
+    if (result.status !== "response") {
+        return "ambiguous";
+    }
+
+    await result.response.body?.cancel().catch(() => undefined);
+    return classifyHttpStatus(result.response.status);
 }
 
 async function persistReachability(

@@ -1,4 +1,4 @@
-import { parseHttpUrl } from "@/lib/common/net";
+import { parseHttpUrl } from "@/lib/common/security/ssrf";
 
 const TIKTOK_OEMBED_ENDPOINT = "https://www.tiktok.com/oembed";
 
