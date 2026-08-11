@@ -3,16 +3,18 @@
 import { cn } from "@/lib/common/cn";
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
 
+interface ScrollAreaProps extends ScrollAreaPrimitive.Root.Props {
+    shouldScrollFade?: boolean;
+    shouldUseScrollbarGutter?: boolean;
+}
+
 export function ScrollArea({
     className,
     children,
     shouldScrollFade = false,
     shouldUseScrollbarGutter = false,
     ...props
-}: ScrollAreaPrimitive.Root.Props & {
-    shouldScrollFade?: boolean;
-    shouldUseScrollbarGutter?: boolean;
-}) {
+}: ScrollAreaProps) {
     return (
         <ScrollAreaPrimitive.Root
             {...props}

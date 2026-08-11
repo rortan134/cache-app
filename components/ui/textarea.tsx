@@ -5,7 +5,7 @@ import { Field as FieldPrimitive } from "@base-ui/react/field";
 import { mergeProps } from "@base-ui/react/merge-props";
 import type * as React from "react";
 
-export interface TextareaProps extends React.ComponentProps<"textarea"> {
+interface TextareaProps extends React.ComponentProps<"textarea"> {
     isUnstyled?: boolean;
     size?: "sm" | "default" | "lg" | number;
 }
@@ -41,7 +41,7 @@ export function Textarea({
                         className={cn(
                             "field-sizing-content min-h-17.5 w-full resize-none rounded-[inherit] px-[calc(--spacing(3)-1px)] py-[calc(--spacing(1.5)-1px)] outline-none max-sm:min-h-20.5",
                             size === "sm" &&
-                                "min-h-16.5 px-[calc(--spacing(2.5)-1px)] py-[calc(--spacing(1)-1px)] max-sm:min-h-19.5",
+                                "min-h-14.5 px-[calc(--spacing(2.5)-1px)] py-[calc(--spacing(1.5)-1px)] max-sm:min-h-16.5",
                             size === "lg" &&
                                 "min-h-18.5 py-[calc(--spacing(2)-1px)] max-sm:min-h-21.5"
                         )}

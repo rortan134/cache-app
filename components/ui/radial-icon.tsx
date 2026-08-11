@@ -5,6 +5,11 @@ const ICON_VIEWBOX = 24;
 const ICON_CENTER = 12;
 const ICON_STROKE_WIDTH = 3;
 
+interface RadialIconProps extends React.ComponentProps<"svg"> {
+    size?: number;
+    value: number;
+}
+
 export function RadialIcon({
     value,
     size = 10,
@@ -12,10 +17,7 @@ export function RadialIcon({
     "aria-hidden": ariaHidden,
     role = "img",
     ...props
-}: React.ComponentProps<"svg"> & {
-    value: number;
-    size?: number;
-}) {
+}: RadialIconProps) {
     const circumference = 2 * Math.PI * size;
     const dashOffset = circumference * (1 - clamp(value / 100, 0, 1));
     const isDecorative = ariaHidden === true || ariaHidden === "true";

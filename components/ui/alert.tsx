@@ -21,17 +21,25 @@ const alertVariants = cva(
     }
 );
 
+const ALERT_ROLE_BY_VARIANT = {
+    default: undefined,
+    error: "alert",
+    info: undefined,
+    success: "status",
+    warning: "alert",
+} as const;
+
 export function Alert({
     className,
     variant,
     ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+}: React.ComponentProps<"aside"> & VariantProps<typeof alertVariants>) {
     return (
         <aside
             {...props}
             className={cn(alertVariants({ variant }), className)}
             data-slot="alert"
-            role="alert"
+            role={ALERT_ROLE_BY_VARIANT[variant ?? "default"]}
         />
     );
 }

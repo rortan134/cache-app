@@ -7,12 +7,11 @@ export function GithubIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
+            {...props}
             aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
-            role="img"
             viewBox="0 0 24 24"
-            {...props}
         >
             <path
                 d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.57.11.78-.25.78-.55 0-.27-.01-.98-.02-1.92-3.2.7-3.88-1.54-3.88-1.54-.53-1.33-1.28-1.68-1.28-1.68-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.26.72-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.17.92-.26 1.91-.39 2.89-.39s1.97.13 2.89.39c2.2-1.48 3.17-1.17 3.17-1.17.62 1.59.23 2.76.11 3.05.73.8 1.18 1.82 1.18 3.07 0 4.41-2.69 5.39-5.25 5.67.41.35.77 1.04.77 2.1 0 1.52-.01 2.74-.01 3.11 0 .3.2.67.79.55A11.51 11.51 0 0023.5 12C23.5 5.65 18.35.5 12 .5"
@@ -28,12 +27,11 @@ export function TikTokIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
+            {...props}
             aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
-            role="img"
             viewBox="0 0 352.28 398.67"
-            {...props}
         >
             <path
                 d="M137.17 156.98v-15.56c-5.34-.73-10.76-1.18-16.29-1.18C54.23 140.24 0 194.47 0 261.13c0 40.9 20.43 77.09 51.61 98.97-20.12-21.6-32.46-50.53-32.46-82.31 0-65.7 52.69-119.28 118.03-120.81Z"
@@ -69,7 +67,6 @@ export function InstagramIcon({
             aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
-            role="img"
             viewBox="0 0 2500 2500"
         >
             <defs>
@@ -116,7 +113,6 @@ export function PinterestIcon({
             aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
-            role="img"
             viewBox="0 0 256 256"
         >
             <path
@@ -133,13 +129,12 @@ export function PhotosIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
+            {...props}
             aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             preserveAspectRatio="xMidYMid"
-            role="img"
             viewBox="0 0 256 256"
-            {...props}
         >
             <path
                 d="M64 58.149c35.328 0 64 28.672 64 64V128H5.851C2.633 128 0 125.367 0 122.149c0-35.328 28.672-64 64-64"
@@ -172,7 +167,6 @@ export function XSocialIcon({
             className={cn("size-6 shrink-0", className)}
             fill="none"
             focusable="false"
-            role="img"
             viewBox="0 0 1200 1227"
         >
             <path
@@ -193,7 +187,6 @@ export function YouTubeIcon({
             aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
-            role="img"
             viewBox="0 0 24 24"
         >
             <path
@@ -216,7 +209,6 @@ export function ChromeIcon({
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             preserveAspectRatio="xMidYMid"
-            role="img"
             viewBox="0 0 190.5 190.5"
         >
             <path
@@ -253,7 +245,6 @@ export function GoogleIcon({
             aria-hidden="true"
             className={cn("size-5 shrink-0", className)}
             focusable="false"
-            role="img"
             viewBox="0 0 48 48"
         >
             <path
@@ -288,7 +279,6 @@ export function NotionIcon({
             focusable="false"
             height="268"
             preserveAspectRatio="xMidYMid"
-            role="img"
             viewBox="0 0 256 268"
             width="256"
         >
@@ -311,7 +301,6 @@ export function GoogleDocsIcon({
             aria-hidden="true"
             className={cn("inline-block size-4 shrink-0", className)}
             focusable="false"
-            role="img"
             viewBox="0 0 64 88"
             x="0px"
             xmlSpace="preserve"
@@ -524,7 +513,6 @@ export function OpenAIIcon({
             className={cn("size-6 shrink-0", className)}
             fill="currentColor"
             focusable="false"
-            role="img"
             viewBox="0 0 24 24"
         >
             <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" />
@@ -544,7 +532,6 @@ export function ClaudeIcon({
             fill="currentColor"
             focusable="false"
             preserveAspectRatio="xMidYMid"
-            role="img"
             viewBox="0 0 256 257"
         >
             <path
@@ -567,7 +554,6 @@ export function PerplexityIcon({
             fill="currentColor"
             fillRule="evenodd"
             focusable="false"
-            role="img"
             viewBox="0 0 24 24"
         >
             <path
@@ -589,7 +575,6 @@ export function GeminiIcon({
             className={cn("size-6 shrink-0", className)}
             fill="currentColor"
             focusable="false"
-            role="img"
             viewBox="0 0 24 24"
         >
             <path d="M20.2246 10.888C18.6066 10.1911 17.1915 9.23659 15.9769 8.02312C14.7634 6.80966 13.8077 5.39335 13.112 3.7754C12.846 3.15614 12.63 2.51778 12.4653 1.86392C12.4116 1.65034 12.2207 1.5 12 1.5C11.7793 1.5 11.5884 1.65034 11.5347 1.86392C11.37 2.51778 11.1552 3.15375 10.888 3.7754C10.1911 5.39335 9.23659 6.80966 8.02312 8.02312C6.80966 9.2354 5.39335 10.1911 3.7754 10.888C3.15614 11.154 2.51778 11.37 1.86392 11.5347C1.65034 11.5884 1.5 11.7793 1.5 12C1.5 12.2207 1.65034 12.4116 1.86392 12.4653C2.51778 12.63 3.15375 12.8448 3.7754 13.112C5.39335 13.8089 6.80847 14.7634 8.02312 15.9769C9.23659 17.1903 10.1923 18.6066 10.888 20.2246C11.1552 20.8451 11.37 21.4822 11.5347 22.1361C11.5607 22.2399 11.6206 22.332 11.7049 22.3979C11.7891 22.4638 11.893 22.4998 12 22.5C12.2207 22.5 12.4116 22.3497 12.4653 22.1361C12.63 21.4822 12.8448 20.8462 13.112 20.2246C13.8089 18.6066 14.7634 17.1915 15.9769 15.9769C17.1903 14.7634 18.6066 13.8077 20.2246 13.112C20.8451 12.8448 21.4822 12.63 22.1361 12.4653C22.2399 12.4393 22.332 12.3794 22.3979 12.2951C22.4638 12.2109 22.4998 12.107 22.5 12C22.5 11.7793 22.3497 11.5884 22.1361 11.5347C21.4822 11.37 20.8462 11.1552 20.2246 10.888Z" />
@@ -608,7 +593,6 @@ export function GrokIcon({
             className={cn("size-6 shrink-0", className)}
             fill="currentColor"
             focusable="false"
-            role="img"
             viewBox="0 0 24 24"
         >
             <path d="M9.23842 15.4055L17.3051 9.26292C17.7007 8.9618 18.2658 9.07925 18.4543 9.54702C19.446 12.0138 19.0029 14.9784 17.0297 17.0138C15.0566 19.0492 12.3111 19.4954 9.80163 18.4789L7.06027 19.7882C10.9922 22.5604 15.7667 21.8748 18.7504 18.795C21.117 16.3538 21.8498 13.0262 21.1646 10.0254L21.1708 10.0318C20.1769 5.62354 21.4151 3.86151 23.9515 0.258408C23.9703 0.231693 23.9351 0.202703 23.9123 0.226139L20.7939 3.44289V3.43221L9.23842 15.4055Z" />
@@ -628,7 +612,6 @@ export function CursorIcon({
             className={cn("size-6 shrink-0", className)}
             fill="currentColor"
             focusable="false"
-            role="img"
             viewBox="0 0 466.73 532.09"
         >
             <path d="M457.43,125.94L244.42,2.96c-6.84-3.95-15.28-3.95-22.12,0L9.3,125.94c-5.75,3.32-9.3,9.46-9.3,16.11v247.99c0,6.65,3.55,12.79,9.3,16.11l213.01,122.98c6.84,3.95,15.28,3.95,22.12,0l213.01-122.98c5.75-3.32,9.3-9.46,9.3-16.11v-247.99c0-6.65-3.55-12.79-9.3-16.11h-.01ZM444.05,151.99l-205.63,356.16c-1.39,2.4-5.06,1.42-5.06-1.36v-233.21c0-4.66-2.49-8.97-6.53-11.31L24.87,145.67c-2.4-1.39-1.42-5.06,1.36-5.06h411.26c5.84,0,9.49,6.33,6.57,11.39h-.01Z" />
@@ -648,7 +631,6 @@ export function CodexIcon({
             fill="currentColor"
             fillRule="evenodd"
             focusable="false"
-            role="img"
             viewBox="0 0 24 24"
         >
             <path
@@ -667,7 +649,6 @@ export function V0Icon({ className, ...props }: React.SVGProps<SVGSVGElement>) {
             className={cn("size-6 shrink-0", className)}
             fill="currentColor"
             focusable="false"
-            role="img"
             viewBox="0 0 147 70"
         >
             <path d="M56 50.2031V14H70V60.1562C70 65.5928 65.5928 70 60.1562 70C57.5605 70 54.9982 68.9992 53.1562 67.1573L0 14H19.7969L56 50.2031Z" />
@@ -687,7 +668,6 @@ export function MarkdownIcon({
             className={cn("inline-block size-4 shrink-0", className)}
             fill="none"
             focusable="false"
-            role="img"
             stroke="currentColor"
             strokeLinecap="round"
             strokeLinejoin="round"

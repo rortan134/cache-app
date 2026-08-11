@@ -3,39 +3,38 @@
 import { cn } from "@/lib/common/cn";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
-export const PopoverCreateHandle: typeof PopoverPrimitive.createHandle =
-    PopoverPrimitive.createHandle;
-
 export const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
 
 export function PopoverTrigger(props: PopoverPrimitive.Trigger.Props) {
-    return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
+    return <PopoverPrimitive.Trigger {...props} data-slot="popover-trigger" />;
+}
+
+interface PopoverPopupProps extends PopoverPrimitive.Popup.Props {
+    align?: PopoverPrimitive.Positioner.Props["align"];
+    alignOffset?: PopoverPrimitive.Positioner.Props["alignOffset"];
+    anchor?: PopoverPrimitive.Positioner.Props["anchor"];
+    portalProps?: PopoverPrimitive.Portal.Props;
+    positionerClassName?: string;
+    positionMethod?: PopoverPrimitive.Positioner.Props["positionMethod"];
+    shouldUseTooltipStyle?: boolean;
+    side?: PopoverPrimitive.Positioner.Props["side"];
+    sideOffset?: PopoverPrimitive.Positioner.Props["sideOffset"];
 }
 
 export function PopoverPopup({
-    children,
     className,
-    side = "bottom",
+    children,
     align = "center",
-    sideOffset = 4,
     alignOffset = 0,
-    shouldUseTooltipStyle = false,
-    positionMethod,
     anchor,
+    positionMethod,
+    side = "bottom",
+    sideOffset = 4,
+    shouldUseTooltipStyle = false,
     positionerClassName,
     portalProps,
     ...props
-}: PopoverPrimitive.Popup.Props & {
-    side?: PopoverPrimitive.Positioner.Props["side"];
-    align?: PopoverPrimitive.Positioner.Props["align"];
-    sideOffset?: PopoverPrimitive.Positioner.Props["sideOffset"];
-    alignOffset?: PopoverPrimitive.Positioner.Props["alignOffset"];
-    shouldUseTooltipStyle?: boolean;
-    anchor?: PopoverPrimitive.Positioner.Props["anchor"];
-    positionMethod?: PopoverPrimitive.Positioner.Props["positionMethod"];
-    positionerClassName?: string;
-    portalProps?: PopoverPrimitive.Portal.Props;
-}) {
+}: PopoverPopupProps) {
     return (
         <PopoverPrimitive.Portal {...portalProps}>
             <PopoverPrimitive.Positioner

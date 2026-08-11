@@ -3,9 +3,6 @@
 import { cn } from "@/lib/common/cn";
 import { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
 
-export const PreviewCardCreateHandle: typeof PreviewCardPrimitive.createHandle =
-    PreviewCardPrimitive.createHandle;
-
 export const PreviewCard: typeof PreviewCardPrimitive.Root =
     PreviewCardPrimitive.Root;
 
@@ -22,26 +19,28 @@ export function PreviewCardTrigger({
     );
 }
 
-export function PreviewCardPopup({
-    children,
-    className,
-    side = "bottom",
-    align = "center",
-    sideOffset = 8,
-    alignOffset = 0,
-    positionMethod,
-    anchor,
-    portalProps,
-    ...props
-}: PreviewCardPrimitive.Popup.Props & {
-    side?: PreviewCardPrimitive.Positioner.Props["side"];
+interface PreviewCardPopupProps extends PreviewCardPrimitive.Popup.Props {
     align?: PreviewCardPrimitive.Positioner.Props["align"];
-    sideOffset?: PreviewCardPrimitive.Positioner.Props["sideOffset"];
     alignOffset?: PreviewCardPrimitive.Positioner.Props["alignOffset"];
     anchor?: PreviewCardPrimitive.Positioner.Props["anchor"];
-    positionMethod?: PreviewCardPrimitive.Positioner.Props["positionMethod"];
     portalProps?: PreviewCardPrimitive.Portal.Props;
-}) {
+    positionMethod?: PreviewCardPrimitive.Positioner.Props["positionMethod"];
+    side?: PreviewCardPrimitive.Positioner.Props["side"];
+    sideOffset?: PreviewCardPrimitive.Positioner.Props["sideOffset"];
+}
+
+export function PreviewCardPopup({
+    className,
+    children,
+    align = "center",
+    alignOffset = 0,
+    anchor,
+    positionMethod,
+    side = "bottom",
+    sideOffset = 8,
+    portalProps,
+    ...props
+}: PreviewCardPopupProps) {
     return (
         <PreviewCardPrimitive.Portal {...portalProps}>
             <PreviewCardPrimitive.Positioner

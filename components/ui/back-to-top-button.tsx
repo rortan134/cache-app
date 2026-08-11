@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/common/cn";
-import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import { getOwnerWindow } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useReducedMotion } from "motion/react";
 import * as React from "react";
 
 const SCROLL_THRESHOLD = 800;
@@ -12,15 +13,14 @@ export function BackToTopButton({
     className,
     ...props
 }: React.ComponentProps<typeof Button>) {
+    const prefersReducedMotion = useReducedMotion();
     const [isVisible, setIsVisible] = React.useState(false);
+
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     const handleScroll = useStableCallback(() => {
-        const ownerDoc = getOwnerDocument(containerRef.current);
-        setIsVisible(
-            ownerDoc.body.scrollTop > SCROLL_THRESHOLD ||
-                ownerDoc.documentElement.scrollTop > SCROLL_THRESHOLD
-        );
+        const ownerWindow = getOwnerWindow(containerRef.current);
+        setIsVisible(ownerWindow.scrollY > SCROLL_THRESHOLD);
     });
 
     React.useEffect(() => {
@@ -33,7 +33,7 @@ export function BackToTopButton({
 
     const scrollToTop = useStableCallback(() => {
         getOwnerWindow(containerRef.current).scrollTo({
-            behavior: "smooth",
+            behavior: prefersReducedMotion ? "auto" : "smooth",
             top: 0,
         });
     });
@@ -42,7 +42,7 @@ export function BackToTopButton({
         <div
             className={cn(
                 "fixed right-8 bottom-8 z-40 transition-opacity duration-300",
-                { "pointer-events-none opacity-0": !isVisible },
+                !isVisible && "pointer-events-none opacity-0",
                 className
             )}
             data-slot="back-to-top-button"

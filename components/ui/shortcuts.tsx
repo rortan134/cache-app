@@ -69,9 +69,12 @@ export function KeyboardShortcutsDialogTrigger(
                         onKeyDown={stopPropagationForPrintableKeys}
                     >
                         <Command inline items={shortcutItems} open>
-                            <CommandInput placeholder="Search..." />
+                            <CommandInput
+                                aria-label="Search shortcuts"
+                                placeholder="Search..."
+                            />
                             <CommandList className="px-0">
-                                <CommandEmpty>No shortcuts found.</CommandEmpty>
+                                <CommandEmpty>No shortcuts found</CommandEmpty>
                                 <CommandCollection>
                                     {(item: ShortcutItem) => (
                                         <CommandItem

@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/common/cn";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -24,14 +24,16 @@ const groupVariants = cva(
     }
 );
 
+interface GroupProps extends useRender.ComponentProps<"div"> {
+    orientation?: VariantProps<typeof groupVariants>["orientation"];
+}
+
 export function Group({
     className,
     orientation,
     render,
     ...props
-}: useRender.ComponentProps<"div"> & {
-    orientation?: VariantProps<typeof groupVariants>["orientation"];
-}) {
+}: GroupProps) {
     const defaultProps = {
         className: cn(
             groupVariants({ orientation }),

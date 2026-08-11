@@ -68,10 +68,10 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
                 render={
                     href ? (
                         <Link
+                            {...props}
                             className={logoClassName}
                             draggable={false}
                             href={href}
-                            {...props}
                         />
                     ) : (
                         <div className={logoClassName} tabIndex={-1} />
@@ -79,7 +79,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
                 }
             >
                 <Image
-                    alt="App Icon"
+                    alt={APP_NAME}
                     className="block h-auto w-[180px] select-none"
                     draggable={false}
                     fetchPriority="high"

@@ -53,7 +53,7 @@ export function Footer() {
                                 <Link
                                     className="underline"
                                     href="/github"
-                                    rel="noreferrer noopener"
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 >
                                     <p>GitHub</p>
@@ -92,7 +92,6 @@ export function Footer() {
                         </span>
                         <div className="relative inset-x-0 h-25 w-full overflow-clip sm:h-25 md:h-50">
                             <svg
-                                aria-hidden
                                 className="overflow-fade-bottom mx-auto flex h-auto w-full justify-center"
                                 fill="none"
                                 height="200"

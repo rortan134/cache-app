@@ -1,21 +1,23 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/common/cn";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { XIcon } from "lucide-react";
 import type * as React from "react";
 
-export const DialogCreateHandle: typeof DialogPrimitive.createHandle =
-    DialogPrimitive.createHandle;
-
 export const Dialog: typeof DialogPrimitive.Root = DialogPrimitive.Root;
 
 export function DialogTrigger(props: DialogPrimitive.Trigger.Props) {
     return <DialogPrimitive.Trigger {...props} data-slot="dialog-trigger" />;
+}
+
+interface DialogPopupProps extends DialogPrimitive.Popup.Props {
+    portalProps?: DialogPrimitive.Portal.Props;
+    shouldShowCloseButton?: boolean;
 }
 
 export function DialogPopup({
@@ -24,10 +26,7 @@ export function DialogPopup({
     shouldShowCloseButton = true,
     portalProps,
     ...props
-}: DialogPrimitive.Popup.Props & {
-    shouldShowCloseButton?: boolean;
-    portalProps?: DialogPrimitive.Portal.Props;
-}) {
+}: DialogPopupProps) {
     return (
         <DialogPrimitive.Portal {...portalProps}>
             <DialogBackdrop />
@@ -76,14 +75,16 @@ export function DialogHeader({
     });
 }
 
+interface DialogPanelProps extends useRender.ComponentProps<"div"> {
+    shouldScrollFade?: boolean;
+}
+
 export function DialogPanel({
     className,
     shouldScrollFade = true,
     render,
     ...props
-}: useRender.ComponentProps<"div"> & {
-    shouldScrollFade?: boolean;
-}) {
+}: DialogPanelProps) {
     const defaultProps = {
         className: cn(
             "p-6 in-[[data-slot=dialog-popup]:has([data-slot=dialog-header])]:pt-1 in-[[data-slot=dialog-popup]:has([data-slot=dialog-footer]:not(.border-t))]:pb-1",
@@ -105,18 +106,13 @@ export function DialogPanel({
 
 export function DialogFooter({
     className,
-    variant = "bare",
     render,
     ...props
-}: useRender.ComponentProps<"div"> & {
-    variant?: "default" | "bare";
-}) {
+}: useRender.ComponentProps<"div">) {
     const defaultProps = {
         className: cn(
             "flex flex-col-reverse gap-2 px-6 sm:flex-row sm:items-center sm:justify-end sm:rounded-b-[calc(var(--radius-xl)-1px)]",
-            variant === "default" && "border-t bg-muted/72 py-4",
-            variant === "bare" &&
-                "in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pt-3 pt-4 pb-6",
+            "in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pt-3 pt-4 pb-6",
             className
         ),
         "data-slot": "dialog-footer",

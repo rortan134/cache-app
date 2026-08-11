@@ -6,35 +6,34 @@ import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
 
-export const MenuCreateHandle: typeof MenuPrimitive.createHandle =
-    MenuPrimitive.createHandle;
-
 export const Menu: typeof MenuPrimitive.Root = MenuPrimitive.Root;
 
 export function MenuTrigger(props: MenuPrimitive.Trigger.Props) {
-    return <MenuPrimitive.Trigger data-slot="menu-trigger" {...props} />;
+    return <MenuPrimitive.Trigger {...props} data-slot="menu-trigger" />;
+}
+
+interface MenuPopupProps extends MenuPrimitive.Popup.Props {
+    align?: MenuPrimitive.Positioner.Props["align"];
+    alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
+    anchor?: MenuPrimitive.Positioner.Props["anchor"];
+    portalProps?: MenuPrimitive.Portal.Props;
+    positionMethod?: MenuPrimitive.Positioner.Props["positionMethod"];
+    side?: MenuPrimitive.Positioner.Props["side"];
+    sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
 }
 
 export function MenuPopup({
-    children,
     className,
-    sideOffset = 4,
+    children,
     align = "center",
     alignOffset,
-    side = "bottom",
     anchor,
     positionMethod,
+    side = "bottom",
+    sideOffset = 4,
     portalProps,
     ...props
-}: MenuPrimitive.Popup.Props & {
-    align?: MenuPrimitive.Positioner.Props["align"];
-    sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
-    alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
-    side?: MenuPrimitive.Positioner.Props["side"];
-    anchor?: MenuPrimitive.Positioner.Props["anchor"];
-    positionMethod?: MenuPrimitive.Positioner.Props["positionMethod"];
-    portalProps?: MenuPrimitive.Portal.Props;
-}) {
+}: MenuPopupProps) {
     return (
         <MenuPrimitive.Portal {...portalProps}>
             <MenuPrimitive.Positioner
@@ -72,13 +71,15 @@ export function MenuRadioGroup(props: MenuPrimitive.RadioGroup.Props) {
     return <MenuPrimitive.RadioGroup {...props} data-slot="menu-radio-group" />;
 }
 
+interface MenuGroupLabelProps extends MenuPrimitive.GroupLabel.Props {
+    hasInset?: boolean;
+}
+
 export function MenuGroupLabel({
     className,
     hasInset,
     ...props
-}: MenuPrimitive.GroupLabel.Props & {
-    hasInset?: boolean;
-}) {
+}: MenuGroupLabelProps) {
     return (
         <MenuPrimitive.GroupLabel
             {...props}
@@ -108,13 +109,15 @@ export function MenuShortcut({
     );
 }
 
+interface MenuItemProps extends MenuPrimitive.Item.Props {
+    variant?: "default" | "destructive";
+}
+
 export function MenuItem({
     className,
     variant = "default",
     ...props
-}: MenuPrimitive.Item.Props & {
-    variant?: "default" | "destructive";
-}) {
+}: MenuItemProps) {
     return (
         <MenuPrimitive.Item
             {...props}
@@ -131,12 +134,11 @@ export function MenuItem({
     );
 }
 
-export function MenuLinkItem({
-    href,
-    ...props
-}: MenuPrimitive.Item.Props & {
+interface MenuLinkItemProps extends MenuPrimitive.Item.Props {
     href: string;
-}) {
+}
+
+export function MenuLinkItem({ href, ...props }: MenuLinkItemProps) {
     return (
         <MenuItem
             {...props}
@@ -209,23 +211,25 @@ export function MenuSubTrigger({
     );
 }
 
-export function MenuSubPopup({
-    className,
-    sideOffset = 0,
-    alignOffset,
-    align = "start",
-    anchor,
-    positionMethod,
-    portalProps,
-    ...props
-}: MenuPrimitive.Popup.Props & {
+interface MenuSubPopupProps extends MenuPrimitive.Popup.Props {
     align?: MenuPrimitive.Positioner.Props["align"];
-    sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
     alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
     anchor?: MenuPrimitive.Positioner.Props["anchor"];
-    positionMethod?: MenuPrimitive.Positioner.Props["positionMethod"];
     portalProps?: MenuPrimitive.Portal.Props;
-}) {
+    positionMethod?: MenuPrimitive.Positioner.Props["positionMethod"];
+    sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
+}
+
+export function MenuSubPopup({
+    className,
+    align = "start",
+    alignOffset,
+    anchor,
+    positionMethod,
+    sideOffset = 0,
+    portalProps,
+    ...props
+}: MenuSubPopupProps) {
     const defaultAlignOffset = align === "center" ? undefined : -5;
 
     return (
@@ -244,15 +248,17 @@ export function MenuSubPopup({
     );
 }
 
+interface MenuCheckboxItemProps extends MenuPrimitive.CheckboxItem.Props {
+    variant?: "default" | "switch";
+}
+
 export function MenuCheckboxItem({
     className,
     children,
     checked,
     variant = "default",
     ...props
-}: MenuPrimitive.CheckboxItem.Props & {
-    variant?: "default" | "switch";
-}) {
+}: MenuCheckboxItemProps) {
     return (
         <MenuPrimitive.CheckboxItem
             {...props}

@@ -8,14 +8,12 @@ const FADE_IN_DURATION = 0.5;
 const STAY_DURATION = 1.5;
 const FADE_OUT_DURATION = 0.3;
 
-export interface HighlightInProps
-    extends React.ComponentProps<typeof motion.span> {
+interface HighlightInProps extends React.ComponentProps<typeof motion.span> {
     delay?: number;
     shouldFadeOut?: boolean;
 }
 
 export function HighlightIn({
-    children,
     className,
     delay = 0,
     shouldFadeOut = true,
@@ -45,8 +43,6 @@ export function HighlightIn({
                     ? [0, fadeInEndActual, stayEndActual, 1]
                     : [0, fadeInEndActual, stayEndActual],
             }}
-        >
-            {children}
-        </motion.span>
+        />
     );
 }

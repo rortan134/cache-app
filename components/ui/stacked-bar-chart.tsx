@@ -11,6 +11,10 @@ export interface StackedBarChartSegment {
     value: number;
 }
 
+interface StackedBarChartProps extends React.ComponentProps<"div"> {
+    segments: readonly StackedBarChartSegment[];
+}
+
 export function StackedBarChart({
     className,
     segments,
@@ -70,10 +74,6 @@ export function StackedBarChart({
             })}
         </div>
     );
-}
-
-export interface StackedBarChartProps extends React.ComponentProps<"div"> {
-    segments: readonly StackedBarChartSegment[];
 }
 
 function buildStackedBarAriaLabel(

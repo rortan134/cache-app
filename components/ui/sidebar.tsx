@@ -17,7 +17,7 @@ import { PanelLeft, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
-export const SIDEBAR_COOKIE_NAME = "sidebar_state";
+const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_DESKTOP_MEDIA_QUERY = "(min-width: 64rem)";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
@@ -32,6 +32,22 @@ interface SidebarContextValue {
 }
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
+
+export function useSidebar() {
+    const context = React.use(SidebarContext);
+    if (!context) {
+        throw new Error("useSidebar must be used within a SidebarProvider.");
+    }
+    return context;
+}
+
+function isSidebarKeyboardShortcut(event: KeyboardEvent): boolean {
+    return (
+        event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
+        !event.altKey &&
+        (event.metaKey || event.ctrlKey)
+    );
+}
 
 function readSidebarCookieOpen(): boolean {
     try {
@@ -87,7 +103,7 @@ export function SidebarProvider({
     });
 
     const handleKeyDown = useStableCallback((event: KeyboardEvent) => {
-        const ownerWindow = getOwnerWindow(event.currentTarget as HTMLElement);
+        const ownerWindow = getOwnerWindow();
 
         if (
             event.defaultPrevented ||
@@ -110,29 +126,21 @@ export function SidebarProvider({
     // We add a state so that we can do data-state="expanded" or "collapsed".
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed";
-    const value = {
+    const contextValue = {
         open,
         setOpen,
         state,
         toggleSidebar,
     } satisfies SidebarContextValue;
 
-    return <SidebarContext value={value}>{children}</SidebarContext>;
+    return <SidebarContext value={contextValue}>{children}</SidebarContext>;
 }
 
-export function useSidebar() {
-    const context = React.use(SidebarContext);
-    if (!context) {
-        throw new Error("useSidebar must be used within a SidebarProvider.");
-    }
-    return context;
+interface SidebarProps extends React.ComponentProps<"aside"> {
+    side?: "left" | "right";
 }
 
-export function Sidebar({
-    className,
-    side = "left",
-    ...props
-}: React.ComponentProps<"aside"> & { side?: "left" | "right" }) {
+export function Sidebar({ className, side = "left", ...props }: SidebarProps) {
     const state = React.use(SidebarContext)?.state ?? "expanded";
 
     return (
@@ -192,8 +200,8 @@ export function SidebarContent({
                 "no-scrollbar -mx-1 flex max-h-full min-h-0 w-full flex-col gap-6 overflow-auto p-1 lg:sticky lg:top-8 lg:max-h-[calc(100vh-(var(--spacing)*8))]",
                 className
             )}
-            data-sidebar="header"
-            data-slot="sidebar-header"
+            data-sidebar="content"
+            data-slot="sidebar-content"
         />
     );
 }
@@ -304,13 +312,5 @@ export function SidebarGroup({
             data-sidebar="group"
             data-slot="sidebar-group"
         />
-    );
-}
-
-function isSidebarKeyboardShortcut(event: KeyboardEvent): boolean {
-    return (
-        event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
-        !event.altKey &&
-        (event.metaKey || event.ctrlKey)
     );
 }

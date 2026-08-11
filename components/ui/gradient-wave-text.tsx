@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/common/cn";
 import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
+import { useReducedMotion } from "motion/react";
 import * as React from "react";
 
 type Align = "left" | "center" | "right";
@@ -29,9 +30,9 @@ const JUSTIFY_CONTENT_BY_ALIGN: Record<
     right: "flex-end",
 };
 
-type GradientWaveContainerStyle = React.CSSProperties & {
+interface GradientWaveContainerStyle extends React.CSSProperties {
     "--gi": number;
-};
+}
 
 interface GradientWaveTextProps {
     align?: Align;
@@ -58,44 +59,29 @@ export function GradientWaveText({
     customColors,
     ariaLabel,
 }: GradientWaveTextProps) {
-    const elRef = React.useRef<HTMLDivElement | null>(null);
-    const tRef = React.useRef(0);
+    const prefersReducedMotion = useReducedMotion();
+    const animationFrame = useAnimationFrame();
+
+    const elementRef = React.useRef<HTMLDivElement | null>(null);
+    const timeRef = React.useRef(0);
     const cyclesDoneRef = React.useRef(0);
     const finishedRef = React.useRef(false);
     const startedRef = React.useRef(false);
     const startAtRef = React.useRef(0);
-    const animationFrame = useAnimationFrame();
 
-    const stops = (() => {
-        const resolvedColors = customColors?.length
-            ? customColors
-            : DEFAULT_COLORS;
-        const colorStops: string[] = [];
-        const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
-        colorStops.push(`${baseColor} calc((var(--gi) + 0) * 1%)`);
-        for (
-            let i = 0;
-            i < bandCount && i < resolvedColors.length * 2;
-            i += 1
-        ) {
-            const color = resolvedColors[i % resolvedColors.length];
-            const offset = (i + 2) * bandGap;
-            colorStops.push(`${color} calc((var(--gi) + ${offset}) * 1%)`);
-        }
-        const endOffset = (bandCount + 2) * bandGap;
-        colorStops.push(`${baseColor} calc((var(--gi) + ${endOffset}) * 1%)`);
-        return colorStops.join(", ");
-    })();
-
-    const gradient = `radial-gradient(circle at left top, ${stops})`;
+    const colorStops = buildGradientColorStops(
+        customColors?.length ? customColors : DEFAULT_COLORS,
+        bandCount,
+        bandGap
+    );
+    const backgroundImageGradient = `radial-gradient(circle at left top, ${colorStops})`;
 
     React.useEffect(() => {
-        const node = elRef.current;
+        const node = elementRef.current;
         if (!node) {
             return;
         }
-
-        tRef.current = GRADIENT_PROGRESS_INITIAL;
+        timeRef.current = GRADIENT_PROGRESS_INITIAL;
         cyclesDoneRef.current = 0;
         finishedRef.current = false;
         startedRef.current = false;
@@ -104,8 +90,14 @@ export function GradientWaveText({
     }, [delay]);
 
     React.useEffect(() => {
-        const node = elRef.current;
+        const node = elementRef.current;
         if (!node) {
+            return;
+        }
+
+        if (prefersReducedMotion) {
+            timeRef.current = GRADIENT_PROGRESS_RANGE;
+            node.style.setProperty("--gi", String(GRADIENT_PROGRESS_RANGE));
             return;
         }
 
@@ -131,7 +123,7 @@ export function GradientWaveText({
             last = now_;
 
             const increment = (dt * speed) / FRAME_DURATION_MS;
-            let next = tRef.current + increment;
+            let next = timeRef.current + increment;
 
             while (
                 next >= GRADIENT_PROGRESS_RANGE &&
@@ -142,12 +134,12 @@ export function GradientWaveText({
             }
 
             if (cyclesDoneRef.current >= 1) {
-                tRef.current = GRADIENT_PROGRESS_RANGE;
+                timeRef.current = GRADIENT_PROGRESS_RANGE;
                 node.style.setProperty("--gi", String(GRADIENT_PROGRESS_RANGE));
                 finishedRef.current = true;
                 return;
             }
-            tRef.current = next;
+            timeRef.current = next;
             node.style.setProperty("--gi", String(next));
 
             animationFrame.request(tick);
@@ -155,12 +147,12 @@ export function GradientWaveText({
 
         animationFrame.request(tick);
         return animationFrame.cancel;
-    }, [animationFrame, speed]);
+    }, [animationFrame, prefersReducedMotion, speed]);
 
     const spanStyle: React.CSSProperties = {
         backfaceVisibility: "hidden",
         backgroundClip: "text",
-        backgroundImage: gradient,
+        backgroundImage: backgroundImageGradient,
         color: "transparent",
         display: "inline-block",
         MozOsxFontSmoothing: "grayscale",
@@ -188,13 +180,32 @@ export function GradientWaveText({
                 "flex size-full items-center overflow-clip",
                 className
             )}
-            ref={elRef}
+            ref={elementRef}
             role="img"
             style={containerStyle}
         >
             <span style={spanStyle}>{children}</span>
         </div>
     );
+}
+
+function buildGradientColorStops(
+    colors: string[],
+    bandCount: number,
+    bandGap: number
+): string {
+    const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
+    const colorStop = (color: string, offset: number) =>
+        `${color} calc((var(--gi) + ${offset}) * 1%)`;
+    const bandColors = [...colors, ...colors].slice(0, bandCount);
+
+    return [
+        colorStop(baseColor, 0),
+        ...bandColors.map((color, index) =>
+            colorStop(color, (index + 2) * bandGap)
+        ),
+        colorStop(baseColor, (bandColors.length + 2) * bandGap),
+    ].join(", ");
 }
 
 function now(): number {

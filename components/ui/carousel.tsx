@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { cn } from "@/lib/common/cn";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     BlossomCarousel,
     BlossomNext,
@@ -17,11 +18,7 @@ interface CarouselContextValue {
     id: string;
 }
 
-interface CarouselPanelProps
-    extends React.ComponentProps<typeof BlossomCarousel> {
-    shouldScrollFade?: boolean;
-    slideClassName?: string;
-}
+type CarouselHandle = React.ComponentRef<typeof BlossomCarousel> | null;
 
 const CarouselContext = React.createContext<CarouselContextValue | null>(null);
 
@@ -37,7 +34,15 @@ function useCarouselContext() {
 
 export function Carousel({ children }: React.PropsWithChildren) {
     const id = React.useId();
-    return <CarouselContext value={{ id }}>{children}</CarouselContext>;
+    const contextValue = { id };
+
+    return <CarouselContext value={contextValue}>{children}</CarouselContext>;
+}
+
+interface CarouselPanelProps
+    extends React.ComponentProps<typeof BlossomCarousel> {
+    shouldScrollFade?: boolean;
+    slideClassName?: string;
 }
 
 export function CarouselPanel({
@@ -48,15 +53,15 @@ export function CarouselPanel({
     ...props
 }: CarouselPanelProps) {
     const { id } = useCarouselContext();
-    const slideCount = React.Children.count(children);
-    const blossomHandleRef = React.useRef<React.ComponentRef<
-        typeof BlossomCarousel
-    > | null>(null);
+
+    const handleRef = React.useRef<CarouselHandle>(null);
+
+    const slides = React.Children.toArray(children);
 
     useCarouselScrollOverflow({
-        enabled: shouldScrollFade,
-        handleRef: blossomHandleRef,
-        key: slideCount,
+        handleRef,
+        isEnabled: shouldScrollFade,
+        resetKey: slides.length,
     });
 
     return (
@@ -71,24 +76,30 @@ export function CarouselPanel({
                 className
             )}
             id={id}
-            ref={blossomHandleRef}
+            ref={handleRef}
             role="region"
         >
-            {React.Children.map(children, (child, index) => (
-                // biome-ignore lint/a11y/useSemanticElements: Group role
-                <section
-                    aria-label={`${index + 1} of ${slideCount}`}
-                    aria-roledescription="slide"
-                    className={cn(
-                        "inline-block shrink-0 snap-start",
-                        slideClassName
-                    )}
-                    data-blossom-slide
-                    role="group"
-                >
-                    {child}
-                </section>
-            ))}
+            {slides.map((child, index) => {
+                const childKey = React.isValidElement(child)
+                    ? child.key
+                    : undefined;
+                return (
+                    // biome-ignore lint/a11y/useSemanticElements: Group role
+                    <section
+                        aria-label={`${index + 1} of ${slides.length}`}
+                        aria-roledescription="slide"
+                        className={cn(
+                            "inline-block shrink-0 snap-start",
+                            slideClassName
+                        )}
+                        data-blossom-slide
+                        key={childKey ?? index}
+                        role="group"
+                    >
+                        {child}
+                    </section>
+                );
+            })}
         </BlossomCarousel>
     );
 }
@@ -139,44 +150,46 @@ export function CarouselControls() {
 }
 
 function useCarouselScrollOverflow({
-    key,
-    enabled,
+    resetKey,
+    isEnabled,
     handleRef,
 }: {
-    key: unknown;
-    enabled: boolean;
-    handleRef: React.RefObject<React.ComponentRef<
-        typeof BlossomCarousel
-    > | null>;
+    resetKey: unknown;
+    isEnabled: boolean;
+    handleRef: React.RefObject<CarouselHandle>;
 }) {
+    const updateOverflow = useStableCallback(() => {
+        const scrollableEl = handleRef.current?.element;
+        if (!scrollableEl?.isConnected) {
+            return;
+        }
+        const maxScrollLeft = Math.max(
+            0,
+            scrollableEl.scrollWidth - scrollableEl.clientWidth
+        );
+        const scrollLeft = Math.max(
+            0,
+            Math.min(scrollableEl.scrollLeft, maxScrollLeft)
+        );
+        scrollableEl.style.setProperty(
+            "--carousel-overflow-x-start",
+            `${scrollLeft}px`
+        );
+        scrollableEl.style.setProperty(
+            "--carousel-overflow-x-end",
+            `${maxScrollLeft - scrollLeft}px`
+        );
+    });
+
     useIsoLayoutEffect(() => {
-        if (!(enabled && handleRef.current?.element)) {
+        if (!isEnabled) {
             return;
         }
 
-        const scrollableEl = handleRef.current.element;
-
-        const updateOverflow = () => {
-            if (!scrollableEl.isConnected) {
-                return;
-            }
-            const maxScrollLeft = Math.max(
-                0,
-                scrollableEl.scrollWidth - scrollableEl.clientWidth
-            );
-            const scrollLeft = Math.max(
-                0,
-                Math.min(scrollableEl.scrollLeft, maxScrollLeft)
-            );
-            scrollableEl.style.setProperty(
-                "--carousel-overflow-x-start",
-                `${scrollLeft}px`
-            );
-            scrollableEl.style.setProperty(
-                "--carousel-overflow-x-end",
-                `${maxScrollLeft - scrollLeft}px`
-            );
-        };
+        const scrollableElement = handleRef.current?.element;
+        if (!scrollableElement) {
+            return;
+        }
 
         updateOverflow();
 
@@ -184,17 +197,19 @@ function useCarouselScrollOverflow({
             typeof ResizeObserver === "undefined"
                 ? null
                 : new ResizeObserver(updateOverflow);
-        observer?.observe(scrollableEl);
+        observer?.observe(scrollableElement);
 
-        scrollableEl.addEventListener("scroll", updateOverflow, {
+        scrollableElement.addEventListener("scroll", updateOverflow, {
             passive: true,
         });
 
         return () => {
             observer?.disconnect();
-            scrollableEl.removeEventListener("scroll", updateOverflow);
-            scrollableEl.style.removeProperty("--carousel-overflow-x-start");
-            scrollableEl.style.removeProperty("--carousel-overflow-x-end");
+            scrollableElement.removeEventListener("scroll", updateOverflow);
+            scrollableElement.style.removeProperty(
+                "--carousel-overflow-x-start"
+            );
+            scrollableElement.style.removeProperty("--carousel-overflow-x-end");
         };
-    }, [enabled, key]);
+    }, [isEnabled, resetKey]);
 }

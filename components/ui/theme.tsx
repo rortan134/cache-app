@@ -6,6 +6,7 @@ import { type Theme, useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 const THEME_OPTIONS = [
     { icon: Sun, label: "Use light theme", value: "light" },
@@ -13,26 +14,45 @@ const THEME_OPTIONS = [
     { icon: Monitor, label: "Use system theme", value: "system" },
 ] as const;
 
+const THEME_CYCLE: readonly Theme[] = ["light", "dark", "system"];
+
+function getNextTheme(current: Theme): Theme {
+    const index = THEME_CYCLE.indexOf(current);
+    return THEME_CYCLE[(index + 1) % THEME_CYCLE.length] ?? "light";
+}
+
 export function ThemeSelector() {
     const { theme } = useTheme();
 
     return (
         <Group aria-label="Theme">
-            {THEME_OPTIONS.map(({ icon: Icon, label, value }) => {
-                const isSelected = theme === value;
-
-                return (
-                    <ThemeButton
-                        Icon={Icon}
-                        isSelected={isSelected}
-                        key={value}
-                        label={label}
-                        value={value}
-                    />
-                );
-            })}
+            {THEME_OPTIONS.map(({ icon: Icon, label, value }) => (
+                <ThemeButton
+                    Icon={Icon}
+                    isSelected={theme === value}
+                    key={value}
+                    label={label}
+                    value={value}
+                />
+            ))}
         </Group>
     );
+}
+
+export function ThemeHotkey() {
+    const { theme, setTheme } = useTheme();
+
+    const handleThemeToggle = useStableCallback(() => {
+        setTheme(getNextTheme(theme));
+    });
+
+    useHotkeys("mod+shift+d", handleThemeToggle, {
+        description: "Cycle theme: light → dark → system",
+        enableOnFormTags: false,
+        preventDefault: true,
+    });
+
+    return null;
 }
 
 interface ThemeButtonProps {
@@ -44,7 +64,10 @@ interface ThemeButtonProps {
 
 function ThemeButton({ Icon, isSelected, label, value }: ThemeButtonProps) {
     const { setTheme } = useTheme();
-    const handleClick = useStableCallback(() => setTheme(value));
+
+    const handleClick = useStableCallback(() => {
+        setTheme(value);
+    });
 
     return (
         <Button

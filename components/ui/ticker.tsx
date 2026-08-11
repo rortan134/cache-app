@@ -18,6 +18,17 @@ interface TickerProps extends React.ComponentProps<"span"> {
     direction?: "left" | "right";
 }
 
+function getTickerDurationSeconds(travelDistancePx: number) {
+    if (travelDistancePx <= 0 || !Number.isFinite(travelDistancePx)) {
+        return DEFAULT_DURATION_SECONDS;
+    }
+    const cappedDurationSeconds = travelDistancePx / MAX_SPEED_PX_PER_SECOND;
+    return Math.max(
+        DEFAULT_DURATION_SECONDS,
+        Math.ceil(cappedDurationSeconds * 100) / 100
+    );
+}
+
 export function Ticker({
     direction = "left",
     className,
@@ -63,30 +74,23 @@ export function Ticker({
                     "flex shrink-0 select-none",
                     isOverflowing &&
                         "paused group-hover:running hover:running group-hover:animate-marquee",
-                    { "direction-reverse": direction === "right" }
+                    direction === "right" && "direction-reverse"
                 )}
                 style={trackStyle}
             >
                 {MARQUEE_REPEAT_KEYS.slice(
                     0,
                     isOverflowing ? MARQUEE_REPEAT_COUNT : 1
-                ).map((repeatKey) => (
-                    <span className="shrink-0 p-px pr-4" key={repeatKey}>
+                ).map((repeatKey, index) => (
+                    <span
+                        aria-hidden={index > 0 ? true : undefined}
+                        className="shrink-0 p-px pr-4"
+                        key={repeatKey}
+                    >
                         {children}
                     </span>
                 ))}
             </span>
         </span>
-    );
-}
-
-function getTickerDurationSeconds(travelDistancePx: number) {
-    if (travelDistancePx <= 0 || !Number.isFinite(travelDistancePx)) {
-        return DEFAULT_DURATION_SECONDS;
-    }
-    const cappedDurationSeconds = travelDistancePx / MAX_SPEED_PX_PER_SECOND;
-    return Math.max(
-        DEFAULT_DURATION_SECONDS,
-        Math.ceil(cappedDurationSeconds * 100) / 100
     );
 }

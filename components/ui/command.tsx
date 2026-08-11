@@ -18,13 +18,20 @@ export function Command({
 }: React.ComponentProps<typeof Autocomplete.Root>) {
     return (
         <Autocomplete.Root
+            {...props}
             autoHighlight={autoHighlight}
             inline={inline}
             keepHighlight={keepHighlight}
             open={open}
-            {...props}
         />
     );
+}
+
+interface CommandInputProps extends Omit<Autocomplete.Input.Props, "size"> {
+    endAddon?: React.ReactNode;
+    ref?: React.Ref<HTMLInputElement>;
+    size?: InputSize;
+    startAddon?: React.ReactNode;
 }
 
 export function CommandInput({
@@ -33,12 +40,7 @@ export function CommandInput({
     size = "default",
     endAddon,
     ...props
-}: Omit<Autocomplete.Input.Props, "size"> & {
-    startAddon?: React.ReactNode;
-    size?: InputSize;
-    ref?: React.Ref<HTMLInputElement>;
-    endAddon?: React.ReactNode;
-}) {
+}: CommandInputProps) {
     return (
         <Autocomplete.InputGroup
             className="group/input relative flex not-has-[>*.w-full]:w-fit w-full text-foreground has-disabled:opacity-64"
@@ -81,25 +83,27 @@ export function CommandInput({
     );
 }
 
+interface CommandPopupProps extends Autocomplete.Popup.Props {
+    align?: Autocomplete.Positioner.Props["align"];
+    alignOffset?: Autocomplete.Positioner.Props["alignOffset"];
+    anchor?: Autocomplete.Positioner.Props["anchor"];
+    portalProps?: Autocomplete.Portal.Props;
+    positionMethod?: Autocomplete.Positioner.Props["positionMethod"];
+    side?: Autocomplete.Positioner.Props["side"];
+    sideOffset?: Autocomplete.Positioner.Props["sideOffset"];
+}
+
 export function CommandPopup({
     className,
-    side = "bottom",
-    sideOffset = 4,
-    alignOffset,
     align = "start",
+    alignOffset,
     anchor,
     positionMethod,
+    side = "bottom",
+    sideOffset = 4,
     portalProps,
     ...props
-}: Autocomplete.Popup.Props & {
-    align?: Autocomplete.Positioner.Props["align"];
-    sideOffset?: Autocomplete.Positioner.Props["sideOffset"];
-    alignOffset?: Autocomplete.Positioner.Props["alignOffset"];
-    side?: Autocomplete.Positioner.Props["side"];
-    anchor?: Autocomplete.Positioner.Props["anchor"];
-    positionMethod?: Autocomplete.Positioner.Props["positionMethod"];
-    portalProps?: Autocomplete.Portal.Props;
-}) {
+}: CommandPopupProps) {
     return (
         <Autocomplete.Portal {...portalProps}>
             <Autocomplete.Positioner
@@ -129,15 +133,17 @@ export function CommandPopup({
     );
 }
 
+interface CommandListProps extends Autocomplete.List.Props {
+    shouldScrollFade?: boolean;
+    shouldUseScrollbarGutter?: boolean;
+}
+
 export function CommandList({
     className,
     shouldScrollFade = false,
     shouldUseScrollbarGutter = false,
     ...props
-}: Autocomplete.List.Props & {
-    shouldUseScrollbarGutter?: boolean;
-    shouldScrollFade?: boolean;
-}) {
+}: CommandListProps) {
     return (
         <ScrollArea
             shouldScrollFade={shouldScrollFade}
@@ -155,11 +161,7 @@ export function CommandList({
     );
 }
 
-export function CommandItem({
-    className,
-    children,
-    ...props
-}: Autocomplete.Item.Props) {
+export function CommandItem({ className, ...props }: Autocomplete.Item.Props) {
     return (
         <Autocomplete.Item
             {...props}
@@ -168,9 +170,7 @@ export function CommandItem({
                 className
             )}
             data-slot="command-item"
-        >
-            {children}
-        </Autocomplete.Item>
+        />
     );
 }
 

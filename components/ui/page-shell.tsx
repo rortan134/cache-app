@@ -1,11 +1,15 @@
 import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
+interface PageShellProps extends React.ComponentProps<"main"> {
+    as?: React.ElementType;
+}
+
 export function PageShell({
     className,
     as: Comp = "main",
     ...props
-}: React.ComponentProps<"main"> & { as?: React.ElementType }) {
+}: PageShellProps) {
     return (
         <Comp
             {...props}

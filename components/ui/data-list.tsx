@@ -77,6 +77,11 @@ export function DataListSection({
     });
 }
 
+interface DataListChartProps
+    extends Omit<React.ComponentProps<typeof StackedBarChart>, "segments"> {
+    segments: readonly StackedBarChartSegment[];
+}
+
 export function DataListChart({
     className,
     segments,
@@ -107,6 +112,12 @@ export function DataListItems({
         props: mergeProps<"dl">(defaultProps, props),
         render,
     });
+}
+
+interface DataListItemProps extends useRender.ComponentProps<"div"> {
+    color?: string;
+    label: React.ReactNode;
+    value: React.ReactNode;
 }
 
 export function DataListItem({
@@ -145,15 +156,4 @@ export function DataListItem({
         props: mergeProps<"div">(defaultProps, props),
         render,
     });
-}
-
-export interface DataListChartProps
-    extends Omit<React.ComponentProps<typeof StackedBarChart>, "segments"> {
-    segments: readonly StackedBarChartSegment[];
-}
-
-export interface DataListItemProps extends useRender.ComponentProps<"div"> {
-    color?: string;
-    label: React.ReactNode;
-    value: React.ReactNode;
 }

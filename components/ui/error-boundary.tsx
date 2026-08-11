@@ -1,11 +1,11 @@
 // biome-ignore-all lint/correctness/useHookAtTopLevel: False positive
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { isNetworkError } from "@/lib/common/http";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { catchError, type ErrorInfo } from "next/error";
 import { useOffline } from "next/offline";
-import { Button } from "./button";
-import { isNetworkError } from "@/lib/common/net";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { fromError } from "zod-validation-error";
 
 const CHUNK_OR_HYDRATION_ERROR_RE =

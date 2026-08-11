@@ -31,13 +31,22 @@ const DrawerContext: React.Context<DrawerContextValue> =
 export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
     DrawerPrimitive.createHandle;
 
+const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
+
+interface DrawerProps<Payload = unknown>
+    extends DrawerPrimitive.Root.Props<Payload> {
+    position?: DrawerPosition;
+}
+
 export function Drawer<Payload = unknown>({
     swipeDirection,
     position = "bottom",
     ...props
-}: DrawerPrimitive.Root.Props<Payload> & { position?: DrawerPosition }) {
+}: DrawerProps<Payload>) {
+    const contextValue = { position };
+
     return (
-        <DrawerContext value={{ position }}>
+        <DrawerContext value={contextValue}>
             <DrawerPrimitive.Root
                 {...props}
                 swipeDirection={
@@ -52,6 +61,13 @@ export const DrawerTrigger = DrawerPrimitive.Trigger;
 
 export const DrawerClose = DrawerPrimitive.Close;
 
+interface DrawerViewportProps extends DrawerPrimitive.Viewport.Props {
+    portalProps?: DrawerPrimitive.Portal.Props;
+    position?: DrawerPosition;
+    shouldShowBackdrop?: boolean;
+    variant?: "default" | "straight" | "inset";
+}
+
 export function DrawerViewport({
     className,
     position: positionProp,
@@ -59,12 +75,7 @@ export function DrawerViewport({
     portalProps,
     shouldShowBackdrop = true,
     ...props
-}: DrawerPrimitive.Viewport.Props & {
-    shouldShowBackdrop?: boolean;
-    position?: DrawerPosition;
-    variant?: "default" | "straight" | "inset";
-    portalProps?: DrawerPrimitive.Portal.Props;
-}) {
+}: DrawerViewportProps) {
     const { position: contextPosition } = React.use(DrawerContext);
     const position = positionProp ?? contextPosition;
 
@@ -99,6 +110,12 @@ export function DrawerViewport({
     );
 }
 
+interface DrawerPopupProps extends DrawerPrimitive.Popup.Props {
+    position?: DrawerPosition;
+    shouldShowCloseButton?: boolean;
+    variant?: "default" | "straight" | "inset";
+}
+
 export function DrawerPopup({
     className,
     children,
@@ -106,11 +123,7 @@ export function DrawerPopup({
     position: positionProp,
     variant = "default",
     ...props
-}: DrawerPrimitive.Popup.Props & {
-    shouldShowCloseButton?: boolean;
-    position?: DrawerPosition;
-    variant?: "default" | "straight" | "inset";
-}) {
+}: DrawerPopupProps) {
     const { position: contextPosition } = React.use(DrawerContext);
     const position = positionProp ?? contextPosition;
 
@@ -180,14 +193,16 @@ export function DrawerPopup({
     );
 }
 
+interface DrawerHeaderProps extends useRender.ComponentProps<"div"> {
+    allowSelection?: boolean;
+}
+
 export function DrawerHeader({
     className,
     allowSelection = false,
     render,
     ...props
-}: useRender.ComponentProps<"div"> & {
-    allowSelection?: boolean;
-}) {
+}: DrawerHeaderProps) {
     const defaultProps = {
         className: cn(
             "flex flex-col gap-2 p-5 in-[[data-slot=drawer-popup]:has([data-slot=drawer-panel])]:pb-3 max-sm:pb-4",
@@ -204,16 +219,18 @@ export function DrawerHeader({
     });
 }
 
+interface DrawerFooterProps extends useRender.ComponentProps<"div"> {
+    allowSelection?: boolean;
+    variant?: "default" | "bare";
+}
+
 export function DrawerFooter({
     className,
     variant = "default",
     allowSelection = true,
     render,
     ...props
-}: useRender.ComponentProps<"div"> & {
-    variant?: "default" | "bare";
-    allowSelection?: boolean;
-}) {
+}: DrawerFooterProps) {
     const defaultProps = {
         className: cn(
             "flex flex-col-reverse gap-2 px-6 pb-(--safe-area-inset-bottom,0px) sm:flex-row sm:justify-end",
@@ -263,6 +280,12 @@ export function DrawerDescription({
     );
 }
 
+interface DrawerPanelProps extends useRender.ComponentProps<"div"> {
+    allowSelection?: boolean;
+    isScrollable?: boolean;
+    shouldScrollFade?: boolean;
+}
+
 export function DrawerPanel({
     className,
     shouldScrollFade = true,
@@ -270,11 +293,7 @@ export function DrawerPanel({
     allowSelection = true,
     render,
     ...props
-}: useRender.ComponentProps<"div"> & {
-    shouldScrollFade?: boolean;
-    isScrollable?: boolean;
-    allowSelection?: boolean;
-}) {
+}: DrawerPanelProps) {
     const defaultProps = {
         className: cn(
             "min-h-0 flex-1 flex-col gap-4 p-6 in-[[data-slot=drawer-popup]:has([data-slot=drawer-header])]:pt-1 in-[[data-slot=drawer-popup]:has([data-slot=drawer-footer]:not(.border-t))]:pb-1",
@@ -304,7 +323,16 @@ export function DrawerPanel({
     return content;
 }
 
-const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
+function wrapRender(
+    render: useRender.ComponentProps<"div">["render"],
+    allowSelection: boolean
+) {
+    return allowSelection ? (
+        <DrawerPrimitive.Content render={render} />
+    ) : (
+        render
+    );
+}
 
 function DrawerBackdrop({
     className,
@@ -319,16 +347,5 @@ function DrawerBackdrop({
             )}
             data-slot="drawer-backdrop"
         />
-    );
-}
-
-function wrapRender(
-    render: useRender.ComponentProps<"div">["render"],
-    allowSelection: boolean
-) {
-    return allowSelection ? (
-        <DrawerPrimitive.Content render={render} />
-    ) : (
-        render
     );
 }

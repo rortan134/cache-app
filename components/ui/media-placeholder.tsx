@@ -5,6 +5,10 @@ import { djb2Hash } from "@/lib/common/strings";
 import { GlobeX } from "lucide-react";
 import * as React from "react";
 
+interface MediaPlaceholderStyle extends React.CSSProperties {
+    "--texture-position": string;
+}
+
 export function MediaPlaceholder({
     className,
     children,
@@ -15,7 +19,7 @@ export function MediaPlaceholder({
     const hash = djb2Hash(id);
     const x = hash % 101; // x in [0, 100] percent
     const y = (hash >> 8) % 101; // y in [0, 100] percent
-    const textureStyle: React.CSSProperties & Record<string, string> = {
+    const textureStyle: MediaPlaceholderStyle = {
         "--texture-position": `${x}% ${y}%`,
     };
 

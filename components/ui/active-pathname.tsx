@@ -3,42 +3,9 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { usePathname } from "next/navigation";
+import type * as React from "react";
 
-/**
- * Adds pathname-aware active state to a rendered element.
- *
- * `aria-current="page"` is emitted for the actual active route, while
- * `data-active` is provided as a styling hook that can optionally be inverted
- * with `shouldReverseActive`.
- */
-export function ActivePathname({
-    href,
-    match = "exact",
-    shouldReverseActive,
-    render,
-    ...props
-}: ActivePathnameProps) {
-    const pathname = usePathname();
-    const isPathnameActive =
-        match === "prefix"
-            ? pathname === href || pathname.startsWith(`${href}/`)
-            : pathname === href;
-
-    const baseProps = {
-        "aria-current": isPathnameActive ? "page" : undefined,
-        "data-active": shouldReverseActive
-            ? !isPathnameActive
-            : isPathnameActive,
-    };
-
-    return useRender({
-        defaultTagName: "div",
-        props: mergeProps(baseProps, props),
-        render,
-    });
-}
-
-export interface ActivePathnameProps extends useRender.ComponentProps<"div"> {
+interface ActivePathnameProps extends useRender.ComponentProps<"div"> {
     /**
      * Pathname that should be considered active.
      *
@@ -62,4 +29,39 @@ export interface ActivePathnameProps extends useRender.ComponentProps<"div"> {
      * styling inactive alternatives without lying to accessibility APIs.
      */
     shouldReverseActive?: boolean;
+}
+
+/**
+ * Adds pathname-aware active state to a rendered element.
+ *
+ * `aria-current="page"` is emitted for the actual active route, while
+ * `data-active` is provided as a styling hook that can optionally be inverted
+ * with `shouldReverseActive`.
+ */
+export function ActivePathname({
+    href,
+    match = "exact",
+    shouldReverseActive,
+    render,
+    ...props
+}: ActivePathnameProps) {
+    const pathname = usePathname();
+
+    const isPathnameActive =
+        match === "prefix"
+            ? pathname === href || pathname.startsWith(`${href}/`)
+            : pathname === href;
+
+    const defaultProps = {
+        "aria-current": isPathnameActive ? "page" : undefined,
+        "data-active": shouldReverseActive
+            ? !isPathnameActive
+            : isPathnameActive,
+    } satisfies React.AriaAttributes & { "data-active"?: boolean };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render,
+    });
 }

@@ -10,12 +10,18 @@ import { cn } from "@/lib/common/cn";
 import { Calligraph } from "calligraph";
 import * as React from "react";
 
+const MAX_VISIBLE_VERTICAL_DEFAULT = 15;
+const MAX_VISIBLE_HORIZONTAL_DEFAULT = 5;
+
+interface DisclosureListHiddenProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
+    items: React.ReactNode[];
+}
+
 interface DisclosureListVerticalProps extends React.ComponentProps<"div"> {
     maxVisible?: number;
     triggerProps?: Omit<DisclosureListHiddenProps, "items">;
 }
-
-const MAX_VISIBLE_VERTICAL_DEFAULT = 15;
 
 export function DisclosureListVertical({
     maxVisible = MAX_VISIBLE_VERTICAL_DEFAULT,
@@ -47,40 +53,10 @@ export function DisclosureListVertical({
     );
 }
 
-interface DisclosureListHiddenProps
-    extends React.ComponentProps<typeof CollapsibleTrigger> {
-    items: React.ReactNode[];
-}
-
-function DisclosureListOverflow({
-    items,
-    className,
-    ...props
-}: DisclosureListHiddenProps) {
-    const [isOpen, setIsOpen] = React.useState(false);
-
-    return (
-        <Collapsible onOpenChange={setIsOpen} open={isOpen}>
-            <CollapsibleTrigger
-                {...props}
-                className={cn(
-                    "flex items-center p-1.5 text-muted-foreground text-xs hover:text-foreground",
-                    className
-                )}
-            >
-                {isOpen ? "Show less" : `Show ${items.length} more`}
-            </CollapsibleTrigger>
-            <CollapsiblePanel>{items}</CollapsiblePanel>
-        </Collapsible>
-    );
-}
-
 interface DisclosureListHorizontalProps extends React.ComponentProps<"div"> {
     badgeRender?: React.ReactElement;
     maxVisible?: number;
 }
-
-const MAX_VISIBLE_HORIZONTAL_DEFAULT = 5;
 
 export function DisclosureListHorizontal({
     maxVisible = MAX_VISIBLE_HORIZONTAL_DEFAULT,
@@ -120,5 +96,28 @@ export function DisclosureListHorizontal({
                 </Popover>
             ) : null}
         </div>
+    );
+}
+
+function DisclosureListOverflow({
+    items,
+    className,
+    ...props
+}: DisclosureListHiddenProps) {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    return (
+        <Collapsible onOpenChange={setIsOpen} open={isOpen}>
+            <CollapsibleTrigger
+                {...props}
+                className={cn(
+                    "flex items-center p-1.5 text-muted-foreground text-xs hover:text-foreground",
+                    className
+                )}
+            >
+                {isOpen ? "Show less" : `Show ${items.length} more`}
+            </CollapsibleTrigger>
+            <CollapsiblePanel>{items}</CollapsiblePanel>
+        </Collapsible>
     );
 }

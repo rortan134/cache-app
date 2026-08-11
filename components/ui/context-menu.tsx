@@ -16,26 +16,28 @@ export function ContextMenuTrigger(props: ContextMenuPrimitive.Trigger.Props) {
     );
 }
 
+interface ContextMenuPopupProps extends ContextMenuPrimitive.Popup.Props {
+    align?: ContextMenuPrimitive.Positioner.Props["align"];
+    alignOffset?: ContextMenuPrimitive.Positioner.Props["alignOffset"];
+    anchor?: ContextMenuPrimitive.Positioner.Props["anchor"];
+    portalProps?: ContextMenuPrimitive.Portal.Props;
+    positionMethod?: ContextMenuPrimitive.Positioner.Props["positionMethod"];
+    side?: ContextMenuPrimitive.Positioner.Props["side"];
+    sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
+}
+
 export function ContextMenuPopup({
     className,
-    sideOffset = 0,
-    side = "bottom",
+    children,
     align = "start",
     alignOffset,
     anchor,
     positionMethod,
+    side = "bottom",
+    sideOffset = 0,
     portalProps,
-    children,
     ...props
-}: ContextMenuPrimitive.Popup.Props & {
-    sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
-    side?: ContextMenuPrimitive.Positioner.Props["side"];
-    align?: ContextMenuPrimitive.Positioner.Props["align"];
-    alignOffset?: ContextMenuPrimitive.Positioner.Props["alignOffset"];
-    anchor?: ContextMenuPrimitive.Positioner.Props["anchor"];
-    positionMethod?: ContextMenuPrimitive.Positioner.Props["positionMethod"];
-    portalProps?: ContextMenuPrimitive.Portal.Props;
-}) {
+}: ContextMenuPopupProps) {
     return (
         <ContextMenuPrimitive.Portal {...portalProps}>
             <ContextMenuPrimitive.Positioner
@@ -65,15 +67,24 @@ export function ContextMenuPopup({
     );
 }
 
+interface ContextMenuItemProps extends ContextMenuPrimitive.Item.Props {
+    variant?: "default" | "destructive";
+}
+
 export function ContextMenuItem({
     className,
+    variant = "default",
     ...props
-}: ContextMenuPrimitive.Item.Props) {
+}: ContextMenuItemProps) {
     return (
         <ContextMenuPrimitive.Item
             {...props}
             className={cn(
-                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
+                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-disabled:opacity-64",
+                variant === "default" &&
+                    "data-highlighted:text-accent-foreground",
+                variant === "destructive" &&
+                    "text-destructive-foreground data-highlighted:bg-destructive/8 data-highlighted:text-destructive-foreground",
                 className
             )}
             data-slot="context-menu-item"
@@ -100,13 +111,16 @@ export function ContextMenuGroup(props: ContextMenuPrimitive.Group.Props) {
     );
 }
 
+interface ContextMenuGroupLabelProps
+    extends ContextMenuPrimitive.GroupLabel.Props {
+    hasInset?: boolean;
+}
+
 export function ContextMenuGroupLabel({
     className,
     hasInset,
     ...props
-}: ContextMenuPrimitive.GroupLabel.Props & {
-    hasInset?: boolean;
-}) {
+}: ContextMenuGroupLabelProps) {
     return (
         <ContextMenuPrimitive.GroupLabel
             {...props}
@@ -153,23 +167,25 @@ export function ContextMenuSubTrigger({
     );
 }
 
-export function ContextMenuSubPopup({
-    className,
-    sideOffset = 0,
-    alignOffset,
-    align = "start",
-    anchor,
-    positionMethod,
-    portalProps,
-    ...props
-}: ContextMenuPrimitive.Popup.Props & {
+interface ContextMenuSubPopupProps extends ContextMenuPrimitive.Popup.Props {
     align?: ContextMenuPrimitive.Positioner.Props["align"];
-    sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
     alignOffset?: ContextMenuPrimitive.Positioner.Props["alignOffset"];
     anchor?: ContextMenuPrimitive.Positioner.Props["anchor"];
-    positionMethod?: ContextMenuPrimitive.Positioner.Props["positionMethod"];
     portalProps?: ContextMenuPrimitive.Portal.Props;
-}) {
+    positionMethod?: ContextMenuPrimitive.Positioner.Props["positionMethod"];
+    sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
+}
+
+export function ContextMenuSubPopup({
+    className,
+    align = "start",
+    alignOffset,
+    anchor,
+    positionMethod,
+    sideOffset = 0,
+    portalProps,
+    ...props
+}: ContextMenuSubPopupProps) {
     const defaultAlignOffset = align === "center" ? undefined : -5;
 
     return (
