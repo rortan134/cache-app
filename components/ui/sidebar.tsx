@@ -327,3 +327,11 @@ export function SidebarItem({
         render,
     });
 }
+
+export function SidebarItemValue({ children }: React.PropsWithChildren) {
+    return (
+        <div className="flex min-w-0 grow items-center" data-sidebar-label="">
+            <span className="truncate">{children}</span>
+        </div>
+    );
+}

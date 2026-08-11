@@ -7,19 +7,21 @@ import type * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
-import { SidebarItem } from "@/components/ui/sidebar";
+import { SidebarItem, SidebarItemValue } from "@/components/ui/sidebar";
 
 interface SidebarNavigationItemProps extends React.ComponentProps<typeof Link> {
+    "aria-label": string;
     href: string;
     icon: React.ReactNode;
     shortcutKeys?: string;
 }
 
 export function SidebarNavigationItem({
-    children,
+    "aria-label": ariaLabel,
     href,
-    shortcutKeys,
     icon,
+    shortcutKeys,
+    children,
     ...props
 }: SidebarNavigationItemProps) {
     const router = useRouter();
@@ -29,13 +31,13 @@ export function SidebarNavigationItem({
     });
 
     useHotkeys(shortcutKeys ?? "", handleShortcut, {
-        description: `Navigate to ${props["aria-label"]}`,
+        description: `Navigate to ${ariaLabel}`,
         enabled: !!shortcutKeys,
         preventDefault: true,
     });
 
     return (
-        <li className="list-none">
+        <li>
             <ActivePathname
                 href={href}
                 render={
@@ -50,12 +52,7 @@ export function SidebarNavigationItem({
                         }
                     >
                         {icon}
-                        <div
-                            className="flex min-w-0 grow items-center"
-                            data-sidebar-label=""
-                        >
-                            <span className="truncate">{children}</span>
-                        </div>
+                        <SidebarItemValue>{children}</SidebarItemValue>
                         {shortcutKeys ? (
                             <Kbd
                                 className="ml-auto bg-transparent opacity-0 transition-none! group-hover:opacity-50"

@@ -22,6 +22,7 @@ import {
     SidebarContent,
     SidebarGroup,
     SidebarItem,
+    SidebarItemValue,
     SidebarRail,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -94,14 +95,9 @@ export function ApplicationSidebar({
                                     className="inline-block size-4 shrink-0"
                                     focusable="false"
                                 />
-                                <div
-                                    className="flex min-w-0 grow items-center"
-                                    data-sidebar-label=""
-                                >
-                                    <span className="truncate">
-                                        <T context="sidebar.more-menu">More</T>
-                                    </span>
-                                </div>
+                                <SidebarItemValue>
+                                    <T context="sidebar.more-menu">More</T>
+                                </SidebarItemValue>
                             </MenuTrigger>
                             <MenuPopup side="right">
                                 <MenuLinkItem href="/recently-deleted">
