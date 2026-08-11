@@ -126,7 +126,6 @@ Endpoint: `https://www.cachd.app/mcp`
 ## Roadmap
 
 - **Remind me** — Set up unique reminders when saving or browsing on items to come back to later.
-- **Comments** — Add and view threaded comments on entries.
 - **Inbox view** — Triage view for reviewing entries.
 - **Notes improvements** — Richer editing experience, advanced formatting.
 - **Smart collection controls** — Review suggestions and control automatic assignment for each collection.

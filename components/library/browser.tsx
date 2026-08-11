@@ -2616,7 +2616,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
     return (
         <img
             alt=""
-            className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform ease-out group-data-highlighted:-translate-y-1"
+            className="absolute top-10 left-3 h-auto w-full rounded-sm object-cover transition-transform ease-out group-data-highlighted:-translate-y-1"
             decoding="async"
             draggable="false"
             fetchPriority="high"
@@ -2769,7 +2769,7 @@ function buildSearchPaletteGroups({
                             {thumbnails.length > 0 && (
                                 <CategoryThumbnail urls={thumbnails} />
                             )}
-                            <span className="z-30 truncate p-1 font-medium">
+                            <span className="truncate p-1 font-medium">
                                 {collection.name}
                             </span>
                         </div>
@@ -4198,10 +4198,7 @@ function MediaPreview({
             {shouldLoadVideo ? (
                 <>
                     <video
-                        className={cn(
-                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain transition-opacity ease-out",
-                            { "z-1": isHovered }
-                        )}
+                        className="squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain transition-opacity ease-out"
                         crossOrigin="use-credentials"
                         draggable="false"
                         loop
@@ -4216,7 +4213,7 @@ function MediaPreview({
                     {isVideoLoading ? (
                         <div
                             className={cn(
-                                "pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity ease-out",
+                                "pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/50 text-white opacity-0 transition-opacity ease-out",
                                 { "opacity-100": isHovered }
                             )}
                         >
@@ -4235,7 +4232,7 @@ function MediaPreview({
                             }
                             aria-pressed={isSoundEnabled}
                             className={cn(
-                                "pointer-events-auto absolute bottom-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
+                                "pointer-events-auto absolute bottom-2 left-2 rounded-full bg-black/50 text-white opacity-0 transition-opacity ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
                                 { "opacity-100": isHovered }
                             )}
                             onClick={handleSoundToggle}
@@ -4585,7 +4582,7 @@ function MediaCardMenuDetails() {
             </CollapsibleTrigger>
             <CollapsiblePanel className="px-2.5 text-[11px] text-muted-foreground">
                 {isNote ? null : (
-                    <span className="inline-block min-w-0 max-w-48 truncate py-0.5 text-muted-foreground underline">
+                    <span className="inline-block min-w-0 max-w-42 truncate py-0.5 text-muted-foreground underline">
                         {item.url}
                     </span>
                 )}
@@ -5353,7 +5350,7 @@ function MediaCardPreview(props: React.ComponentProps<"div">) {
                         />
                     </ControlledZoom>
                     {isLastVisited(item.id) ? (
-                        <span className="absolute right-2 bottom-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
+                        <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
                             <T>Last visited</T>
                             <ArrowUpRight
                                 aria-hidden
@@ -5362,7 +5359,7 @@ function MediaCardPreview(props: React.ComponentProps<"div">) {
                             />
                         </span>
                     ) : (
-                        <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
+                        <span className="absolute right-2 bottom-2 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
                             <ArrowUpRight
                                 aria-hidden
                                 className="size-4"
