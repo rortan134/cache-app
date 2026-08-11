@@ -3,14 +3,7 @@ import useSWR from "swr";
 
 const ENABLED_AUTOMATIONS_KEY = "enabled-automations";
 
-type ListAutomationsResult = Awaited<ReturnType<typeof listAutomations>>;
-
-export type EnabledAutomation = Extract<
-    ListAutomationsResult,
-    { status: "SUCCESS" }
->["automations"][number];
-
-async function fetchEnabledAutomations(): Promise<EnabledAutomation[]> {
+async function fetchEnabledAutomations() {
     const result = await listAutomations();
 
     if (result.status !== "SUCCESS") {

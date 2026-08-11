@@ -11,13 +11,16 @@ import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import * as React from "react";
-import { useFormStatus } from "react-dom";
-import { useHotkeys } from "react-hotkeys-hook";
 
-const INITIAL_FEEDBACK_ACTION_STATE: FeedbackActionState = {
+const INITIAL_FEEDBACK_ACTION_STATE = {
     message: "",
     status: "idle",
 } satisfies FeedbackActionState;
+
+interface FeedbackWidgetProps
+    extends React.ComponentProps<typeof PopoverTrigger> {
+    context: string;
+}
 
 export function FeedbackWidget({
     context,
@@ -25,46 +28,36 @@ export function FeedbackWidget({
     ...props
 }: FeedbackWidgetProps) {
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = React.useState(false);
     const formRef = React.useRef<HTMLFormElement>(null);
-    const submitButtonRef = React.useRef<HTMLButtonElement>(null);
 
     const submitFeedback = useStableCallback(
         async (
             previousState: FeedbackActionState,
             formData: FormData
         ): Promise<FeedbackActionState> => {
-            const nextState = await createFeedback(previousState, formData);
-            if (nextState.status !== "success") {
-                return nextState;
+            const result = await createFeedback(previousState, formData);
+            if (result.status !== "success") {
+                return result;
             }
-
+            // Clear form state
             formRef.current?.reset();
-            setIsOpen(false);
-            return nextState;
+            return result;
         }
     );
 
-    const [state, formAction] = React.useActionState(
+    const [state, formAction, isPending] = React.useActionState(
         submitFeedback,
         INITIAL_FEEDBACK_ACTION_STATE
     );
 
-    const handleToggleFeedbackWidget = useStableCallback(() => {
-        setIsOpen((isOpenValue) => !isOpenValue);
-    });
-
-    useHotkeys("F", handleToggleFeedbackWidget, {
-        description: "Toggle feedback widget",
-    });
-
     return (
-        <Popover onOpenChange={setIsOpen} open={isOpen}>
+        <Popover>
             <PopoverTrigger {...props} openOnHover={openOnHover} />
             <PopoverPopup className="*:p-2" positionMethod="fixed">
                 <div className="space-y-3">
                     <form
                         action={formAction}
+                        aria-busy={isPending}
                         className="space-y-4"
                         ref={formRef}
                     >
@@ -81,6 +74,7 @@ export function FeedbackWidget({
                             }
                             autoFocus
                             className="min-h-24"
+                            disabled={isPending}
                             id="feedback-message"
                             name="message"
                             onKeyDown={stopPropagationForPrintableKeys}
@@ -89,6 +83,8 @@ export function FeedbackWidget({
                         />
                         <div className="flex items-center justify-between gap-3">
                             <p
+                                aria-atomic="true"
+                                aria-live="polite"
                                 className={cn(
                                     "min-h-5 text-xs",
                                     state.status === "error"
@@ -104,38 +100,22 @@ export function FeedbackWidget({
                             >
                                 {state.message}
                             </p>
-                            <SubmitButton ref={submitButtonRef} />
+                            <Button
+                                isLoading={isPending}
+                                size="sm"
+                                type="submit"
+                            >
+                                <Send
+                                    aria-hidden
+                                    className="inline-block size-4 shrink-0"
+                                    focusable="false"
+                                />
+                                Send
+                            </Button>
                         </div>
                     </form>
                 </div>
             </PopoverPopup>
         </Popover>
-    );
-}
-
-interface FeedbackWidgetProps
-    extends React.ComponentProps<typeof PopoverTrigger> {
-    context: string;
-}
-
-/* @internal */
-function SubmitButton({ ref }: { ref?: React.Ref<HTMLButtonElement> }) {
-    const { pending } = useFormStatus();
-
-    return (
-        <Button
-            className="rounded-full"
-            isLoading={pending}
-            ref={ref}
-            size="sm"
-            type="submit"
-        >
-            <Send
-                aria-hidden
-                className="inline-block size-4 shrink-0"
-                focusable="false"
-            />
-            Send
-        </Button>
     );
 }

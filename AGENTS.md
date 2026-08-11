@@ -75,6 +75,8 @@ Build React components following full `vercel-composition-patterns` and `vercel-
 
 Every component should be co-located into a single file with its parts, and should use a common, composable interface, making them predictable.
 
+Do not declare an empty props interface (`interface XProps extends React.ComponentProps<"div"> {}`) — inline `React.ComponentProps<...>` in the component signature and extract a named type only once it gains custom props.
+
 Use the `useTimeout` utility from `@base-ui/utils/useTimeout` instead of `window.setTimeout`, and `useAnimationFrame` from `@base-ui/utils/useAnimationFrame` instead of `requestAnimationFrame`.
 
 Use the `useStableCallback` utility from `@base-ui/utils/useStableCallback` instead of `React.useCallback` whenever the function is passed into an effect, an event handler, or any other long-lived closure — `useStableCallback` guarantees a stable identity without re-running on every render, which the React Compiler does not do for free. The utility cannot be used to memoize functions that are called directly in the body of a component (during render); in those cases the React Compiler memoizes the value automatically, so no manual hook is needed.

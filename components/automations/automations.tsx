@@ -5,6 +5,7 @@ import {
     type AutomationCollectionOption,
     type AutomationComposerAutomation,
 } from "@/components/automations/automation-composer-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Menu,
@@ -69,7 +70,9 @@ const WEEK_DAY_LABELS = [
     "Saturday",
 ] as const;
 
-function getTemplateIcon(templateKey: AutomationListItem["templateKey"]) {
+function getAutomationTemplateIcon(
+    templateKey: AutomationListItem["templateKey"]
+) {
     if (templateKey) {
         const icon = TEMPLATE_ICON[templateKey];
         if (icon) {
@@ -330,10 +333,11 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
     const [actionErrorMessage, setActionErrorMessage] = React.useState<
         string | null
     >(null);
+
     const isActive = automation.status === "active";
     const canDelete = !isActive;
     const canResume = !isActive && isCompleteSchedule(automation);
-    const Icon = getTemplateIcon(automation.templateKey);
+    const Icon = getAutomationTemplateIcon(automation.templateKey);
     const description = getAutomationDescription(automation);
     const scheduleLabel = formatSchedule(automation);
     const lastRun = automation.lastRun
@@ -481,16 +485,13 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
                     </MenuPopup>
                 </Menu>
             </div>
-
             <div className="flex min-w-0 flex-col gap-1">
                 <div className="flex min-w-0 items-center gap-2">
                     <h2 className="truncate font-medium text-foreground text-sm">
                         {automation.title}
                     </h2>
                     {isActive ? null : (
-                        <span className="shrink-0 rounded-full bg-background px-1.5 py-0.5 font-medium text-[10px] text-muted-foreground">
-                            Paused
-                        </span>
+                        <Badge variant="secondary">Paused</Badge>
                     )}
                 </div>
                 <p className="line-clamp-2 text-muted-foreground text-xs leading-5">
@@ -524,7 +525,6 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
                     </p>
                 ) : null}
             </div>
-
             <AutomationComposerDialog
                 automation={toComposerAutomation(automation)}
                 collections={collections}
@@ -545,7 +545,7 @@ function SuggestedAutomationCard({
     automation,
     collections,
 }: AutomationCardProps) {
-    const Icon = getTemplateIcon(automation.templateKey);
+    const Icon = getAutomationTemplateIcon(automation.templateKey);
     const description = getAutomationDescription(automation);
 
     return (

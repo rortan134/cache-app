@@ -3,11 +3,7 @@ import useSWR from "swr";
 
 const SMART_COLLECTIONS_PREFERENCE_KEY = "smart-collections-preference";
 
-interface SmartCollectionsPreference {
-    disabled: boolean;
-}
-
-async function fetchSmartCollectionsPreference(): Promise<SmartCollectionsPreference> {
+async function fetchSmartCollectionsPreference() {
     const result = await getSmartCollectionsPreference();
     if (result.status !== "SUCCESS") {
         throw new Error(result.message);
