@@ -73,24 +73,6 @@ export const parseStandaloneUrl = (input: string): URL | null => {
     return url;
 };
 
-export const isLocalUrl = (link: string | null) => {
-    if (!link) {
-        return false;
-    }
-    if (link.startsWith("/")) {
-        return true;
-    }
-    if (typeof location !== "undefined") {
-        try {
-            const parsed = new URL(link);
-            return parsed.origin === location.origin;
-        } catch {
-            return false;
-        }
-    }
-    return false;
-};
-
 export const parseUrlSearchParams = (url: string) => {
     if (!url) {
         return {};

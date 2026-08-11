@@ -4,7 +4,6 @@ import { getErrorMessage } from "@/lib/common/error";
 import { asRecord } from "@/lib/common/objects";
 import copy from "copy-to-clipboard";
 import { openExternalUrl } from "@/lib/common/url";
-import { readJsonOrNull } from "@/lib/common/net";
 import {
     IntegrationApiError,
     IntegrationConnectionError,
@@ -131,7 +130,7 @@ export async function executeRouteSyncBehavior(
     const response = await fetch(behavior.path, {
         method: behavior.method,
     });
-    const payload = await readJsonOrNull(response);
+    const payload = await response.json().catch(() => null);
 
     const payloadRecord = asRecord(payload);
     if (
@@ -169,7 +168,7 @@ export async function executeCopyPromptBehavior(
         });
     }
 
-    const data = await readJsonOrNull(response);
+    const data = await response.json().catch(() => null);
     const record = asRecord(data);
     const prompt =
         typeof record?.prompt === "string" ? record.prompt : undefined;

@@ -1,6 +1,5 @@
 import "server-only";
 
-import { readJsonOrNull } from "@/lib/common/net";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import * as z from "zod";
@@ -44,7 +43,7 @@ async function pickerFetch(
     });
 
     if (!response.ok) {
-        const maybeJson = await readJsonOrNull(response);
+        const maybeJson = await response.json().catch(() => null);
         const parsedError = PickerApiErrorSchema.safeParse(maybeJson);
         if (!parsedError.success) {
             log.debug("Picker API error body did not match expected schema", {

@@ -3,7 +3,6 @@ import { getPlanPriceIds } from "@/lib/billing/prices";
 import { APP_NAME, BASE_URL, CACHE_EXTENSION_ID } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { readJsonOrNull } from "@/lib/common/net";
 import { GOOGLE_PHOTOS_PICKER_SCOPE } from "@/lib/integrations/google-photos/shared";
 import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
 import { prisma } from "@/prisma";
@@ -158,7 +157,7 @@ async function fetchOAuthUser<T>(
             return null;
         }
 
-        const payload = await readJsonOrNull(response);
+        const payload = await response.json().catch(() => null);
         if (payload === null) {
             log.warn(`OAuth user info empty/non-JSON for ${providerId}`, {
                 url,

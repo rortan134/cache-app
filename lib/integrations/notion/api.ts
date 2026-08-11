@@ -1,6 +1,5 @@
 import "server-only";
 
-import { readJsonOrNull } from "@/lib/common/net";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import * as z from "zod";
 
@@ -58,7 +57,7 @@ async function fetchNotion(
         },
     });
 
-    const payload = await readJsonOrNull(response);
+    const payload = await response.json().catch(() => null);
     if (!response.ok) {
         throw parseNotionApiError(payload, response.status, operation);
     }

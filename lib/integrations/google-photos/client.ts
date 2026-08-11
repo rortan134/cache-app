@@ -4,7 +4,6 @@ import {
     IntegrationApiError,
     IntegrationConnectionError,
 } from "@/lib/integrations/error";
-import { readJsonOrNull } from "@/lib/common/net";
 import { PickerNotReadyError } from "./error";
 import {
     ImportResponseSchema,
@@ -59,7 +58,7 @@ async function createPickerSessionRequest(): Promise<SessionCreateResponse> {
             method: "POST",
         }
     );
-    const raw = await readJsonOrNull(response);
+    const raw = await response.json().catch(() => null);
     const parsed = SessionCreateResponseSchema.safeParse(raw);
 
     if (!(response.ok && parsed.success)) {
@@ -103,7 +102,7 @@ async function pollUntilMediaSelected(
                 `/api/integrations/google-photos/picker/session?id=${encodeURIComponent(sessionId)}&accountId=${encodeURIComponent(accountId)}`,
                 { method: "GET" }
             );
-            const raw = await readJsonOrNull(response);
+            const raw = await response.json().catch(() => null);
             const parsed = SessionPollResponseSchema.safeParse(raw);
 
             if (!(response.ok && parsed.success)) {
@@ -149,7 +148,7 @@ async function importSelectedMedia(
             method: "POST",
         }
     );
-    const raw = await readJsonOrNull(response);
+    const raw = await response.json().catch(() => null);
     const parsed = ImportResponseSchema.safeParse(raw);
 
     if (!(response.ok && parsed.success)) {
