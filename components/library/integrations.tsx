@@ -483,6 +483,7 @@ function IntegrationsListTrigger({
                         render={
                             render ?? (
                                 <SidebarItem
+                                    className="opacity-100"
                                     render={<button type="button" />}
                                 />
                             )

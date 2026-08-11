@@ -7,10 +7,9 @@ import { Ticker } from "@/components/ui/ticker";
 import { cn } from "@/lib/common/cn";
 import {
     cacheDimensions,
-    clampDimensions,
-    DEFAULT_DIMENSIONS,
     pinDefaultDimensionsIfMissing,
     readCachedDimensions,
+    resolveDisplayDimensions,
     type Dimensions,
 } from "@/lib/common/dimensions";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
@@ -160,7 +159,7 @@ function PreviewMedia({
         }
     }, [applyNaturalDimensions, src]);
 
-    const displayDimensions = clampDimensions(dimensions ?? DEFAULT_DIMENSIONS);
+    const displayDimensions = resolveDisplayDimensions(dimensions);
 
     return (
         <div

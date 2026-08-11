@@ -12,6 +12,7 @@ import {
     normalizeCommentText,
 } from "@/lib/comments/utils";
 import { ACTION_STATUS } from "@/lib/common/constants";
+import { stopPropagationForMenuTextInputKeys } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import { T, useGT } from "gt-next";
@@ -94,6 +95,10 @@ export function CommentTextarea({ item, open }: CommentTextareaProps) {
             return false;
         }
         await mutate({ contentText: result.contentText });
+        // Clear the mid-edit latch only after the round-trip lands; clearing it
+        // before `mutate` would let the draft guard overwrite keystrokes typed
+        // while the save was in flight.
+        hasUserEditedRef.current = false;
         return true;
     });
 
@@ -123,12 +128,14 @@ export function CommentTextarea({ item, open }: CommentTextareaProps) {
         <div className="space-y-1">
             <Textarea
                 aria-label={gt("Comment on this item")}
-                className="h-20 max-h-40 min-h-16 resize-none border-none bg-muted px-2.5 py-2 text-xs"
+                className="my-0.5 border-none"
                 disabled={isLoading}
                 maxLength={COMMENT_TEXT_MAX_LENGTH}
                 onChange={handleChange}
+                onKeyDown={stopPropagationForMenuTextInputKeys}
                 placeholder={gt("Add a comment...")}
                 rows={4}
+                size="sm"
                 value={content}
             />
             {saveStatus === "error" && (

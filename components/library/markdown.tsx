@@ -189,7 +189,7 @@ export function MarkdownImportDialog() {
             if (entries.length === 0) {
                 setErrorMessage(
                     skipped.length > 0
-                        ? "None of the files there can be imported. Check the file sizes and content."
+                        ? "None of the selected files can be imported. Check the file sizes and content."
                         : "No Markdown files found there. Choose a folder that contains .md or .markdown files."
                 );
             }

@@ -208,10 +208,9 @@ import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     cacheDimensions,
-    clampDimensions,
-    DEFAULT_DIMENSIONS,
     pinDefaultDimensionsIfMissing,
     readCachedDimensions,
+    resolveDisplayDimensions,
     type Dimensions,
 } from "@/lib/common/dimensions";
 import {
@@ -1909,7 +1908,7 @@ function PaletteAttachmentChip({
     const handleRemove = useStableCallback(() => onRemove(attachment.id));
 
     return (
-        <Attachments className="gap-0" variant="inline">
+        <Attachments className="gap-0">
             <AttachmentPreviewCard>
                 <AttachmentPreviewCardTrigger
                     render={
@@ -4162,7 +4161,7 @@ function MediaPreview({
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
-    const displayDimensions = clampDimensions(dimensions ?? DEFAULT_DIMENSIONS);
+    const displayDimensions = resolveDisplayDimensions(dimensions);
 
     return (
         <div
@@ -4568,15 +4567,13 @@ function MediaCardMenuDetails() {
 
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
     const createdLabel = itemDateLabel(item.createdAt);
-    const href = normalizeURL(item.url);
 
     return (
         <Collapsible>
             <CollapsibleTrigger
-                className="max-w-56"
                 render={
                     <Button
-                        className="justify-between rounded-xl"
+                        className="max-w-60 justify-between rounded-xl"
                         variant="ghost"
                     />
                 }
@@ -4588,8 +4585,8 @@ function MediaCardMenuDetails() {
             </CollapsibleTrigger>
             <CollapsiblePanel className="px-2.5 text-[11px] text-muted-foreground">
                 {isNote ? null : (
-                    <span className="block max-w-48 truncate py-0.5 text-muted-foreground underline">
-                        {href}
+                    <span className="inline-block min-w-0 max-w-48 truncate py-0.5 text-muted-foreground underline">
+                        {item.url}
                     </span>
                 )}
                 <div className="flex items-center justify-between gap-3 py-0.5">

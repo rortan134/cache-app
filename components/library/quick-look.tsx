@@ -1,6 +1,5 @@
 "use client";
 
-import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
@@ -26,7 +25,6 @@ import { T } from "gt-next";
 import {
     AlertCircleIcon,
     ExternalLinkIcon,
-    Eye,
     PanelRight,
     PanelRightOpen,
     XIcon,
@@ -35,6 +33,7 @@ import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 import useSWR from "swr";
+import { MediaPlaceholder } from "../ui/media-placeholder";
 
 const QUICK_LOOK_BLOCKED_URL = "about:blank";
 const DEFAULT_TITLE = "Preview";
@@ -566,7 +565,11 @@ export function QuickLookDrawerContent({
                     shouldShowBackdrop={false}
                 >
                     <DrawerPopup className="max-w-full" variant="straight">
-                        <DrawerHeader className="p-2 pr-11 pb-1!">
+                        <DrawerHeader
+                            className={cn("p-2 pr-11 pb-2!", {
+                                "p-0 pb-0!": !activeEntry,
+                            })}
+                        >
                             <DrawerTitle className="sr-only">
                                 Quick Look
                             </DrawerTitle>
@@ -605,7 +608,7 @@ function QuickLookDrawerPanel({ activeEntry }: QuickLookDrawerPanelProps) {
     return (
         <DrawerPanel
             aria-busy={isLoading}
-            className="relative p-0"
+            className="relative p-0 pt-0!"
             isScrollable={false}
         >
             {activeEntry ? (
@@ -643,12 +646,7 @@ function QuickLookDrawerPanel({ activeEntry }: QuickLookDrawerPanelProps) {
 }
 
 function QuickLookPanelEmpty() {
-    return (
-        <Alert className="max-w-md">
-            <Eye aria-hidden focusable="false" />
-            <AlertTitle>Quick Look</AlertTitle>
-        </Alert>
-    );
+    return <MediaPlaceholder className="bg-popover" />;
 }
 
 function QuickLookOembedPreview({ oembed }: QuickLookOembedPreviewProps) {

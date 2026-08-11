@@ -53,3 +53,27 @@ export function stopPropagationForPrintableKeys(event: React.KeyboardEvent) {
         event.stopPropagation();
     }
 }
+
+/**
+ * Stops React's synthetic keydown from bubbling past the caller for every key
+ * a Base UI `Menu` popup would otherwise hijack while a text input inside it
+ * is focused: `useTypeahead` `preventDefault`s printable characters, and
+ * `useListNavigation` `preventDefault`s arrow keys plus Home/End for item
+ * navigation. Broader than `stopPropagationForPrintableKeys` because menus
+ * also steal caret-navigation keys.
+ */
+export function stopPropagationForMenuTextInputKeys(
+    event: React.KeyboardEvent
+) {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+    }
+    const isMenuHandledKey =
+        event.key.length === 1 ||
+        event.key.startsWith("Arrow") ||
+        event.key === "Home" ||
+        event.key === "End";
+    if (isMenuHandledKey) {
+        event.stopPropagation();
+    }
+}

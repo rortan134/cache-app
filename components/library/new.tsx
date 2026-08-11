@@ -23,6 +23,7 @@ import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getOwnerDocument } from "@/lib/common/dom";
+import { saveFile } from "@/lib/common/file";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { openExternalUrl, parseStandaloneUrl } from "@/lib/common/url";
 import {
@@ -552,17 +553,14 @@ function parseTextFormat(value: string | undefined): TextFormatType | null {
     return null;
 }
 
-function downloadMarkdownFile(contentHtml: string) {
+async function downloadMarkdownFile(contentHtml: string) {
     const markdown = convertNoteHtmlToMarkdown(contentHtml);
     const blob = new Blob([markdown], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const ownerDocument = getOwnerDocument();
-    const link = ownerDocument.createElement("a");
-
-    link.href = url;
-    link.download = "note.md";
-    link.click();
-    URL.revokeObjectURL(url);
+    await saveFile(blob, {
+        description: "Markdown file",
+        extension: "md",
+        name: "note",
+    });
 }
 
 /**
@@ -585,38 +583,37 @@ function FormattingToolbarPlugin() {
 
     const rovingTabIndexRef = useLexicalRovingTabIndexRef();
     const focusManagerRef = useLexicalFocusManagerRef();
+
     const toolbarRef = useStableCallback((element: HTMLDivElement | null) => {
         rovingTabIndexRef(element);
         focusManagerRef(element);
     });
 
-    useEffect(() => {
-        const commitFormats = (nextFormats: FormatState) => {
-            setFormats((current) =>
-                areFormatStatesEqual(current, nextFormats)
-                    ? current
-                    : nextFormats
-            );
-        };
+    const commitFormats = useStableCallback((nextFormats: FormatState) => {
+        setFormats((current) =>
+            areFormatStatesEqual(current, nextFormats) ? current : nextFormats
+        );
+    });
 
-        const updateToolbarState = () => {
-            editor.getEditorState().read(() => {
-                const selection = $getSelection();
-                if (!$isRangeSelection(selection)) {
-                    commitFormats(INITIAL_FORMAT_STATE);
-                    return;
-                }
+    const updateToolbarState = useStableCallback(() => {
+        editor.getEditorState().read(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) {
+                commitFormats(INITIAL_FORMAT_STATE);
+                return;
+            }
 
-                commitFormats({
-                    blockType: getSelectionBlockType(selection),
-                    bold: selection.hasFormat("bold"),
-                    italic: selection.hasFormat("italic"),
-                    strikeThrough: selection.hasFormat("strikethrough"),
-                    underline: selection.hasFormat("underline"),
-                });
+            commitFormats({
+                blockType: getSelectionBlockType(selection),
+                bold: selection.hasFormat("bold"),
+                italic: selection.hasFormat("italic"),
+                strikeThrough: selection.hasFormat("strikethrough"),
+                underline: selection.hasFormat("underline"),
             });
-        };
+        });
+    });
 
+    useEffect(() => {
         updateToolbarState();
 
         return mergeRegister(
@@ -630,7 +627,7 @@ function FormattingToolbarPlugin() {
                 COMMAND_PRIORITY_LOW
             )
         );
-    }, [editor]);
+    }, [editor, updateToolbarState]);
 
     const setBlockType = useStableCallback((blockType: NoteBlockType) => {
         editor.update(() => {

@@ -1948,11 +1948,11 @@ function useCollectionPanelHotkeys() {
         useCollectionsListStore();
 
     const handleCollectionsListShortcutPress = useStableCallback(() => {
-        setIsCollectionsListOpen((current) => !current);
+        setIsCollectionsListOpen((prev) => !prev);
     });
 
     const handleFavoritesListShortcutPress = useStableCallback(() => {
-        setIsFavoritesListOpen((current) => !current);
+        setIsFavoritesListOpen((prev) => !prev);
     });
 
     useHotkeys("shift+mod+c", handleCollectionsListShortcutPress, {
@@ -5088,7 +5088,7 @@ function CollectionsListPriorityBreakdown({
                         className="size-3.5 shrink-0 text-muted-foreground"
                         focusable="false"
                     />
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground text-xs">
+                    <span className="min-w-0 flex-1 truncate text-xs">
                         {label}
                     </span>
                     <span className="ml-auto font-medium text-xs tabular-nums">

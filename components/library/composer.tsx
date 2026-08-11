@@ -334,7 +334,7 @@ export function Composer({
         <Toolbar.Root
             {...props}
             className={cn(
-                "sticky top-1 z-50 w-full max-w-2xl rounded-t-4xl rounded-b-3xl bg-muted",
+                "sticky top-1 z-50 w-full max-w-2xl overflow-clip rounded-t-3xl rounded-b-3xl bg-muted",
                 className
             )}
         />
@@ -579,7 +579,7 @@ export function ComposerActionsList({
     return (
         <ComposerActionsContext value={actions}>
             <ComposerMetricsContext value={metrics}>
-                <ScrollArea shouldScrollFade>
+                <ScrollArea className="h-fit" shouldScrollFade>
                     <Toolbar.Group
                         {...props}
                         className={cn(
