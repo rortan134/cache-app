@@ -8,9 +8,7 @@ export default async function SignInPage() {
 
     return (
         <div className="flex min-h-dvh flex-col items-center justify-center">
-            <div className="flex flex-col items-center gap-1">
-                <SignInButton hasServerSession={!!session} />
-            </div>
+            <SignInButton hasServerSession={!!session} />
         </div>
     );
 }

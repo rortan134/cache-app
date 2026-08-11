@@ -1,4 +1,4 @@
-import { OfflineBadge } from "@/components/auth/offline-badge";
+import { OfflineBadge } from "@/components/ui/offline";
 import {
     UserMenu,
     UserMenuContent,
@@ -25,10 +25,15 @@ import {
 import { T } from "gt-next";
 import { Compass, Ellipsis, History, Workflow } from "lucide-react";
 import type * as React from "react";
+import { cn } from "@/lib/common/cn";
 
-export function ApplicationSidebar({ children }: React.PropsWithChildren) {
+export function ApplicationSidebar({
+    children,
+    className,
+    ...props
+}: React.ComponentProps<typeof Sidebar>) {
     return (
-        <Sidebar className="pt-0">
+        <Sidebar {...props} className={cn("pt-0", className)}>
             <SidebarContent className="gap-3 py-8 lg:top-0 lg:max-h-dvh">
                 <div className="flex items-center justify-between gap-1">
                     <UserMenu>

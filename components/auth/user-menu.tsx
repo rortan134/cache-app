@@ -1,7 +1,7 @@
 "use client";
 
 import { DeleteAccountDialogTrigger } from "@/components/auth/delete-account-dialog-trigger";
-import { LogoutDialogTrigger } from "@/components/auth/logout-dialog-trigger";
+import { LogOutDialogTrigger } from "@/components/auth/logout-dialog-trigger";
 import { WithUserSessionOnly } from "@/components/auth/session";
 import {
     SubscribedOnly,
@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/menu";
 import { KeyboardShortcutsDialogTrigger } from "@/components/ui/shortcuts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThemeSelector } from "@/components/ui/theme-selector";
+import { ThemeSelector } from "@/components/ui/theme";
 import { authClient, useSession } from "@/lib/auth/client";
 import type { Session } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
@@ -67,6 +67,15 @@ import useSWR from "swr";
 
 const log = createLogger("auth-user-menu");
 
+const FOOTER_LINKS = [
+    { href: "/legal/privacy-policy", label: "Privacy" },
+    { href: "/legal/terms-of-service", label: "Terms" },
+    { href: "/security", label: "Security" },
+] as const;
+
+const DEVICE_SESSIONS_SWR_KEY = ["auth-user-menu:device-sessions"] as const;
+const DESKTOP_DOWNLOADS_SWR_KEY = ["desktop:downloads"] as const;
+
 type AccountMenuError = "add" | "load" | "switch";
 
 type AccountUser = NonNullable<Session>["user"];
@@ -77,15 +86,6 @@ interface DeviceSession {
     };
     user: AccountUser;
 }
-
-const FOOTER_LINKS = [
-    { href: "/legal/privacy-policy", label: "Privacy" },
-    { href: "/legal/terms-of-service", label: "Terms" },
-    { href: "/security", label: "Security" },
-] as const;
-
-const DEVICE_SESSIONS_SWR_KEY = ["auth-user-menu:device-sessions"] as const;
-const DESKTOP_DOWNLOADS_SWR_KEY = ["desktop:downloads"] as const;
 
 export function UserMenu(
     props: Omit<React.ComponentProps<typeof Menu>, "open" | "onOpenChange">
@@ -115,7 +115,7 @@ export function UserMenuTrigger(
             aria-label={props["aria-label"] ?? gt("Open account menu")}
             openOnHover
         >
-            <WithUserSessionOnly loadingRender={<UserMenuTriggerSkeleton />}>
+            <WithUserSessionOnly fallback={<UserMenuTriggerSkeleton />}>
                 {(user) => (
                     <span className="flex min-w-0 items-center gap-2">
                         <AccountAvatar user={user} />
@@ -296,7 +296,7 @@ export function UserMenuContent() {
                     </MenuSubPopup>
                 </MenuSub>
                 <UserMenuDesktopDownloadSubMenu />
-                <LogoutDialogTrigger
+                <LogOutDialogTrigger
                     nativeButton={false}
                     render={
                         <MenuItem
@@ -307,7 +307,7 @@ export function UserMenuContent() {
                 >
                     <T context="User Log out/Sign out of the app">Log out</T>
                     <LogOut className="ml-auto inline-block size-3.5 text-muted-foreground" />
-                </LogoutDialogTrigger>
+                </LogOutDialogTrigger>
             </MenuGroup>
         </>
     );
@@ -443,7 +443,6 @@ function DesktopDownloadMenuItem({
 
 async function fetchDesktopDownloads(): Promise<{
     downloads: DesktopDownload[];
-    status: "ok" | "fallback";
     version?: string;
 }> {
     try {
@@ -452,7 +451,6 @@ async function fetchDesktopDownloads(): Promise<{
         if (result.status === ACTION_STATUS.SUCCESS) {
             return {
                 downloads: result.data.downloads,
-                status: "ok",
                 version: result.data.version,
             };
         }
@@ -462,7 +460,6 @@ async function fetchDesktopDownloads(): Promise<{
 
     return {
         downloads: getStaticDesktopDownloads(),
-        status: "fallback",
     };
 }
 
@@ -470,13 +467,17 @@ async function fetchDesktopDownloads(): Promise<{
 function UserMenuAccountActionsSubMenu(
     props: React.ComponentProps<typeof MenuSubTrigger>
 ) {
+    const gt = useGT();
+    const accountActionsLabel = gt("Account actions");
+
     return (
         <MenuSub>
             <MenuSubTrigger
                 {...props}
+                aria-label={accountActionsLabel}
                 nativeButton
                 render={<Button size="xs" variant="ghost" />}
-                title="Account actions"
+                title={accountActionsLabel}
             />
             <MenuSubPopup align="end">
                 <MenuGroup>
@@ -548,11 +549,10 @@ function useUserMenuAccounts() {
         listDeviceSessions
     );
 
-    const handleAccountChange = useStableCallback((sessionToken: unknown) => {
+    const handleAccountChange = useStableCallback((sessionToken: string) => {
         if (
             !activeSession ||
             pendingSessionToken !== null ||
-            typeof sessionToken !== "string" ||
             sessionToken === activeSession.session.token
         ) {
             return;

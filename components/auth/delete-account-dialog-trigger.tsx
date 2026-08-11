@@ -12,10 +12,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-    deleteAccountAction,
-    type DeleteAccountActionState,
-} from "@/lib/account/actions";
+import { deleteAccountAction } from "@/lib/account/actions";
 import { authClient } from "@/lib/auth/client";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -34,7 +31,7 @@ export function DeleteAccountDialogTrigger(
     const router = useRouter();
     const [isOpen, setIsOpen] = React.useState(false);
     const [isPending, startTransition] = React.useTransition();
-    const [errorMessage, setErrorMessage] = React.useState<null | string>(null);
+    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
     const deleteSubmissionPendingRef = React.useRef(false);
 
     const handleConfirm = useStableCallback(() => {
@@ -46,8 +43,7 @@ export function DeleteAccountDialogTrigger(
 
         startTransition(async () => {
             try {
-                const result: DeleteAccountActionState =
-                    await deleteAccountAction();
+                const result = await deleteAccountAction();
 
                 if (result.status === "error") {
                     setErrorMessage(result.message);

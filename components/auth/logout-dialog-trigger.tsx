@@ -17,16 +17,16 @@ import { useRouter } from "next/navigation";
 import type * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
-export function LogoutDialogTrigger(
+export function LogOutDialogTrigger(
     props: React.ComponentProps<typeof DialogTrigger>
 ) {
     const router = useRouter();
 
-    const handleLogout = useStableCallback(() => {
+    const handleLogOut = useStableCallback(() => {
         router.push("/logout");
     });
 
-    useHotkeys("alt+shift+q", handleLogout, {
+    useHotkeys("alt+shift+q", handleLogOut, {
         description: "Log out",
     });
 
@@ -50,7 +50,7 @@ export function LogoutDialogTrigger(
                         <T context="Cancel button">Cancel</T>
                     </DialogClose>
                     <DialogClose
-                        onClick={handleLogout}
+                        onClick={handleLogOut}
                         render={<Button variant="destructive" />}
                     >
                         <T context="Logout confirm button">Log out</T>

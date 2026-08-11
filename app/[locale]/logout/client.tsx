@@ -13,18 +13,22 @@ export function LogoutPageClient() {
     const router = useRouter();
 
     useEffect(() => {
-        const logout = async () => {
+        const handleLogOut = async () => {
             try {
-                await authClient.signOut();
-                router.push("/");
-                router.refresh();
+                const result = await authClient.signOut();
+                if (result.data?.success) {
+                    router.push("/");
+                    router.refresh();
+                } else {
+                    router.push("/library");
+                }
             } catch (error) {
                 log.error("signOut failed", error);
                 router.push("/");
             }
         };
 
-        logout();
+        handleLogOut();
     }, [router]);
 
     return (

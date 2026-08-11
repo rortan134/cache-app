@@ -25,7 +25,7 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
 
     if (hasServerSession) {
         return (
-            <>
+            <div className="flex w-full flex-col items-stretch gap-2">
                 <Button
                     nativeButton={false}
                     render={
@@ -36,10 +36,10 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
                     }
                     size="xl"
                 />
-                <span className="mx-auto -mt-3 hidden text-center text-muted-foreground text-xs md:block">
+                <span className="mx-auto hidden text-center text-muted-foreground text-xs md:block">
                     Press <Kbd>P</Kbd>
                 </span>
-            </>
+            </div>
         );
     }
 
@@ -48,9 +48,9 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
             <GoogleSignInButton>
                 <T context="Sign in/up CTA button">Continue with Google</T>
             </GoogleSignInButton>
-            <span className="-mt-3 text-muted-foreground text-xs">
-                <Check className="inline-block size-3.5" />
-                &nbsp; Get started now for free
+            <span className="-mt-3 inline-flex items-center gap-1 text-muted-foreground text-xs">
+                <Check className="size-3.5" />
+                <T>Get started now for free</T>
             </span>
         </>
     );

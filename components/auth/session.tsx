@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     authClient,
     HAS_GOOGLE_ONE_TAP_CLIENT_ID,
@@ -9,11 +8,26 @@ import {
 } from "@/lib/auth/client";
 import type { Session } from "@/lib/auth/session";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { T, Var } from "gt-next";
 import { Info } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
 const log = createLogger("auth-session");
+
+interface SessionGateProps {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
+}
+
+interface WithUserSessionOnlyProps {
+    children: (user: Session["user"]) => React.ReactNode;
+    fallback?: React.ReactNode;
+}
+
+interface SessionHintProps {
+    serverSession?: Session | null;
+}
 
 /**
  * Mount once on public entry points. Repeated mounts may initialize Google's
@@ -21,6 +35,7 @@ const log = createLogger("auth-session");
  */
 export function GoogleOneTapTrigger() {
     const { data: session, isPending } = useSession();
+
     const sessionId = session?.session?.id;
 
     React.useEffect(() => {
@@ -28,13 +43,7 @@ export function GoogleOneTapTrigger() {
             return;
         }
 
-        const initOneTap = async () => {
-            await authClient.oneTap({
-                callbackURL: "/library",
-            });
-        };
-
-        initOneTap().catch((error) => {
+        authClient.oneTap({ callbackURL: "/library" }).catch((error) => {
             log.error("Google One Tap init failed", error);
         });
     }, [isPending, sessionId]);
@@ -43,47 +52,31 @@ export function GoogleOneTapTrigger() {
 }
 
 /**
- * Pass `loadingRender` to avoid showing signed-out UI to a signed-in user for a
+ * Pass `fallback` to avoid showing signed-out UI to a signed-in user for a
  * frame while the session resolves.
  */
-export function SignedOutOnly({
-    children,
-    loadingRender = null,
-}: SignedOutOnlyProps) {
+export function SignedOutOnly({ children, fallback = null }: SessionGateProps) {
     const { data: session, isPending } = useSession();
 
     if (isPending) {
-        return loadingRender;
+        return fallback;
     }
 
     return session ? null : children;
-}
-
-interface SignedOutOnlyProps {
-    children: React.ReactNode;
-    loadingRender?: React.ReactNode;
 }
 
 /**
  * This is a presentation gate, not an authorization boundary. Validate sessions
  * on the server before returning private data.
  */
-export function SignedInOnly({
-    children,
-    loadingRender = null,
-}: SignedInOnlyProps) {
+export function SignedInOnly({ children, fallback = null }: SessionGateProps) {
     const { data: session, isPending } = useSession();
 
     if (isPending) {
-        return loadingRender;
+        return fallback;
     }
 
     return session ? children : null;
-}
-
-interface SignedInOnlyProps {
-    children: React.ReactNode;
-    loadingRender?: React.ReactNode;
 }
 
 /**
@@ -102,12 +95,12 @@ export function SessionLoadingOnly({ children }: React.PropsWithChildren) {
  */
 export function WithUserSessionOnly({
     children,
-    loadingRender = null,
+    fallback = null,
 }: WithUserSessionOnlyProps) {
     const { isPending, data: session } = useSession();
 
     if (isPending) {
-        return loadingRender;
+        return fallback;
     }
 
     if (!session?.user) {
@@ -117,11 +110,6 @@ export function WithUserSessionOnly({
     return children(session.user);
 }
 
-interface WithUserSessionOnlyProps {
-    children: (user: Session["user"]) => React.ReactNode;
-    loadingRender?: React.ReactNode;
-}
-
 /**
  * Pass `serverSession` to prevent layout shift before client hydration. The
  * client session still owns the logout button's loading state as it reflects
@@ -129,6 +117,7 @@ interface WithUserSessionOnlyProps {
  */
 export function SessionHint({ serverSession }: SessionHintProps) {
     const { data: clientSession, isPending } = useSession();
+
     const session = serverSession ?? clientSession;
 
     if (!session) {
@@ -139,14 +128,19 @@ export function SessionHint({ serverSession }: SessionHintProps) {
         <div className="flex items-center gap-2">
             <Info className="size-4 opacity-50" />
             <div className="font-medium text-xs leading-tight tracking-tighter opacity-50">
-                You are signed in as{" "}
-                {session.user.email ?? <Skeleton>Placeholder</Skeleton>}
+                {session.user.email ? (
+                    <T>
+                        You are signed in as <Var>{session.user.email}</Var>
+                    </T>
+                ) : null}
                 <Button
                     isLoading={isPending}
                     nativeButton={false}
                     render={
                         <Link href="/logout" prefetch={false}>
-                            Log out
+                            <T context="User Log out/Sign out of the app">
+                                Log out
+                            </T>
                         </Link>
                     }
                     size="xs"
@@ -155,8 +149,4 @@ export function SessionHint({ serverSession }: SessionHintProps) {
             </div>
         </div>
     );
-}
-
-interface SessionHintProps {
-    serverSession?: Session | null;
 }

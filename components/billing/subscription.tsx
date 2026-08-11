@@ -72,6 +72,16 @@ export function useSubscriptionAccess() {
 
 type AccessData = ReturnType<typeof useSubscriptionAccess>;
 
+interface WithSubscriptionOnlyProps {
+    children: (subscription: AccessData["subscription"]) => React.ReactNode;
+    fallback?: React.ReactNode;
+}
+
+interface SubscriptionGateProps {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
+}
+
 /**
  * Renders UI dependent on subscription data once resolved. Prevents rendering
  * intermediate states (such as flashing "Free Plan" before active Stripe data returns)
@@ -79,25 +89,15 @@ type AccessData = ReturnType<typeof useSubscriptionAccess>;
  */
 export function WithSubscriptionOnly({
     children,
-    loadingRender = null,
+    fallback = null,
 }: WithSubscriptionOnlyProps) {
     const { isLoading, subscription } = useSubscriptionAccess();
 
     if (isLoading) {
-        return loadingRender;
+        return fallback;
     }
 
     return children(subscription);
-}
-
-interface WithSubscriptionOnlyProps {
-    children: (subscription: AccessData["subscription"]) => React.ReactNode;
-    loadingRender?: React.ReactNode;
-}
-
-interface SubscriptionGateProps {
-    children: React.ReactNode;
-    loadingRender?: React.ReactNode;
 }
 
 /**
@@ -106,12 +106,12 @@ interface SubscriptionGateProps {
  */
 export function SubscribedOnly({
     children,
-    loadingRender = null,
+    fallback = null,
 }: SubscriptionGateProps) {
     const { hasAccess, isLoading } = useSubscriptionAccess();
 
     if (isLoading) {
-        return loadingRender;
+        return fallback;
     }
 
     return hasAccess ? children : null;
@@ -124,12 +124,12 @@ export function SubscribedOnly({
  */
 export function UnsubscribedOnly({
     children,
-    loadingRender = null,
+    fallback = null,
 }: SubscriptionGateProps) {
     const { hasAccess, isLoading } = useSubscriptionAccess();
 
     if (isLoading) {
-        return loadingRender;
+        return fallback;
     }
 
     return hasAccess ? null : children;
@@ -216,12 +216,6 @@ export function SubscriptionStatusBadge() {
     );
 }
 
-function getReturnUrl() {
-    return typeof window === "undefined"
-        ? "/library"
-        : `${window.location.origin}/library`;
-}
-
 /**
  * Triggers Stripe Checkout redirection for the premium Pro plan.
  */
@@ -281,6 +275,13 @@ export function SubscriptionBillingPortalButton({
             <SubscriptionErrorMessage>{errorMessage}</SubscriptionErrorMessage>
         </>
     );
+}
+
+/* @internal */
+function getReturnUrl() {
+    return typeof window === "undefined"
+        ? "/library"
+        : `${window.location.origin}/library`;
 }
 
 /* @internal */
