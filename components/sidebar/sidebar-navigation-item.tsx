@@ -10,14 +10,12 @@ import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { SidebarItem, SidebarItemValue } from "@/components/ui/sidebar";
 
 interface SidebarNavigationItemProps extends React.ComponentProps<typeof Link> {
-    "aria-label": string;
     href: string;
     icon: React.ReactNode;
     shortcutKeys?: string;
 }
 
 export function SidebarNavigationItem({
-    "aria-label": ariaLabel,
     href,
     icon,
     shortcutKeys,
@@ -31,7 +29,7 @@ export function SidebarNavigationItem({
     });
 
     useHotkeys(shortcutKeys ?? "", handleShortcut, {
-        description: `Navigate to ${ariaLabel}`,
+        description: `Navigate to ${props["aria-label"]}`,
         enabled: !!shortcutKeys,
         preventDefault: true,
     });

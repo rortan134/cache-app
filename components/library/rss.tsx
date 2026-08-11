@@ -18,7 +18,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
-    type AddFeedResult,
     addFeed,
     type FeedViewModel,
     listFeeds,
@@ -66,7 +65,11 @@ export function RssManageDialog() {
     }, [isOpen, loadFeeds]);
 
     const handleRemove = useStableCallback(async (feedId: string) => {
-        setRemovingFeedIds((prev) => new Set(prev).add(feedId));
+        setRemovingFeedIds((prev) => {
+            const next = new Set(prev);
+            next.add(feedId);
+            return next;
+        });
         try {
             const result = await removeFeed({ feedId });
             if (result.status === "SUCCESS") {
@@ -207,23 +210,25 @@ function AddFeedForm({ onFeedAdded }: AddFeedFormProps) {
         }
     );
 
-    const handleSubmit = useStableCallback((event: React.ChangeEvent) => {
-        event.preventDefault();
-        if (isPending) {
-            return;
-        }
-
-        setError(null);
-        startTransition(async () => {
-            const result: AddFeedResult = await addFeed({ feedUrl: url });
-            if (result.status !== "SUCCESS") {
-                setError(result.message);
+    const handleSubmit = useStableCallback(
+        (event: React.ChangeEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            if (isPending) {
                 return;
             }
-            setUrl("");
-            onFeedAdded();
-        });
-    });
+
+            setError(null);
+            startTransition(async () => {
+                const result = await addFeed({ feedUrl: url });
+                if (result.status !== "SUCCESS") {
+                    setError(result.message);
+                    return;
+                }
+                setUrl("");
+                onFeedAdded();
+            });
+        }
+    );
 
     return (
         <form className="flex flex-col gap-2" onSubmit={handleSubmit}>

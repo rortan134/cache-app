@@ -140,27 +140,21 @@ function useQuickLookStatus(url: string | null, timeoutMs: number) {
 
     const timeout = useTimeout();
 
+    // `loaded` is terminal: a late internal navigation failure must not
+    // flicker the blocked view over a working preview.
     const markAsBlocked = useStableCallback(() => {
         setIframeStatus((current) =>
-            // Once loaded, an iframe stays loaded — internal navigation failures
-            // after a successful load are not actionable and would flicker the
-            // blocked view against a working preview. Only route non-loaded
-            // states to blocked, mirroring the original `setStatus` guard.
             current === "loaded" ? "loaded" : "blocked"
         );
     });
 
+    // A late `onLoad` may resurrect a timeout-induced blocked state.
     const markAsLoaded = useStableCallback(() => {
-        // Unconditional: a late `onLoad` is allowed to resurrect the preview from
-        // a timeout-induced blocked state, matching the original's behavior where
-        // `markAsLoaded` always wrote "loaded" regardless of prior status.
         setIframeStatus("loaded");
     });
 
-    // Reset the iframe lifecycle synchronously on URL change so the very first
-    // render of the new URL never inherits the previous URL's terminal status.
-    // Layout effects run after DOM commit but before paint, guaranteeing the
-    // user never sees a "loaded"/"blocked" leftover from a prior preview.
+    // Reset the iframe lifecycle before the first paint of a new URL so it
+    // never inherits the previous URL's terminal status.
     useIsoLayoutEffect(() => {
         setIframeStatus("pending");
     }, [url]);
@@ -170,10 +164,8 @@ function useQuickLookStatus(url: string | null, timeoutMs: number) {
             timeout.clear();
             return;
         }
-        // The timeout bounds the *total* wait from the URL change, mirroring the
-        // original 8-second deadline that spanned both the oEmbed fetch and the
-        // iframe load. It can only cause a `pending → blocked` transition — once
-        // the iframe has reached a terminal state, the callback no-ops.
+        // Bounds the whole wait for the URL — oEmbed fetch plus iframe load.
+        // It only ever moves the iframe from `pending` to `blocked`.
         timeout.start(timeoutMs, () => {
             setIframeStatus((current) =>
                 current === "pending" ? "blocked" : current
@@ -184,12 +176,10 @@ function useQuickLookStatus(url: string | null, timeoutMs: number) {
         };
     }, [timeout, timeoutMs, url]);
 
-    // Once SWR settles on an outcome that bypasses the iframe, the loading
-    // timeout has no useful work left. Clearing avoids a wasteful re-render
-    // (the timer would fire into a status the derivation already ignores).
-    // `unsupported` is the exception: 404 means "no oEmbed provider for this
-    // URL" — the vanilla iframe is still the user's best preview, and the
-    // timeout must keep running to bound its load.
+    // Once SWR settles on an outcome that bypasses the iframe, the timer has
+    // no useful work left. `unsupported` is the exception: no oEmbed provider
+    // means the vanilla iframe is still the preview, so the timer keeps
+    // bounding its load.
     React.useEffect(() => {
         if (
             data?.resolution === "found" ||
@@ -216,25 +206,20 @@ function parseOembedStatus(
         return "blocked";
     }
 
-    // A successful oEmbed takes priority and supplants any iframe state — the
-    // richer preview wins regardless of whether the iframe loaded in parallel.
+    // A resolved oEmbed always wins over any parallel iframe state.
     if (data?.resolution === "found") {
         return "oembed";
     }
 
-    // `not-found` is the original "failed" path: the oEmbed endpoint reached the
-    // server but couldn't produce a result (non-404 error, malformed JSON, etc.).
-    // As in the original, surface blocked immediately and discard any pending
-    // iframe result — a server-side oEmbed failure suggests the URL won't render
-    // reliably as an iframe either, so don't make the user wait to find out.
+    // `not-found`: the server answered but couldn't produce an oEmbed (non-404
+    // error, malformed payload). Fail fast — such URLs rarely render as an
+    // iframe either, so don't make the user wait to find out.
     if (data?.resolution === "not-found") {
         return "blocked";
     }
 
-    // SWR `error` means the fetcher threw (a genuine network failure, not an HTTP
-    // status — those route to resolutions). Preserves the original's liveness
-    // guard: a working iframe stays loaded; only `pending`/`blocked` fall back.
-    // This matches `markAsBlocked`, which no-ops once the iframe has loaded.
+    // SWR `error` is a genuine network failure (HTTP statuses route to
+    // resolutions). A working iframe stays loaded, matching `markAsBlocked`.
     if (error && iframeStatus !== "loaded") {
         return "blocked";
     }
@@ -247,9 +232,8 @@ function parseOembedStatus(
         return "loaded";
     }
 
-    // Either SWR is still loading (iframe mounts in parallel as a hedge against
-    // an unsupported oEmbed outcome) or SWR resolved to `unsupported` and we're
-    // waiting for that iframe's onLoad/onError. Either way, show the spinner.
+    // SWR is still loading, or resolved `unsupported` and we're waiting on the
+    // parallel iframe's onLoad/onError. Show the spinner either way.
     return "loading";
 }
 
@@ -271,13 +255,15 @@ async function resolveOembed(url: string): Promise<OEmbedResolution> {
 }
 
 function addQuickLookQueueEntry(
-    { items }: QuickLookQueueState,
+    items: QuickLookEntry[],
     entry: QuickLookEntry
 ): QuickLookQueueState {
-    const existingEntry = items.find((item) => item.url === entry.url);
+    const existingIndex = items.findIndex((item) => item.url === entry.url);
+    const existingEntry = items[existingIndex];
+
     if (existingEntry) {
-        const existingIndex = items.indexOf(existingEntry);
-        // Re-triggering the same entry is a no-op unless its content changed
+        // Re-triggering an unchanged entry is a no-op; only an updated entry
+        // replaces its queue item.
         if (
             existingEntry.title === entry.title &&
             existingEntry.description === entry.description
@@ -400,18 +386,15 @@ const { actions: quickLookStoreActions, useStore: useQuickLookStore } =
         },
         ({ actions, getState }) => ({
             openWithEntry(entry: QuickLookEntry, triggerId: string) {
-                const { isOpen, items, activeIndex } = getState();
-                const queue = addQuickLookQueueEntry(
-                    { activeIndex, items },
-                    entry
-                );
+                const { isOpen, items } = getState();
+                const queue = addQuickLookQueueEntry(items, entry);
 
                 actions.setItems(queue.items);
                 actions.setActiveIndex(queue.activeIndex);
                 actions.setTriggerId(triggerId);
                 actions.setIsOpen(true);
-                // Opening is a no-op while the drawer is already open — the
-                // store update above already switched the active queue item.
+                // While the drawer is already open, the store update above
+                // already switched the active queue item.
                 if (!isOpen) {
                     QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
                 }
@@ -597,12 +580,7 @@ function QuickLookDrawerPanel({ activeEntry }: QuickLookDrawerPanelProps) {
                 <>
                     {isLoading ? <QuickLookLoading /> : null}
                     {isBlocked ? (
-                        <QuickLookBlocked
-                            canOpenUrlExternally={
-                                !isQuickLookBlockedUrl(activeEntry.url)
-                            }
-                            url={activeEntry.url}
-                        />
+                        <QuickLookBlocked url={activeEntry.url} />
                     ) : null}
                     {isOembed && oembed ? (
                         <QuickLookOembedPreview oembed={oembed} />
@@ -749,13 +727,8 @@ function QuickLookLoading() {
     );
 }
 
-function QuickLookBlocked({
-    canOpenUrlExternally,
-    url,
-}: {
-    canOpenUrlExternally: boolean;
-    url: string;
-}) {
+function QuickLookBlocked({ url }: { url: string }) {
+    const canOpenUrlExternally = !isQuickLookBlockedUrl(url);
     return (
         <div
             aria-live="polite"
