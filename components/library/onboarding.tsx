@@ -228,17 +228,16 @@ export function OnboardingMenu({
         string | null
     >(null);
     const [isSharePending, startShareTransition] = React.useTransition();
+    const [isSurveyDialogOpen, setIsSurveyDialogOpen] = React.useState(false);
+    const [isSurveySubmitted, setIsSurveySubmitted] = React.useState(false);
+    const [surveyDialogSelections, setSurveyDialogSelections] = React.useState<
+        Set<PainPointId>
+    >(() => new Set());
 
     const isShareActionPending =
         isSharePending ||
         (pendingShareCollection !== null &&
             isCollectionActionPending("share", pendingShareCollection.id));
-
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [isSurveySubmitted, setIsSurveySubmitted] = React.useState(false);
-    const [dialogSelections, setDialogSelections] = React.useState<
-        Set<PainPointId>
-    >(() => new Set());
 
     const completedTaskIdSet = getCompletedTaskIdSet({
         collections,
@@ -344,23 +343,26 @@ export function OnboardingMenu({
         }
     );
 
-    const handleOpenSurveyDialog = useStableCallback(() => {
-        setDialogSelections(new Set());
+    const resetSurveyDialogState = useStableCallback(() => {
+        setSurveyDialogSelections(new Set());
         setIsSurveySubmitted(false);
-        setIsDialogOpen(true);
+    });
+
+    const handleOpenSurveyDialog = useStableCallback(() => {
+        resetSurveyDialogState();
+        setIsSurveyDialogOpen(true);
     });
 
     const handleSurveyDialogOpenChange = useStableCallback((open: boolean) => {
-        setIsDialogOpen(open);
+        setIsSurveyDialogOpen(open);
         if (!open) {
-            setDialogSelections(new Set());
-            setIsSurveySubmitted(false);
+            resetSurveyDialogState();
         }
     });
 
     const handleTogglePainPoint = useStableCallback(
         (painPointId: PainPointId, checked: boolean) => {
-            setDialogSelections((current) => {
+            setSurveyDialogSelections((current) => {
                 const next = new Set(current);
                 if (checked) {
                     next.add(painPointId);
@@ -374,15 +376,15 @@ export function OnboardingMenu({
 
     const handleSubmitSurvey = useStableCallback(() => {
         setPainPointSurveySelections((current) =>
-            unique([...current, ...dialogSelections])
+            unique([...current, ...surveyDialogSelections])
         );
 
         markTaskCompleted("pain-point-survey");
 
         setIsSurveySubmitted(true);
 
-        if (dialogSelections.size === 0) {
-            setIsDialogOpen(false);
+        if (surveyDialogSelections.size === 0) {
+            setIsSurveyDialogOpen(false);
         }
     });
 
@@ -521,19 +523,17 @@ export function OnboardingMenu({
                 onCheckedChange={handleTogglePainPoint}
                 onOpenChange={handleSurveyDialogOpenChange}
                 onSubmit={handleSubmitSurvey}
-                open={isDialogOpen}
-                selections={dialogSelections}
+                open={isSurveyDialogOpen}
+                selections={surveyDialogSelections}
             />
         </>
     );
 }
 
-type OnboardingShareErrorProps = React.ComponentProps<"p">;
-
 function OnboardingShareError({
     className,
     ...props
-}: OnboardingShareErrorProps) {
+}: React.ComponentProps<"p">) {
     return (
         <p
             {...props}
@@ -601,7 +601,7 @@ function SurveyDialog({
     return (
         <Dialog onOpenChange={onOpenChange} open={open}>
             <DialogPopup>
-                {isResponseStep && selectedOptions ? (
+                {selectedOptions ? (
                     <>
                         <DialogHeader>
                             <DialogTitle>Good news —</DialogTitle>

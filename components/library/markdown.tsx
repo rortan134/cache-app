@@ -700,7 +700,6 @@ export function MarkdownImportDialog() {
                     <DialogTitle>{stepTitle}</DialogTitle>
                     <DialogDescription>{stepDescription}</DialogDescription>
                 </DialogHeader>
-
                 <DialogPanel>
                     {step === "choose" && renderChooseStep}
                     {step === "create-new" && renderCreateNewStep}
@@ -708,7 +707,6 @@ export function MarkdownImportDialog() {
                     {step === "importing" && renderImportingStep}
                     {step === "done" && renderDoneStep}
                 </DialogPanel>
-
                 <DialogFooter>{renderFooter()}</DialogFooter>
             </DialogPopup>
         </Dialog>

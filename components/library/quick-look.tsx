@@ -30,8 +30,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
 import { clamp } from "@/lib/common/numbers";
-import type { Oembed } from "@/lib/common/oembed";
-import { OembedSchema } from "@/lib/common/oembed";
+import { type Oembed, OembedSchema } from "@/lib/common/oembed";
 import { parseValidUrl } from "@/lib/common/url";
 import { MediaPlaceholder } from "../ui/media-placeholder";
 
@@ -43,10 +42,9 @@ const ITEMS_STORAGE_KEY = "cache:quick-look:items";
 const OPEN_STORAGE_KEY = "cache:quick-look:open";
 const QUEUE_LIMIT = 12;
 
-const OEMBED_DIRECT_IFRAME_SANDBOX =
-    "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation";
 const OEMBED_IFRAME_SANDBOX =
     "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation";
+const OEMBED_DIRECT_IFRAME_SANDBOX = `${OEMBED_IFRAME_SANDBOX} allow-same-origin`;
 const OEMBED_IFRAME_ALLOW =
     "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share";
 const QUICK_LOOK_IFRAME_SANDBOX =
@@ -59,13 +57,11 @@ const YOUTUBE_IFRAME_HOSTS = new Set([
     "www.youtube-nocookie.com",
 ]);
 
-const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookEntry>();
-
 type IframeStatus = "pending" | "loaded" | "blocked";
 
 type OembedStatus = "blocked" | "loaded" | "loading" | "oembed";
 
-type OEmbedResolution =
+type OembedResolution =
     | {
           oembed: Oembed;
           resolution: "found";
@@ -105,6 +101,8 @@ interface QuickLookActions {
 
 type QuickLookStoreActions = QuickLookActions &
     Record<string, (...args: never[]) => void>;
+
+const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookEntry>();
 
 const QuickLookContext = React.createContext<QuickLookContextValue | null>(
     null
@@ -198,7 +196,7 @@ function useQuickLookStatus(url: string | null, timeoutMs: number) {
 
 function parseOembedStatus(
     url: string | null,
-    data: OEmbedResolution | undefined,
+    data: OembedResolution | undefined,
     error: Error | undefined,
     iframeStatus: IframeStatus
 ): OembedStatus {
@@ -237,7 +235,7 @@ function parseOembedStatus(
     return "loading";
 }
 
-async function resolveOembed(url: string): Promise<OEmbedResolution> {
+async function resolveOembed(url: string): Promise<OembedResolution> {
     const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
         headers: { Accept: "application/json" },
     });
@@ -247,8 +245,7 @@ async function resolveOembed(url: string): Promise<OEmbedResolution> {
     if (!response.ok) {
         return { resolution: "not-found" };
     }
-    const data: unknown = await response.json();
-    const parsed = OembedSchema.safeParse(data);
+    const parsed = OembedSchema.safeParse(await response.json());
     return parsed.success
         ? { oembed: parsed.data, resolution: "found" }
         : { resolution: "not-found" };
@@ -505,53 +502,51 @@ export function QuickLookDrawerContent({
     });
 
     return (
-        <>
+        <Drawer
+            disablePointerDismissal
+            handle={QUICK_LOOK_DRAWER_HANDLE}
+            modal={false}
+            onOpenChange={handleOpenChange}
+            open={isOpen}
+            position="right"
+            swipeDirection="right"
+            triggerId={triggerId}
+        >
             <QuickLookDrawerToggle />
-            <Drawer
-                disablePointerDismissal
-                handle={QUICK_LOOK_DRAWER_HANDLE}
-                modal={false}
-                onOpenChange={handleOpenChange}
-                open={isOpen}
-                position="right"
-                swipeDirection="right"
-                triggerId={triggerId}
+            <DrawerViewport
+                className="lg:sticky lg:h-dvh"
+                portalProps={{
+                    className: "lg:flex-1",
+                    container,
+                }}
+                shouldShowBackdrop={false}
             >
-                <DrawerViewport
-                    className="lg:sticky lg:h-dvh"
-                    portalProps={{
-                        className: "lg:flex-1",
-                        container,
-                    }}
-                    shouldShowBackdrop={false}
-                >
-                    <DrawerPopup className="max-w-full" variant="straight">
-                        <DrawerHeader
-                            className={cn("p-2 pr-11 pb-2!", {
-                                "p-0 pb-0!": !activeEntry,
-                            })}
-                        >
-                            <DrawerTitle className="sr-only">
-                                Quick Look
-                            </DrawerTitle>
-                            <QuickLookList items={items}>
-                                {(item, index) => (
-                                    <QuickLookListItem
-                                        index={index}
-                                        isActive={index === safeActiveIndex}
-                                        item={item}
-                                        key={item.url}
-                                        onRemove={removeQueueItem}
-                                        onSelect={selectQueueIndex}
-                                    />
-                                )}
-                            </QuickLookList>
-                        </DrawerHeader>
-                        <QuickLookDrawerPanel activeEntry={activeEntry} />
-                    </DrawerPopup>
-                </DrawerViewport>
-            </Drawer>
-        </>
+                <DrawerPopup className="max-w-full" variant="straight">
+                    <DrawerHeader
+                        className={cn("p-2 pr-11 pb-2!", {
+                            "p-0 pb-0!": !activeEntry,
+                        })}
+                    >
+                        <DrawerTitle className="sr-only">
+                            Quick Look
+                        </DrawerTitle>
+                        <QuickLookList items={items}>
+                            {(item, index) => (
+                                <QuickLookListItem
+                                    index={index}
+                                    isActive={index === safeActiveIndex}
+                                    item={item}
+                                    key={item.url}
+                                    onRemove={removeQueueItem}
+                                    onSelect={selectQueueIndex}
+                                />
+                            )}
+                        </QuickLookList>
+                    </DrawerHeader>
+                    <QuickLookDrawerPanel activeEntry={activeEntry} />
+                </DrawerPopup>
+            </DrawerViewport>
+        </Drawer>
     );
 }
 
@@ -787,10 +782,12 @@ function QuickLookDrawerToggle({
         return null;
     }
 
+    const toggleLabel = isOpen ? "Close preview" : "Open preview";
+
     return (
         <Button
             {...props}
-            aria-label={isOpen ? "Close preview" : "Open preview"}
+            aria-label={toggleLabel}
             className={cn(
                 "fixed top-2 right-2 z-60 hidden shrink-0 opacity-50 hover:opacity-100 lg:inline-flex",
                 { "opacity-100": isOpen },
@@ -800,7 +797,7 @@ function QuickLookDrawerToggle({
             data-slot="quick-look-toggle"
             onClick={handleClick}
             size="icon-sm"
-            title={isOpen ? "Close preview" : "Open preview"}
+            title={toggleLabel}
             variant="ghost"
         >
             {isOpen ? (
