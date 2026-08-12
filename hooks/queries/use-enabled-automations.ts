@@ -1,29 +1,47 @@
 import useSWR from "swr";
 import { listAutomations } from "@/lib/intelligence/automations/actions";
+import type { AutomationListItem } from "@/lib/intelligence/automations/service";
 
 const ENABLED_AUTOMATIONS_KEY = "enabled-automations";
 
 async function fetchEnabledAutomations() {
-    const result = await listAutomations();
+    try {
+        const result = await listAutomations();
 
-    if (result.status !== "SUCCESS") {
-        throw new Error(result.message);
+        if (result.status !== "SUCCESS") {
+            throw new Error(result.message);
+        }
+
+        return result.automations.filter(
+            (automation) => automation.status === "active"
+        );
+    } catch (error) {
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error(
+            typeof error === "string" ? error : "Failed to load automations",
+            { cause: error }
+        );
     }
-
-    return result.automations.filter(
-        (automation) => automation.status === "active"
-    );
 }
 
 export function useEnabledAutomations() {
-    const { data, error, isLoading, mutate } = useSWR(
+    const {
+        data = [],
+        error,
+        isLoading,
+        mutate,
+    } = useSWR<AutomationListItem[], Error>(
         ENABLED_AUTOMATIONS_KEY,
         fetchEnabledAutomations,
-        { keepPreviousData: true }
+        {
+            keepPreviousData: true,
+        }
     );
 
     return {
-        automations: data ?? [],
+        data,
         error,
         isLoading,
         mutate,
