@@ -15,9 +15,9 @@ export const usePreventWindowUnload = (
         const ownerWindow = getOwnerWindow();
 
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            const enabled =
+            const _isEnabled =
                 typeof isEnabled === "function" ? isEnabled() : isEnabled;
-            if (!enabled) {
+            if (!_isEnabled) {
                 return;
             }
 

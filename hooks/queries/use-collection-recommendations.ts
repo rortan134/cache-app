@@ -7,11 +7,9 @@ const COLLECTION_RECOMMENDATIONS_KEY = "collection-recommendations";
 async function fetchCollectionRecommendations() {
     try {
         const result = await getCollectionRecommendations();
-
         if (result.status !== "SUCCESS") {
             throw new Error(result.message);
         }
-
         return result.recommendations;
     } catch (error) {
         if (error instanceof Error) {

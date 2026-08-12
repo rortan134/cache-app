@@ -93,9 +93,6 @@ function getServerSnapshot(): string[] {
 function subscribe(listener: () => void): () => void {
     listeners.push(listener);
 
-    // The `storage` event only fires in *other* documents, so in-tab
-    // updates from `markVisited` reach other instances through `emitChange`
-    // instead.
     const handleStorage = (event: StorageEvent) => {
         if (event.key === null || event.key === STORAGE_KEY) {
             cachedSnapshot = undefined;
@@ -110,11 +107,13 @@ function subscribe(listener: () => void): () => void {
     };
 }
 
-export function useLastVisited(): {
+interface UseLastVisitedReturnType {
     isLastVisited: (itemId: string) => boolean;
     lastVisitedItemIds: string[];
     markVisited: (itemId: string) => void;
-} {
+}
+
+export function useLastVisited(): UseLastVisitedReturnType {
     const lastVisitedItemIds = React.useSyncExternalStore(
         subscribe,
         getSnapshot,

@@ -7,11 +7,9 @@ const ENABLED_AUTOMATIONS_KEY = "enabled-automations";
 async function fetchEnabledAutomations() {
     try {
         const result = await listAutomations();
-
         if (result.status !== "SUCCESS") {
             throw new Error(result.message);
         }
-
         return result.automations.filter(
             (automation) => automation.status === "active"
         );
@@ -35,9 +33,7 @@ export function useEnabledAutomations() {
     } = useSWR<AutomationListItem[], Error>(
         ENABLED_AUTOMATIONS_KEY,
         fetchEnabledAutomations,
-        {
-            keepPreviousData: true,
-        }
+        { keepPreviousData: true }
     );
 
     return {
