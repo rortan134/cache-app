@@ -1069,8 +1069,7 @@ async function serveGooglePhotosPreview(
                 redirect: "error",
                 signal: request.signal,
             },
-            FETCH_TIMEOUT_MS,
-            request.signal
+            FETCH_TIMEOUT_MS
         );
 
         if (!imageResponse.ok) {

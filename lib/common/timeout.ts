@@ -1,24 +1,18 @@
 import { abortAfterAny } from "@/lib/common/abort";
 
 /**
- * Fetch with a timeout that composes with any existing or external signals.
+ * Fetch with a timeout that composes with any signal already present in `options`
+ * (e.g. upstream timeouts or a client disconnect signal).
  *
- * Preserves signals already present in `options` (e.g. upstream timeouts)
- * and merges them with an optional external signal (e.g. client disconnect).
+ * Unlike `AbortSignal.timeout`, the timer is disarmed as soon as the fetch
+ * settles, so it does not stay armed until the deadline.
  */
 export async function fetchWithTimeout(
     input: string,
     options: RequestInit,
-    timeoutMs: number,
-    externalSignal?: AbortSignal
+    timeoutMs: number
 ): Promise<Response> {
-    const signals: AbortSignal[] = [];
-    if (options.signal) {
-        signals.push(options.signal);
-    }
-    if (externalSignal) {
-        signals.push(externalSignal);
-    }
+    const signals = options.signal ? [options.signal] : [];
 
     const { signal, clearTimeout } = abortAfterAny(timeoutMs, ...signals);
     try {

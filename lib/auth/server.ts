@@ -11,6 +11,7 @@ import { getPlanPriceIds } from "@/lib/billing/prices";
 import { APP_NAME, BASE_URL, CACHE_EXTENSION_ID } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { fetchWithTimeout } from "@/lib/common/timeout";
 import { GOOGLE_PHOTOS_PICKER_SCOPE } from "@/lib/integrations/google-photos/shared";
 import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
 import { prisma } from "@/prisma";
@@ -141,13 +142,16 @@ async function fetchOAuthUser<T>(
     }
 
     try {
-        const response = await fetch(url, {
-            headers: {
-                Authorization: `Bearer ${tokens.accessToken}`,
-                ...extraHeaders,
+        const response = await fetchWithTimeout(
+            url,
+            {
+                headers: {
+                    Authorization: `Bearer ${tokens.accessToken}`,
+                    ...extraHeaders,
+                },
             },
-            signal: AbortSignal.timeout(OAUTH_USER_FETCH_TIMEOUT_MS),
-        });
+            OAUTH_USER_FETCH_TIMEOUT_MS
+        );
         if (!response.ok) {
             log.warn(`OAuth user fetch failed for ${providerId}`, {
                 status: response.status,

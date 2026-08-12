@@ -17,9 +17,12 @@ import { isAbortError } from "@/lib/common/abort";
 import { cn } from "@/lib/common/cn";
 import { APP_NAME } from "@/lib/common/constants";
 import { saveFile } from "@/lib/common/file";
+import { fetchWithTimeout } from "@/lib/common/timeout";
+
+const FETCH_TIMEOUT_MS = 10_000;
 
 async function fetchLogo(url: string, signal: AbortSignal): Promise<Blob> {
-    const response = await fetch(url, { signal });
+    const response = await fetchWithTimeout(url, { signal }, FETCH_TIMEOUT_MS);
     if (!response.ok) {
         throw new Error(`Failed to fetch logo image (${response.status})`);
     }
