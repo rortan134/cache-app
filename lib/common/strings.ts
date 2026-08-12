@@ -5,8 +5,8 @@ const TRAILING_NUMBER_REPLACE_PATTERN = /(\d+)$/;
 const DJB2_HASH_INIT = 5381;
 
 /**
- * Get an incremented name (e.g. New page (2)) from a name (e.g. New page), based on an array of
- * existing names.
+ * Get an incremented name (e.g. "New page 1", "New page 2") from a base name
+ * (e.g. "New page"), based on an array of existing names.
  *
  * @param name - The name to increment.
  * @param others - The array of existing names.

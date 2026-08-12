@@ -10,5 +10,8 @@ export function formatPercent(value: number): string {
 }
 
 export function formatSharePercent(value: number, total: number): string {
+    if (total <= 0) {
+        return "0%";
+    }
     return formatPercent((value / total) * 100);
 }

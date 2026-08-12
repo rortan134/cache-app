@@ -4,6 +4,9 @@ import { formatLogValue } from "@/lib/common/logs/format";
 /**
  * Redacts sensitive entities (email addresses, phone numbers, IP addresses,
  * and credit cards) from a single text value using Arcjet.
+ *
+ * Fails closed: when redaction is unavailable the value is replaced by an
+ * explicit marker instead of leaking the original text into the logs.
  */
 async function redactString(string: string): Promise<string> {
     if (string.length === 0) {
@@ -22,7 +25,7 @@ async function redactString(string: string): Promise<string> {
         });
         return redacted;
     } catch {
-        return string;
+        return "[Redaction failed]";
     }
 }
 

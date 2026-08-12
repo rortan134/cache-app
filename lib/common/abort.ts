@@ -25,12 +25,6 @@ export function abortAfter(ms: number) {
  * @param signals Additional signals to combine
  * @returns Combined signal that aborts on timeout or when any input signal aborts
  */
-export function isAbortError(error: unknown): boolean {
-    return error instanceof DOMException
-        ? error.name === "AbortError"
-        : error instanceof Error && error.name === "AbortError";
-}
-
 export function abortAfterAny(ms: number, ...signals: AbortSignal[]) {
     const timeout = abortAfter(ms);
     const signal = AbortSignal.any([timeout.signal, ...signals]);
@@ -38,4 +32,13 @@ export function abortAfterAny(ms: number, ...signals: AbortSignal[]) {
         clearTimeout: timeout.clearTimeout,
         signal,
     };
+}
+
+/**
+ * Returns true when the error is an AbortError, across realms.
+ */
+export function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException
+        ? error.name === "AbortError"
+        : error instanceof Error && error.name === "AbortError";
 }

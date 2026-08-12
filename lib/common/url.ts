@@ -73,24 +73,6 @@ export const parseStandaloneUrl = (input: string): URL | null => {
     return url;
 };
 
-export const parseUrlSearchParams = (url: string) => {
-    if (!url) {
-        return {};
-    }
-    try {
-        const params = new URL(url).searchParams;
-        const paramsObj: Record<string, string> = {};
-        for (const [key, value] of params.entries()) {
-            if (value) {
-                paramsObj[key] = value;
-            }
-        }
-        return paramsObj;
-    } catch {
-        return {};
-    }
-};
-
 const WWW_REG = /^www\./i;
 
 export const parseDisplayUrl = (url: string): string => {

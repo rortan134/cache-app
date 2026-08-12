@@ -22,10 +22,10 @@ export function getComputedStyle(element: Element, pseudoElement?: string) {
 }
 
 export function isTextEntryTarget(target: EventTarget | null): boolean {
-    if (!(target instanceof Node)) {
+    const ownerWindow = getOwnerWindow();
+    if (!(target instanceof ownerWindow.Node)) {
         return false;
     }
-    const ownerWindow = getOwnerWindow(target);
 
     return (
         target instanceof ownerWindow.HTMLElement &&
