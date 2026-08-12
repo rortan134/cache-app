@@ -79,6 +79,8 @@ const USER_AGENT =
     "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 const GOOGLEBOT_USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+// const BROWSER_USER_AGENT =
+//     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
 const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 const ABORTED_RESPONSE = new Response(null, { status: 499 });
