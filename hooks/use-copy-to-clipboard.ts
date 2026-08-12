@@ -23,14 +23,15 @@ export function useCopyToClipboard({
     onCopy: onCopyProp,
 }: UseCopyToClipboardOptions = {}): UseCopyToClipboardResult {
     const [isCopied, setIsCopied] = React.useState(false);
-    const timeoutManager = useTimeout();
+    const timeout = useTimeout();
+
     const onCopy = useStableCallback(onCopyProp);
 
     const copyToClipboard = useStableCallback(async (value: string) => {
         if (!(canUseDOM && value)) {
             return false;
         }
-        timeoutManager.clear();
+        timeout.clear();
 
         const success = await copy(value);
         if (!success) {
@@ -41,7 +42,7 @@ export function useCopyToClipboard({
         onCopy?.();
 
         if (timeoutMs !== 0) {
-            timeoutManager.start(timeoutMs, () => {
+            timeout.start(timeoutMs, () => {
                 setIsCopied(false);
             });
         }

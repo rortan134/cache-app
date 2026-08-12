@@ -88,16 +88,19 @@ interface DeviceSession {
 const log = createLogger("auth-user-menu");
 
 function useUserMenuAccounts() {
-    const { data: activeSession, refetch } = useSession();
     const router = useRouter();
-    const [, startTransition] = React.useTransition();
+    const { data: activeSession, refetch } = useSession();
+
+    const [, startAccountChangeTransition] = React.useTransition();
+    const [isAddingAccount, startAddAccountTransition] = React.useTransition();
     const [pendingSessionToken, setPendingSessionToken] = React.useState<
         null | string
     >(null);
+
     const [switchAccountError, setSwitchAccountError] =
         React.useState<unknown>(null);
     const [addAccountError, setAddAccountError] = React.useState<unknown>(null);
-    const [isAddingAccount, setIsAddingAccount] = React.useState(false);
+
     const {
         data: deviceSessions = [],
         error: deviceSessionsError,
@@ -120,7 +123,7 @@ function useUserMenuAccounts() {
         setPendingSessionToken(sessionToken);
         setSwitchAccountError(null);
 
-        startTransition(async () => {
+        startAccountChangeTransition(async () => {
             try {
                 const result = await authClient.multiSession.setActive({
                     sessionToken,
@@ -143,30 +146,26 @@ function useUserMenuAccounts() {
         });
     });
 
-    const handleAddAccount = useStableCallback(async () => {
-        if (isAddingAccount) {
-            return;
-        }
+    const handleAddAccount = useStableCallback(() => {
         setAddAccountError(null);
-        setIsAddingAccount(true);
 
-        try {
-            const result = await authClient.signIn.social({
-                callbackURL: "/library",
-                errorCallbackURL: "/library",
-                provider: "google",
-            });
+        startAddAccountTransition(async () => {
+            try {
+                const result = await authClient.signIn.social({
+                    callbackURL: "/library",
+                    errorCallbackURL: "/library",
+                    provider: "google",
+                });
 
-            if (result.error) {
-                log.error("Failed to add account session", result.error);
-                setAddAccountError(result.error);
+                if (result.error) {
+                    log.error("Failed to add account session", result.error);
+                    setAddAccountError(result.error);
+                }
+            } catch (error) {
+                log.error("Failed to add account session", error);
+                setAddAccountError(error);
             }
-        } catch (error) {
-            log.error("Failed to add account session", error);
-            setAddAccountError(error);
-        } finally {
-            setIsAddingAccount(false);
-        }
+        });
     });
 
     const accountMenuError = getAccountMenuError(

@@ -1,18 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import type { DesktopPlatform } from "@/lib/desktop/constants";
 import { detectDesktopPlatform, isDesktopApp } from "@/lib/desktop/platform";
+
+const subscribe = () => () => {
+    // Platform and desktop-app detection never change during a session.
+};
+
+const getServerPlatformSnapshot = (): DesktopPlatform | null => null;
+
+const getServerIsDesktopAppSnapshot = (): boolean => false;
 
 export function useDesktopPlatform(): {
     isDesktop: boolean;
     platform: DesktopPlatform | null;
 } {
-    const [platform, setPlatform] = useState<DesktopPlatform | null>(null);
-
-    useEffect(() => {
-        setPlatform(detectDesktopPlatform());
-    }, []);
+    const platform = useSyncExternalStore(
+        subscribe,
+        detectDesktopPlatform,
+        getServerPlatformSnapshot
+    );
 
     return {
         isDesktop: platform !== null,
@@ -24,17 +32,19 @@ export function useDesktopApp(): {
     isDesktopApp: boolean;
     platform: DesktopPlatform | null;
 } {
-    const [result, setResult] = useState<{
-        isDesktopApp: boolean;
-        platform: DesktopPlatform | null;
-    }>({ isDesktopApp: false, platform: null });
+    const isDesktopAppValue = useSyncExternalStore(
+        subscribe,
+        isDesktopApp,
+        getServerIsDesktopAppSnapshot
+    );
+    const platform = useSyncExternalStore(
+        subscribe,
+        detectDesktopPlatform,
+        getServerPlatformSnapshot
+    );
 
-    useEffect(() => {
-        setResult({
-            isDesktopApp: isDesktopApp(),
-            platform: detectDesktopPlatform(),
-        });
-    }, []);
-
-    return result;
+    return {
+        isDesktopApp: isDesktopAppValue,
+        platform,
+    };
 }
