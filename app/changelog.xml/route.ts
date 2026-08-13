@@ -1,8 +1,6 @@
-import { NextResponse } from "next/server";
 import { BASE_URL } from "@/lib/common/constants";
 
-export const dynamic = "force-static";
-export const revalidate = 3600;
+const revalidate = 3600;
 
 interface Release {
     body: string;
@@ -25,14 +23,15 @@ function escapeXml(str: string) {
 
 export async function GET() {
     try {
-        const res = await fetch(
+        const response = await fetch(
             "https://api.github.com/repos/rortan134/cache-app/releases",
             {
                 headers: { Accept: "application/vnd.github+json" },
                 next: { revalidate },
             }
         );
-        const releases: Release[] = await res.json();
+        const releases: Release[] = await response.json();
+
         const items = (releases || [])
             .filter((r) => !r.prerelease)
             .map(
@@ -59,7 +58,7 @@ export async function GET() {
         </channel>
       </rss>`;
 
-        return new NextResponse(xml, {
+        return new Response(xml, {
             headers: {
                 "Cache-Control": `public, s-maxage=${revalidate}, stale-while-revalidate=${revalidate}`,
                 "Content-Type": "application/rss+xml; charset=utf-8",
@@ -67,6 +66,6 @@ export async function GET() {
             status: 200,
         });
     } catch {
-        return new NextResponse("Service Unavailable", { status: 503 });
+        return new Response("Service Unavailable", { status: 503 });
     }
 }
