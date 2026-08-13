@@ -42,6 +42,8 @@ export const ITEM_KIND_BOOKMARK = "bookmark" as const;
 export const ITEM_KIND_FOLDER = "folder" as const;
 export const ITEM_KIND_NOTE = "note" as const;
 
+export const NAME_MAX_LENGTH = 64;
+
 export const DESCRIPTION_MAX_LENGTH = 1024;
 
 export const PRISMA_UNIQUE_CONSTRAINT_ERROR = "P2002";

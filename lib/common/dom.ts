@@ -3,7 +3,12 @@ export const canUseDOM =
     typeof window.document !== "undefined" &&
     typeof window.document.createElement !== "undefined";
 
-export function getOwnerWindow(node?: Node | Document | null | undefined) {
+export function getOwnerWindow(
+    node?:
+        | (EventTarget & { ownerDocument?: Document | null })
+        | null
+        | undefined
+) {
     if (!canUseDOM) {
         throw new Error("Cannot access window outside of the DOM");
     }
@@ -22,7 +27,7 @@ export function getComputedStyle(element: Element, pseudoElement?: string) {
 }
 
 export function isTextEntryTarget(target: EventTarget | null): boolean {
-    const ownerWindow = getOwnerWindow();
+    const ownerWindow = getOwnerWindow(target);
     if (!(target instanceof ownerWindow.Node)) {
         return false;
     }
