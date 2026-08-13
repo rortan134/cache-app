@@ -419,7 +419,7 @@ export default async function Home() {
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T context="Habits">
                                 <h2 className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Stop leaving it for "later"
+                                    Stop leaving it for later
                                 </h2>
                                 <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
                                     We all save things with good intentions,

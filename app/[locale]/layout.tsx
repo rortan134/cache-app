@@ -114,7 +114,6 @@ export default async function LocaleLayout(props: React.PropsWithChildren) {
             </head>
             <body>
                 <ThemeSync />
-                <ThemeHotkey />
                 <ConsoleBanner version={packageJson.version} />
                 <span aria-atomic="true" aria-live="polite" className="sr-only">
                     {APP_NAME}
@@ -128,6 +127,7 @@ export default async function LocaleLayout(props: React.PropsWithChildren) {
                     </a>
                 </div>
                 <GTProvider>
+                    <ThemeHotkey />
                     <ShortcutsProvider>{props.children}</ShortcutsProvider>
                 </GTProvider>
             </body>

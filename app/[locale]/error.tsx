@@ -41,7 +41,7 @@ export default function ErrorPage({
                 <div className="flex flex-wrap items-center justify-center gap-3">
                     <Button onClick={handleReset}>Try again</Button>
                     <Link
-                        className={buttonVariants({ variant: "default" })}
+                        className={buttonVariants({ variant: "secondary" })}
                         href="/"
                     >
                         Home
