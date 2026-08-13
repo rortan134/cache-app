@@ -191,23 +191,26 @@ describe("Logger argument formatting", () => {
 
 describe("Logger environment suppression", () => {
     function logsNothingInDisabledEnvironment(setup: () => void) {
-        const logSpy = spyOn(console, "log").mockImplementation(
-            () => undefined
-        );
-        const errorSpy = spyOn(console, "error").mockImplementation(
-            () => undefined
-        );
+        const spies = {
+            debug: spyOn(console, "debug").mockImplementation(() => undefined),
+            error: spyOn(console, "error").mockImplementation(() => undefined),
+            info: spyOn(console, "info").mockImplementation(() => undefined),
+            log: spyOn(console, "log").mockImplementation(() => undefined),
+            warn: spyOn(console, "warn").mockImplementation(() => undefined),
+        };
         try {
             setup();
             logger.debug("should not appear");
             logger.info("should not appear");
             logger.warn("should not appear");
             logger.error("should not appear");
-            expect(logSpy).not.toHaveBeenCalled();
-            expect(errorSpy).not.toHaveBeenCalled();
+            for (const spy of Object.values(spies)) {
+                expect(spy).not.toHaveBeenCalled();
+            }
         } finally {
-            errorSpy.mockRestore();
-            logSpy.mockRestore();
+            for (const spy of Object.values(spies)) {
+                spy.mockRestore();
+            }
         }
     }
 
@@ -229,26 +232,7 @@ describe("Logger environment suppression", () => {
         );
     });
 
-    test("logs at every level in the development environment", () => {
-        const logSpy = spyOn(console, "log").mockImplementation(
-            () => undefined
-        );
-        const warnSpy = spyOn(console, "warn").mockImplementation(
-            () => undefined
-        );
-        try {
-            logger.debug("debug message");
-            logger.info("info message");
-            logger.warn("warn message");
-            expect(logSpy).toHaveBeenCalledTimes(2);
-            expect(warnSpy).toHaveBeenCalledTimes(1);
-        } finally {
-            logSpy.mockRestore();
-            warnSpy.mockRestore();
-        }
-    });
-
-    test("routes each level to its corresponding console method", () => {
+    test("logs at every level through its corresponding console method in the development environment", () => {
         const spies = {
             debug: spyOn(console, "debug").mockImplementation(() => undefined),
             error: spyOn(console, "error").mockImplementation(() => undefined),
@@ -277,7 +261,7 @@ describe("Logger environment suppression", () => {
 
 describe("Logger.time", () => {
     test("logs a started event and a completed event with a duration on stop", () => {
-        const spy = spyOn(console, "log").mockImplementation(() => undefined);
+        const spy = spyOn(console, "info").mockImplementation(() => undefined);
         try {
             const span = logger.time("sync invoices", { tenantId: "t1" });
             span.stop();
@@ -285,7 +269,7 @@ describe("Logger.time", () => {
             const [started, completed] = spy.mock.calls;
             if (started === undefined || completed === undefined) {
                 throw new Error(
-                    "Expected logger.time to write two console.log calls"
+                    "Expected logger.time to write two console.info calls"
                 );
             }
             expect(JSON.parse(String(started[2]))).toEqual({
@@ -303,7 +287,7 @@ describe("Logger.time", () => {
     });
 
     test("supports Symbol.dispose to stop the span", () => {
-        const spy = spyOn(console, "log").mockImplementation(() => undefined);
+        const spy = spyOn(console, "info").mockImplementation(() => undefined);
         try {
             const span = logger.time("sync invoices");
             span[Symbol.dispose]();
