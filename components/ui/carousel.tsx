@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { cn } from "@/lib/common/cn";
 import "@blossom-carousel/react/style.css";
+import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
 
@@ -34,36 +35,42 @@ function useCarouselContext() {
     return context;
 }
 
+interface useCarouselScrollOverflowProps {
+    handleRef: React.RefObject<CarouselHandle>;
+    isEnabled: boolean;
+    resetKey: unknown;
+}
+
 function useCarouselScrollOverflow({
     resetKey,
     isEnabled,
     handleRef,
-}: {
-    resetKey: unknown;
-    isEnabled: boolean;
-    handleRef: React.RefObject<CarouselHandle>;
-}) {
+}: useCarouselScrollOverflowProps) {
+    const animationFrame = useAnimationFrame();
+
     const updateOverflow = useStableCallback(() => {
-        const scrollableEl = handleRef.current?.element;
-        if (!scrollableEl?.isConnected) {
-            return;
-        }
-        const maxScrollLeft = Math.max(
-            0,
-            scrollableEl.scrollWidth - scrollableEl.clientWidth
-        );
-        const scrollLeft = Math.max(
-            0,
-            Math.min(scrollableEl.scrollLeft, maxScrollLeft)
-        );
-        scrollableEl.style.setProperty(
-            "--carousel-overflow-x-start",
-            `${scrollLeft}px`
-        );
-        scrollableEl.style.setProperty(
-            "--carousel-overflow-x-end",
-            `${maxScrollLeft - scrollLeft}px`
-        );
+        animationFrame.request(() => {
+            const scrollableEl = handleRef.current?.element;
+            if (!scrollableEl?.isConnected) {
+                return;
+            }
+            const maxScrollLeft = Math.max(
+                0,
+                scrollableEl.scrollWidth - scrollableEl.clientWidth
+            );
+            const scrollLeft = Math.max(
+                0,
+                Math.min(scrollableEl.scrollLeft, maxScrollLeft)
+            );
+            scrollableEl.style.setProperty(
+                "--carousel-overflow-x-start",
+                `${scrollLeft}px`
+            );
+            scrollableEl.style.setProperty(
+                "--carousel-overflow-x-end",
+                `${maxScrollLeft - scrollLeft}px`
+            );
+        });
     });
 
     useIsoLayoutEffect(() => {
@@ -78,18 +85,19 @@ function useCarouselScrollOverflow({
 
         updateOverflow();
 
-        const observer =
-            typeof ResizeObserver === "undefined"
-                ? null
-                : new ResizeObserver(updateOverflow);
-        observer?.observe(scrollableElement);
-
         scrollableElement.addEventListener("scroll", updateOverflow, {
             passive: true,
         });
 
+        const resizeObserver =
+            typeof ResizeObserver === "function"
+                ? new ResizeObserver(updateOverflow)
+                : null;
+        resizeObserver?.observe(scrollableElement);
+
         return () => {
-            observer?.disconnect();
+            resizeObserver?.disconnect();
+            animationFrame.cancel();
             scrollableElement.removeEventListener("scroll", updateOverflow);
             scrollableElement.style.removeProperty(
                 "--carousel-overflow-x-start"
