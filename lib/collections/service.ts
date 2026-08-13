@@ -1027,6 +1027,20 @@ export function purgeExpiredLibraryItems({
                 break;
             }
 
+            // Create activity events BEFORE the delete. The FK on
+            // libraryItemId references libraryItem.id, so events must be
+            // written while items still exist — otherwise the FK constraint
+            // rejects rows pointing at already-deleted items. Survivors
+            // (concurrently restored items) are cleaned up below.
+            await tx.libraryActivityEvent.createMany({
+                data: candidateIds.map((itemId) => ({
+                    kind: "item_purged" as const,
+                    libraryItemId: itemId,
+                    occurredAt: now,
+                    userId,
+                })),
+            });
+
             // deleteMany includes `deletedAt` so a concurrent restore that sets
             // `deletedAt = null` between the read above and this delete is
             // excluded — a restored item is no longer expired and must survive.
@@ -1039,7 +1053,9 @@ export function purgeExpiredLibraryItems({
             });
 
             // Find which candidates survived the delete (were restored between
-            // read and delete) so events only track items actually removed.
+            // read and delete) so we can remove their premature events. A
+            // restored item was never actually purged, so it must not carry an
+            // `item_purged` event.
             const survivors = new Set(
                 (
                     await tx.libraryItem.findMany({
@@ -1048,19 +1064,19 @@ export function purgeExpiredLibraryItems({
                     })
                 ).map((item) => item.id)
             );
+
+            if (survivors.size > 0) {
+                await tx.libraryActivityEvent.deleteMany({
+                    where: {
+                        kind: "item_purged",
+                        libraryItemId: { in: [...survivors] },
+                        userId,
+                    },
+                });
+            }
+
             const batchPurged = candidateIds.filter((id) => !survivors.has(id));
             purgedIds.push(...batchPurged);
-        }
-
-        if (purgedIds.length > 0) {
-            await tx.libraryActivityEvent.createMany({
-                data: purgedIds.map((itemId) => ({
-                    kind: "item_purged" as const,
-                    libraryItemId: itemId,
-                    occurredAt: now,
-                    userId,
-                })),
-            });
         }
 
         return { purgedItemIds: purgedIds };
