@@ -75,7 +75,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
                         <Link
                             {...props}
                             className={logoClassName}
-                            draggable={false}
+                            draggable="false"
                             href={href}
                         />
                     ) : (
@@ -86,9 +86,8 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
                 <Image
                     alt={APP_NAME}
                     className="block h-auto w-45 select-none"
-                    draggable={false}
+                    draggable="false"
                     fetchPriority="high"
-                    loading="eager"
                     sizes="180px"
                     src={src}
                 />

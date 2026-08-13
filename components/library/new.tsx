@@ -288,7 +288,7 @@ export interface NoteDraft {
     contentState: NoteSerializedEditorState | null;
 }
 
-interface NoteContextValue {
+interface NoteContext {
     contentEditableRef?: React.RefObject<HTMLDivElement | null>;
     contentHtml: string;
     editorKey: number;
@@ -337,9 +337,9 @@ interface EditorSession {
 
 const log = createLogger("library:notes");
 
-const NoteContext = createContext<NoteContextValue | null>(null);
+const NoteContext = createContext<NoteContext | null>(null);
 
-export function useNoteContext(): NoteContextValue {
+export function useNoteContext(): NoteContext {
     const context = use(NoteContext);
     if (!context) {
         throw new Error(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     BlossomCarousel,
@@ -15,13 +16,13 @@ import "@blossom-carousel/react/style.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
 
-interface CarouselContextValue {
+type CarouselHandle = React.ComponentRef<typeof BlossomCarousel> | null;
+
+interface CarouselContext {
     id: string;
 }
 
-type CarouselHandle = React.ComponentRef<typeof BlossomCarousel> | null;
-
-const CarouselContext = React.createContext<CarouselContextValue | null>(null);
+const CarouselContext = React.createContext<CarouselContext | null>(null);
 
 function useCarouselContext() {
     const context = React.use(CarouselContext);
@@ -116,12 +117,14 @@ export function CarouselPanel({
     className,
     shouldScrollFade = false,
     slideClassName,
+    ref,
     ...props
 }: CarouselPanelProps) {
     const gt = useGT();
     const { id } = useCarouselContext();
 
     const handleRef = React.useRef<CarouselHandle>(null);
+    const mergedRef = useMergedRefs(ref, handleRef);
 
     const slides = React.Children.toArray(children);
 
@@ -143,7 +146,7 @@ export function CarouselPanel({
                 className
             )}
             id={id}
-            ref={handleRef}
+            ref={mergedRef}
             role="region"
         >
             {slides.map((child, index) => {

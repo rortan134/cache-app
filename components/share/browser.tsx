@@ -1,6 +1,7 @@
 "use client";
 
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import * as React from "react";
@@ -209,9 +210,12 @@ interface PreviewMediaProps extends Omit<React.ComponentProps<"img">, "src"> {
 function PreviewMedia({
     className,
     src,
+    ref,
     ...props
 }: PreviewMediaProps): React.ReactElement {
     const imgRef = React.useRef<HTMLImageElement | null>(null);
+    const mergedRef = useMergedRefs(ref, imgRef);
+
     const [didFail, setDidFail] = React.useState(false);
     const [dimensions, setDimensions] = React.useState<Dimensions | null>(() =>
         readCachedDimensions(src)
@@ -225,6 +229,7 @@ function PreviewMedia({
     }
 
     const canRenderImage = Boolean(src) && !didFail;
+    const displayDimensions = resolveDisplayDimensions(dimensions);
 
     const applyNaturalDimensions = useStableCallback(
         (img: HTMLImageElement) => {
@@ -270,8 +275,6 @@ function PreviewMedia({
         }
     }, [applyNaturalDimensions, src]);
 
-    const displayDimensions = resolveDisplayDimensions(dimensions);
-
     return (
         <div
             className="relative w-full break-inside-avoid"
@@ -292,7 +295,7 @@ function PreviewMedia({
                     loading="lazy"
                     onError={handleError}
                     onLoad={handleLoad}
-                    ref={imgRef}
+                    ref={mergedRef}
                     src={src ?? undefined}
                     width={displayDimensions.w}
                 />

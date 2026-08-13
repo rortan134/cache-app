@@ -44,16 +44,17 @@ type AttachmentMediaCategory =
     | "source"
     | "unknown";
 
-interface AttachmentItemContextValue {
+interface AttachmentItemContext {
     data: AttachmentData;
     mediaCategory: AttachmentMediaCategory;
     onRemove?: () => void;
 }
 
-const AttachmentItemContext =
-    React.createContext<AttachmentItemContextValue | null>(null);
+const AttachmentItemContext = React.createContext<AttachmentItemContext | null>(
+    null
+);
 
-function useAttachmentItem() {
+function useAttachmentItemContext() {
     const context = React.use(AttachmentItemContext);
     if (!context) {
         throw new Error(
@@ -191,7 +192,7 @@ export function AttachmentPreview({
     className,
     ...props
 }: AttachmentPreviewProps) {
-    const { data, mediaCategory } = useAttachmentItem();
+    const { data, mediaCategory } = useAttachmentItemContext();
 
     return (
         <div
@@ -215,7 +216,7 @@ export function AttachmentInfo({
     className,
     ...props
 }: AttachmentInfoProps) {
-    const { data } = useAttachmentItem();
+    const { data } = useAttachmentItemContext();
 
     const label = getAttachmentLabel(data);
 
@@ -241,7 +242,7 @@ export function AttachmentRemove({
     children,
     ...props
 }: AttachmentRemoveProps) {
-    const { onRemove } = useAttachmentItem();
+    const { onRemove } = useAttachmentItemContext();
 
     const handleClick = useStableCallback((event: React.MouseEvent) => {
         event.stopPropagation();

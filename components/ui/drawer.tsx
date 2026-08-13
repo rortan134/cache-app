@@ -21,12 +21,12 @@ const SWIPE_DIRECTION_BY_POSITION: Record<
     top: "up",
 };
 
-interface DrawerContextValue {
+interface DrawerContext {
     position: DrawerPosition;
 }
 
-const DrawerContext: React.Context<DrawerContextValue> =
-    React.createContext<DrawerContextValue>({ position: "bottom" });
+const DrawerContext: React.Context<DrawerContext> =
+    React.createContext<DrawerContext>({ position: "bottom" });
 
 const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
 

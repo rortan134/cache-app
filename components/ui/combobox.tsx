@@ -1,6 +1,7 @@
 "use client";
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
+import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 import { CheckmarkIcon } from "@/components/ui/icons";
@@ -398,9 +399,11 @@ export function ComboboxChips({
     className,
     children,
     startAddon,
+    ref,
     ...props
 }: ComboboxChipsProps) {
     const { chipsRef } = React.use(ComboboxContext);
+    const mergedRef = useMergedRefs(ref, chipsRef);
 
     return (
         <ComboboxPrimitive.Chips
@@ -410,7 +413,7 @@ export function ComboboxChips({
                 className
             )}
             data-slot="combobox-chips"
-            ref={chipsRef}
+            ref={mergedRef}
         >
             {startAddon ? (
                 <div

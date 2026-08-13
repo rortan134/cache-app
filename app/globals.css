@@ -200,7 +200,6 @@
     a,
     button,
     select,
-    header,
     img,
     video,
     canvas,
@@ -332,6 +331,18 @@
     --radius-16: 15px;
 }
 
+@utility drag-none {
+    user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+
+    &[alt] {
+        color: transparent;
+    }
+}
+
 @utility draggable-ui {
     -webkit-app-region: drag;
 }
@@ -340,7 +351,7 @@
     navigation: auto;
 }
 
-/* Suppress transitions during theme flips (applied by use-theme). */
+/* Suppress transitions during theme flips (applied by hooks/use-theme.ts). */
 html.no-transitions,
 html.no-transitions *,
 html.no-transitions *::before,
