@@ -87,14 +87,16 @@ async function AutomationsPageBody() {
     }));
 
     return (
-        <FadeIn className="flex flex-col gap-8">
-            <AutomationsPageHeader>
-                <AutomationComposerDialog collections={collectionOptions} />
-            </AutomationsPageHeader>
-            <AutomationsList
-                automations={automations}
-                collections={collectionOptions}
-            />
+        <FadeIn>
+            <div className="flex flex-col gap-8">
+                <AutomationsPageHeader>
+                    <AutomationComposerDialog collections={collectionOptions} />
+                </AutomationsPageHeader>
+                <AutomationsList
+                    automations={automations}
+                    collections={collectionOptions}
+                />
+            </div>
         </FadeIn>
     );
 }

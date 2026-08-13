@@ -83,20 +83,22 @@ async function RecentlyDeletedPageBody() {
     const items = await listRecentlyDeletedItems({ userId });
 
     return (
-        <FadeIn className="flex flex-col gap-8">
-            <RecentlyDeletedPageHeader />
-            <RecentlyDeletedList
-                itemDaysRemainingById={Object.fromEntries(
-                    items.map((entry) => [
-                        entry.item.id,
-                        {
-                            daysRemaining: entry.daysRemaining,
-                            deletedAt: entry.deletedAt.toISOString(),
-                        },
-                    ])
-                )}
-                items={items.map((entry) => entry.item)}
-            />
+        <FadeIn>
+            <div className="flex flex-col gap-8">
+                <RecentlyDeletedPageHeader />
+                <RecentlyDeletedList
+                    itemDaysRemainingById={Object.fromEntries(
+                        items.map((entry) => [
+                            entry.item.id,
+                            {
+                                daysRemaining: entry.daysRemaining,
+                                deletedAt: entry.deletedAt.toISOString(),
+                            },
+                        ])
+                    )}
+                    items={items.map((entry) => entry.item)}
+                />
+            </div>
         </FadeIn>
     );
 }

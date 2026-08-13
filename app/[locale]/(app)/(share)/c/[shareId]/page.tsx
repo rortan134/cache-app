@@ -111,19 +111,21 @@ async function CollectionShareBody(props: CollectionSharePageProps) {
     });
 
     return (
-        <FadeIn className="flex flex-col gap-6">
-            {collection.name ? (
-                <div className="flex flex-col items-center justify-center text-muted-foreground text-sm">
-                    <h1 className="font-medium text-foreground text-xl">
-                        {collection.name}
-                    </h1>
-                    <span className="tabular-nums">
-                        {collection.itemCount}{" "}
-                        {collection.itemCount === 1 ? "entry" : "entries"}
-                    </span>
-                </div>
-            ) : null}
-            <PublicShareGrid items={items} />
+        <FadeIn>
+            <div className="flex flex-col gap-6">
+                {collection.name ? (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        <h1 className="font-medium text-foreground text-xl">
+                            {collection.name}
+                        </h1>
+                        <span className="tabular-nums">
+                            {collection.itemCount}{" "}
+                            {collection.itemCount === 1 ? "entry" : "entries"}
+                        </span>
+                    </div>
+                ) : null}
+                <PublicShareGrid items={items} />
+            </div>
         </FadeIn>
     );
 }
