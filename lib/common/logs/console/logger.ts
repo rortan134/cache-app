@@ -1,13 +1,14 @@
+import {
+    hasWindow,
+    isProduction,
+    isTest,
+    type RuntimeName,
+    runtime,
+} from "std-env";
 import { formatLogValue } from "@/lib/common/logs/format";
 
 /**
- *
- * Framework-agnostic logging utilities for the platform.
- * Provides standardized console logging with environment-aware configuration.
- */
-
-/**
- * LogLevel enum defines the severity levels for logging
+ * LogLevel values define the severity levels for logging
  *
  * DEBUG: Detailed information, typically useful only for diagnosing problems
  * INFO: Confirmation that things are working as expected
@@ -23,6 +24,19 @@ const LOG_LEVEL = {
 
 type LogLevel = (typeof LOG_LEVEL)[keyof typeof LOG_LEVEL];
 
+interface LogSpan {
+    stop: () => void;
+    [Symbol.dispose]: () => void;
+}
+
+type NodeEnvironment = "development" | "production" | "test";
+
+const DISABLED_LOG_CONFIG = {
+    colorize: false,
+    enabled: false,
+    minLevel: LOG_LEVEL.ERROR,
+};
+
 /**
  * Configuration for different environments
  *
@@ -37,17 +51,11 @@ const LOG_CONFIG = {
         enabled: true,
         minLevel: LOG_LEVEL.DEBUG,
     },
-    production: {
-        colorize: false,
-        enabled: false,
-        minLevel: LOG_LEVEL.ERROR,
-    },
-    test: {
-        colorize: false,
-        enabled: false,
-        minLevel: LOG_LEVEL.ERROR,
-    },
+    production: DISABLED_LOG_CONFIG,
+    test: DISABLED_LOG_CONFIG,
 };
+
+type LogConfig = (typeof LOG_CONFIG)[keyof typeof LOG_CONFIG];
 
 const LOG_LEVEL_ORDER = [
     LOG_LEVEL.DEBUG,
@@ -55,6 +63,7 @@ const LOG_LEVEL_ORDER = [
     LOG_LEVEL.WARN,
     LOG_LEVEL.ERROR,
 ];
+
 const ANSI_RESET = "\u001b[0m";
 const ANSI_COLOR_BY_LEVEL: Record<LogLevel, string> = {
     DEBUG: "\u001b[34m",
@@ -65,49 +74,57 @@ const ANSI_COLOR_BY_LEVEL: Record<LogLevel, string> = {
 const ANSI_CYAN = "\u001b[36m";
 const ANSI_GRAY = "\u001b[90m";
 
-interface LogSpan {
-    stop: () => void;
-    [Symbol.dispose]: () => void;
-}
-
-const getNodeEnv = (): string => {
-    if (typeof process !== "undefined" && process.env) {
-        return process.env.NODE_ENV || "development";
+const getNodeEnvironment = (): NodeEnvironment => {
+    if (isProduction) {
+        return "production";
     }
+    if (isTest) {
+        return "test";
+    }
+    // Unset or unknown NODE_ENV defaults to development.
     return "development";
 };
 
-/**
- * Configuration for different environments
- */
-function getLogConfig() {
-    const nodeEnv = getNodeEnv();
-    switch (nodeEnv) {
-        case "production":
-            return LOG_CONFIG.production;
-        case "test":
-            return LOG_CONFIG.test;
-        default:
-            return LOG_CONFIG.development;
+function getEnvironmentRuntime(): RuntimeName | "browser" {
+    if (hasWindow) {
+        return "browser";
     }
+    return runtime;
 }
 
-function colorizeLogPart(value: string, color: string): string {
+/**
+ * Logging config for the current environment and runtime.
+ */
+function getLogConfigForEnvironment(): LogConfig {
+    const environmentRuntime = getEnvironmentRuntime();
+    if (environmentRuntime === "browser") {
+        return DISABLED_LOG_CONFIG;
+    }
+    if (getNodeEnvironment() !== "development") {
+        return DISABLED_LOG_CONFIG;
+    }
+    return {
+        ...LOG_CONFIG.development,
+        colorize: environmentRuntime === "node",
+    };
+}
+
+function colorizeLogPart(value: string, color: string) {
     return `${color}${value}${ANSI_RESET}`;
 }
 
-function stringifyLogValue(value: unknown): string {
+function stringifyLogValue(value: unknown) {
     try {
-        const nodeEnv = getNodeEnv();
+        const env = getNodeEnvironment();
+        const isDev = env === "development";
+
         return JSON.stringify(
-            formatLogValue(value, {
-                includeErrorStack: nodeEnv === "development",
-            }),
+            formatLogValue(value, { includeErrorStack: isDev }),
             null,
-            nodeEnv === "development" ? 2 : 0
+            isDev ? 2 : 0
         );
     } catch {
-        return "[Circular or Non-Serializable Object]";
+        return "[Unserializable Object]";
     }
 }
 
@@ -123,13 +140,12 @@ export class Logger {
     /**
      * Create a new logger for a specific module
      * @param module The name of the module (e.g., 'OpenAIProvider', 'AgentBlockHandler')
-     * @param overrideConfig Optional configuration overrides
      */
     constructor(module: string) {
         this.#module = module;
     }
 
-    #shouldLog(level: LogLevel, config = getLogConfig()): boolean {
+    #shouldLog(level: LogLevel, config: LogConfig): boolean {
         if (!config.enabled) {
             return false;
         }
@@ -159,30 +175,33 @@ export class Logger {
      * Internal method to log a message with the specified level
      */
     #log(level: LogLevel, message: string, ...args: unknown[]) {
-        const config = getLogConfig();
+        const config = getLogConfigForEnvironment();
+
         if (!this.#shouldLog(level, config)) {
             return;
         }
 
         const timestamp = new Date().toISOString();
+        const prefix = config.colorize
+            ? `${colorizeLogPart(`[${timestamp}]`, ANSI_GRAY)} ${colorizeLogPart(`[${level}]`, ANSI_COLOR_BY_LEVEL[level])} ${colorizeLogPart(`[${this.#module}]`, ANSI_CYAN)}`
+            : `[${timestamp}] [${level}] [${this.#module}]`;
         const formattedArgs = this.#formatArgs(args);
 
-        if (config.colorize) {
-            const coloredPrefix = `${colorizeLogPart(`[${timestamp}]`, ANSI_GRAY)} ${colorizeLogPart(`[${level}]`, ANSI_COLOR_BY_LEVEL[level])} ${colorizeLogPart(`[${this.#module}]`, ANSI_CYAN)}`;
-
-            if (level === LOG_LEVEL.ERROR) {
-                console.error(coloredPrefix, message, ...formattedArgs);
-            } else {
-                console.log(coloredPrefix, message, ...formattedArgs);
-            }
-        } else {
-            const prefix = `[${timestamp}] [${level}] [${this.#module}]`;
-
-            if (level === LOG_LEVEL.ERROR) {
+        switch (level) {
+            case LOG_LEVEL.DEBUG:
+                console.debug(prefix, message, ...formattedArgs);
+                break;
+            case LOG_LEVEL.INFO:
+                console.info(prefix, message, ...formattedArgs);
+                break;
+            case LOG_LEVEL.WARN:
+                console.warn(prefix, message, ...formattedArgs);
+                break;
+            case LOG_LEVEL.ERROR:
                 console.error(prefix, message, ...formattedArgs);
-            } else {
-                console.log(prefix, message, ...formattedArgs);
-            }
+                break;
+            default:
+                throw new Error(`Unknown log level: ${level}`);
         }
     }
 

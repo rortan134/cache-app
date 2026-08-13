@@ -82,6 +82,41 @@ describe("formatLogValue", () => {
         });
     });
 
+    test("isolates throwing getters to their property in describe mode", () => {
+        const value = {
+            broken: {
+                get boom() {
+                    throw new Error("boom");
+                },
+            },
+            visible: "ok",
+        };
+
+        expect(formatLogValue(value)).toEqual({
+            broken: {
+                boom: "[Unreadable property value]",
+            },
+            visible: "ok",
+        });
+    });
+
+    test("falls back when a standard Error field getter throws", () => {
+        const error = new Error("boom");
+        for (const field of ["message", "name", "stack"]) {
+            Object.defineProperty(error, field, {
+                get() {
+                    throw new Error(`unreadable ${field}`);
+                },
+            });
+        }
+
+        expect(formatLogValue(error)).toEqual({
+            message: "[Unreadable property value]",
+            name: "[Unreadable property value]",
+            stack: "[Unreadable property value]",
+        });
+    });
+
     test("can reject non-loggable values for strict sanitizers", () => {
         expect(() =>
             formatLogValue(

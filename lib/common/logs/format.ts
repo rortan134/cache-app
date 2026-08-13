@@ -7,6 +7,7 @@ export const LOG_OBJECT_KEYS_LIMIT = 12;
 
 const REDACTED_LOG_VALUE = "[REDACTED]";
 const CIRCULAR_LOG_VALUE = "[Circular]";
+const UNREADABLE_PROPERTY_LOG_VALUE = "[Unreadable property value]";
 
 const ERROR_STANDARD_FIELD_NAMES = new Set(["message", "name", "stack"]);
 
@@ -53,6 +54,14 @@ function formatValueForLog(
     return value;
 }
 
+function readPropertyValueForLog(target: object, key: string): unknown {
+    try {
+        return Reflect.get(target, key);
+    } catch {
+        return UNREADABLE_PROPERTY_LOG_VALUE;
+    }
+}
+
 function formatObjectForLog(
     value: object,
     context: LogValueFormatContext
@@ -79,7 +88,11 @@ function formatObjectForLog(
     const keys = Object.keys(value);
     const record: Record<string, unknown> = {};
     for (const key of keys.slice(0, LOG_OBJECT_KEYS_LIMIT)) {
-        record[key] = formatValueForLog(key, Reflect.get(value, key), context);
+        record[key] = formatValueForLog(
+            key,
+            readPropertyValueForLog(value, key),
+            context
+        );
     }
 
     const remainingKeys = keys.length - LOG_OBJECT_KEYS_LIMIT;
@@ -95,22 +108,35 @@ function formatErrorForLog(
     context: LogValueFormatContext
 ): Record<string, unknown> {
     const record: Record<string, unknown> = {
-        message: context.options.formatString(error.message),
-        name: error.name,
+        message: formatValueForLog(
+            "message",
+            readPropertyValueForLog(error, "message"),
+            context
+        ),
+        name: formatValueForLog(
+            "name",
+            readPropertyValueForLog(error, "name"),
+            context
+        ),
     };
 
     if (context.options.includeErrorStack) {
-        record.stack =
-            error.stack === undefined
-                ? error.stack
-                : context.options.formatString(error.stack);
+        record.stack = formatValueForLog(
+            "stack",
+            readPropertyValueForLog(error, "stack"),
+            context
+        );
     }
 
-    for (const [key, value] of Object.entries(error)) {
+    for (const key of Object.keys(error)) {
         if (ERROR_STANDARD_FIELD_NAMES.has(key)) {
             continue;
         }
-        record[key] = formatValueForLog(key, value, context);
+        record[key] = formatValueForLog(
+            key,
+            readPropertyValueForLog(error, key),
+            context
+        );
     }
 
     return record;
