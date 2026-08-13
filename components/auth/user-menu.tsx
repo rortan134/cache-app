@@ -170,8 +170,7 @@ function useUserMenuAccounts() {
 
     const accountMenuError = getAccountMenuError(
         addAccountError,
-        deviceSessionsError,
-        switchAccountError
+        deviceSessionsError
     );
 
     const accountOptions = activeSession
@@ -187,6 +186,7 @@ function useUserMenuAccounts() {
         isAddingAccount,
         isLoadingDeviceSessions,
         pendingSessionToken,
+        switchAccountError,
     };
 }
 
@@ -225,17 +225,13 @@ async function listDeviceSessions(): Promise<DeviceSession[]> {
 
 function getAccountMenuError(
     addAccountError: unknown,
-    deviceSessionsError: unknown,
-    switchAccountError: unknown
+    deviceSessionsError: unknown
 ): AccountMenuError | null {
     if (addAccountError) {
         return "add";
     }
     if (deviceSessionsError) {
         return "load";
-    }
-    if (switchAccountError) {
-        return "switch";
     }
     return null;
 }
@@ -573,6 +569,7 @@ function UserMenuAccountSwitcherContent() {
         isAddingAccount,
         isLoadingDeviceSessions,
         pendingSessionToken,
+        switchAccountError,
     } = useUserMenuAccounts();
 
     if (!activeSession) {
@@ -654,6 +651,11 @@ function UserMenuAccountSwitcherContent() {
                     );
                 })}
             </MenuRadioGroup>
+            {switchAccountError ? (
+                <MenuItem disabled>
+                    <AccountMenuErrorMessage error="switch" />
+                </MenuItem>
+            ) : null}
             <MenuSeparator />
             <MenuItem
                 closeOnClick={false}
