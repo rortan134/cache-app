@@ -1,28 +1,26 @@
 "use client";
 
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import * as React from "react";
 import { cn } from "@/lib/common/cn";
 
 const DEFAULT_DURATION_SECONDS = 5;
 const MAX_SPEED_PX_PER_SECOND = 92;
-const MARQUEE_REPEAT_KEYS = ["primary", "clone"] as const;
-const MARQUEE_REPEAT_COUNT = MARQUEE_REPEAT_KEYS.length;
 
-interface TickerTrackStyle extends React.CSSProperties {
-    "--animation-distance": string;
-    "--duration": string;
-}
+const REPEAT_KEYS = ["primary", "clone"];
+const REPEAT_COUNT = REPEAT_KEYS.length;
 
-function getTickerDurationSeconds(travelDistancePx: number) {
+function getDurationInSeconds(travelDistancePx: number) {
     if (travelDistancePx <= 0 || !Number.isFinite(travelDistancePx)) {
         return DEFAULT_DURATION_SECONDS;
     }
-    const cappedDurationSeconds = travelDistancePx / MAX_SPEED_PX_PER_SECOND;
+    const durationSeconds = travelDistancePx / MAX_SPEED_PX_PER_SECOND;
     // Round up to a centisecond so the marquee never exceeds the speed cap
     return Math.max(
         DEFAULT_DURATION_SECONDS,
-        Math.ceil(cappedDurationSeconds * 100) / 100
+        Math.ceil(durationSeconds * 100) / 100
     );
 }
 
@@ -34,32 +32,67 @@ export function Ticker({
     direction = "left",
     className,
     children,
+    ref,
     ...props
 }: TickerProps) {
+    const animationFrame = useAnimationFrame();
     const [contentWidthPx, setContentWidthPx] = React.useState(0);
+    const trackRef = React.useRef<HTMLSpanElement | null>(null);
 
-    const setTrackRef = useStableCallback((track: HTMLSpanElement | null) => {
+    const mergedRef = useMergedRefs(ref, trackRef);
+
+    useIsoLayoutEffect(() => {
+        const track = trackRef.current;
         if (!track) {
             return;
         }
+
         const content = track.firstElementChild?.firstElementChild;
-        if (!(content instanceof HTMLElement)) {
+        if (!content) {
             return;
         }
-        const contentWidth = content.offsetWidth;
-        const trackWidth = track.offsetWidth;
-        setContentWidthPx(contentWidth > trackWidth ? contentWidth : 0);
-    });
 
-    const isOverflowing = contentWidthPx > 0;
+        let _trackWidthPx = 0;
+        let _contentWidthPx = 0;
 
-    const trackStyle: TickerTrackStyle = {
+        const resizeObserver = new ResizeObserver((entries) =>
+            animationFrame.request(() => {
+                for (const entry of entries) {
+                    const sizePx =
+                        entry.contentBoxSize?.[0]?.inlineSize ??
+                        entry.borderBoxSize?.[0]?.inlineSize ??
+                        entry.contentRect.width ??
+                        0;
+
+                    if (entry.target === track) {
+                        _trackWidthPx = sizePx;
+                    } else {
+                        _contentWidthPx = sizePx; // only two targets observed
+                    }
+                }
+
+                setContentWidthPx(
+                    _contentWidthPx > _trackWidthPx ? _contentWidthPx : 0
+                );
+            })
+        );
+
+        resizeObserver.observe(track);
+        resizeObserver.observe(content);
+
+        return () => {
+            resizeObserver.disconnect();
+            animationFrame.cancel();
+        };
+    }, []);
+
+    const trackStyle = {
         // Translate by exactly one copy width so the loop restarts seamlessly.
-        "--animation-distance": `${-100 / MARQUEE_REPEAT_COUNT}%`,
-        "--duration": `${getTickerDurationSeconds(contentWidthPx)}s`,
-    };
-
-    const repeatCount = isOverflowing ? MARQUEE_REPEAT_COUNT : 1;
+        "--animation-distance": `${-100 / REPEAT_COUNT}%`,
+        "--duration": `${getDurationInSeconds(contentWidthPx)}s`,
+    } as React.CSSProperties;
+    const isOverflowing = contentWidthPx > 0;
+    const repeatCount = isOverflowing ? REPEAT_COUNT : 1;
 
     return (
         <span
@@ -68,7 +101,7 @@ export function Ticker({
                 "group inline-flex w-full min-w-0 overflow-clip",
                 className
             )}
-            ref={setTrackRef}
+            ref={mergedRef}
         >
             <span
                 className={cn(
@@ -79,17 +112,15 @@ export function Ticker({
                 )}
                 style={trackStyle}
             >
-                {MARQUEE_REPEAT_KEYS.slice(0, repeatCount).map(
-                    (repeatKey, index) => (
-                        <span
-                            aria-hidden={index > 0 || undefined}
-                            className="shrink-0 p-px pr-4"
-                            key={repeatKey}
-                        >
-                            {children}
-                        </span>
-                    )
-                )}
+                {REPEAT_KEYS.slice(0, repeatCount).map((repeatKey, index) => (
+                    <span
+                        aria-hidden={index > 0 || undefined}
+                        className="shrink-0 p-px pr-4"
+                        key={repeatKey}
+                    >
+                        {children}
+                    </span>
+                ))}
             </span>
         </span>
     );
