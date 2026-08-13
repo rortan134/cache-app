@@ -882,7 +882,7 @@ export function NoteHeader() {
                         {isCopied ? (
                             <CheckIcon className="size-3.5" />
                         ) : (
-                            <Copy className="size-3.5" />
+                            <Copy className="size-3" />
                         )}
                     </Button>
                     <Menu>
