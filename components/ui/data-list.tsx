@@ -122,7 +122,7 @@ export function DataListItem({
     const defaultProps = {
         children: (
             <>
-                <dt className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                <dt className="flex min-w-0 items-center gap-2 text-foreground">
                     {color ? (
                         <span
                             aria-hidden

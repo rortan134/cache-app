@@ -90,11 +90,16 @@ interface UseIntegrationActionsResult {
 
 const log = createLogger("library:integrations");
 
-export const { useStore: useIntegrationsListStore } = createStore({
-    isIntegrationsListOpen: storage(true, {
-        storageKey: INTEGRATIONS_LIST_OPEN_STORAGE_KEY,
-    }),
-});
+const { actions: integrationsListActions, useStore: useIntegrationsListStore } =
+    createStore({
+        isIntegrationsListOpen: storage(true, {
+            storageKey: INTEGRATIONS_LIST_OPEN_STORAGE_KEY,
+        }),
+    });
+
+export function openIntegrationsList() {
+    integrationsListActions.setIsIntegrationsListOpen(true);
+}
 
 function useIntegrationActions({
     direction,
@@ -341,6 +346,7 @@ async function executeIntegrationAction(args: {
 
             if (integration.behaviors.connect.kind === "rss-manage") {
                 openRssManageDialog();
+
                 return { refresh: false, successMessage: null };
             }
 
@@ -384,6 +390,7 @@ async function executeIntegrationAction(args: {
         case "import":
             if (integration.id === "markdown") {
                 openMarkdownImportDialog();
+
                 return { refresh: false, successMessage: null };
             }
 
@@ -398,7 +405,7 @@ async function executeIntegrationAction(args: {
 }
 
 interface IntegrationsProps {
-    connectedIntegrations: Set<IntegrationId>;
+    connectedIntegrations: ReadonlySet<IntegrationId>;
 }
 
 export function Integrations({ connectedIntegrations }: IntegrationsProps) {
@@ -451,7 +458,7 @@ function IntegrationsList({
     return (
         <Collapsible
             {...props}
-            className={cn("group/collapsible relative", className)}
+            className={cn("group/collapsible", className)}
             onOpenChange={setIsIntegrationsListOpen}
             open={isIntegrationsListOpen}
         />

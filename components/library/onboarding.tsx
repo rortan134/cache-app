@@ -20,7 +20,7 @@ import {
     useCollectionsPendingActionsContext,
     useLibraryItemsContext,
 } from "@/components/library/collections";
-import { useIntegrationsListStore } from "@/components/library/integrations";
+import { openIntegrationsList } from "@/components/library/integrations";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -207,15 +207,12 @@ export function OnboardingMenu({
     onOpenComposer,
 }: OnboardingMenuProps) {
     const gt = useGT();
-
     const { claimCollectionAction, isCollectionActionPending } =
         useCollectionsPendingActionsContext();
     const { collections, syncCollectionShare } = useCollectionsContext();
     const { items } = useLibraryItemsContext();
     const { setOpen: setIsSidebarOpen } = useSidebarContext();
     const { copyToClipboard } = useCopyToClipboard();
-
-    const { setIsIntegrationsListOpen } = useIntegrationsListStore();
     const {
         completedOnboardingTaskIds,
         setCompletedOnboardingTaskIds,
@@ -260,7 +257,7 @@ export function OnboardingMenu({
 
     const handleOpenIntegrations = useStableCallback(() => {
         setIsSidebarOpen(true);
-        setIsIntegrationsListOpen(true);
+        openIntegrationsList();
     });
 
     const handleCopyExistingShareLink = useStableCallback(

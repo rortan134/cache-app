@@ -37,8 +37,8 @@ export function Ticker({
 }: TickerProps) {
     const animationFrame = useAnimationFrame();
     const [contentWidthPx, setContentWidthPx] = React.useState(0);
-    const trackRef = React.useRef<HTMLSpanElement | null>(null);
 
+    const trackRef = React.useRef<HTMLSpanElement | null>(null);
     const mergedRef = useMergedRefs(ref, trackRef);
 
     useIsoLayoutEffect(() => {

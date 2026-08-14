@@ -162,6 +162,7 @@ interface SidebarProps extends React.ComponentProps<"aside"> {
 }
 
 export function Sidebar({ className, side = "left", ...props }: SidebarProps) {
+    // We don't consume useSidebarContext() here so <Sidebar> can optionally be used outside of <SidebarContext>
     const state = React.use(SidebarContext)?.state ?? "expanded";
 
     return (

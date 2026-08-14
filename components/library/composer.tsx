@@ -8,7 +8,7 @@ import { Toolbar } from "@base-ui/react/toolbar";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
 import { T } from "gt-next";
-import { ChevronDown, CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
+import { CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -267,11 +267,10 @@ export function Composer({
     );
 }
 
-interface ComposerInputProps {
+interface ComposerInputProps extends React.ComponentProps<typeof CommandInput> {
     containerRef: React.RefObject<HTMLDivElement | null>;
     groups: ComposerPaletteGroup[];
     isOpen: boolean;
-    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
     onOpenChange: (
         nextOpen: boolean,
         eventDetails: AutocompleteRootChangeEventDetails
@@ -280,9 +279,7 @@ interface ComposerInputProps {
         next: string,
         eventDetails: AutocompleteRootChangeEventDetails
     ) => void;
-    placeholder: string;
     query: string;
-    ref: React.RefObject<HTMLInputElement | null>;
     stackEntries: ComposerPaletteStackEntry[];
 }
 
@@ -291,12 +288,10 @@ export function ComposerInput({
     isOpen,
     onValueChange,
     onOpenChange,
-    onKeyDown,
-    placeholder,
     groups,
     containerRef,
-    ref,
     stackEntries,
+    ...props
 }: ComposerInputProps) {
     const filteredItemGroups = useVisibleItemGroups({ groups, isOpen, query });
 
@@ -313,6 +308,7 @@ export function ComposerInput({
                 <Toolbar.Input
                     render={
                         <CommandInput
+                            {...props}
                             autoCapitalize="sentences"
                             autoCorrect="on"
                             className="squircle"
@@ -322,9 +318,6 @@ export function ComposerInput({
                                 />
                             }
                             inputMode="text"
-                            onKeyDown={onKeyDown}
-                            placeholder={placeholder}
-                            ref={ref}
                             size="lg"
                             spellCheck="true"
                             translate="no"
@@ -595,7 +588,6 @@ function ComposerMetricsTrigger(props: React.ComponentProps<typeof Button>) {
                     </>
                 )}
             </span>
-            <ChevronDown className="inline-block size-3.5 shrink-0" />
         </ComposerActionTrigger>
     );
 }
@@ -747,11 +739,7 @@ export function ComposerSuggestionsList({
     }
 
     return (
-        <Collapsible
-            className="relative -mt-1"
-            onOpenChange={setIsOpen}
-            open={isOpen}
-        >
+        <Collapsible onOpenChange={setIsOpen} open={isOpen}>
             <CollapsiblePanel
                 {...props}
                 className={cn("px-3", className)}

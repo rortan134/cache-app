@@ -221,6 +221,12 @@
     [role="button"]:not(:disabled) {
         cursor: pointer;
     }
+
+    @media (prefers-reduced-motion: no-preference) {
+        html {
+            interpolate-size: allow-keywords;
+        }
+    }
 }
 
 /* ── Keyframes ── */
@@ -291,10 +297,6 @@
         #000 140%
     );
     @apply overflow-clip;
-}
-
-@utility max-w-prose {
-    max-width: 65ch;
 }
 
 @utility texture-screen {

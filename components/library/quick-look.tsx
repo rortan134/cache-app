@@ -8,6 +8,7 @@ import { T } from "gt-next";
 import {
     AlertCircleIcon,
     ExternalLinkIcon,
+    Globe,
     PanelRight,
     PanelRightOpen,
     XIcon,
@@ -601,7 +602,16 @@ function QuickLookDrawerPanel({ activeEntry }: QuickLookDrawerPanelProps) {
 }
 
 function QuickLookPanelEmpty() {
-    return <MediaPlaceholder className="bg-popover" />;
+    return (
+        <MediaPlaceholder className="bg-popover">
+            <Globe
+                aria-hidden
+                className="size-6 text-muted-foreground opacity-50"
+                focusable="false"
+            />
+            <span className="text-center text-lg">Quick Look</span>
+        </MediaPlaceholder>
+    );
 }
 
 interface QuickLookOembedPreviewProps {
@@ -685,6 +695,7 @@ function QuickLookListItem({
                 title={item.title}
                 variant="ghost"
             >
+                <Globe aria-hidden className="size-3.5" focusable="false" />
                 <span className="min-w-0 truncate font-medium">
                     {item.title}
                 </span>
