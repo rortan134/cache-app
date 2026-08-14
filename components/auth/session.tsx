@@ -43,20 +43,6 @@ interface SessionGateProps {
 }
 
 /**
- * Pass `fallback` to avoid showing signed-out UI to a signed-in user for a
- * frame while the session resolves.
- */
-export function SignedOutOnly({ children, fallback = null }: SessionGateProps) {
-    const { data: session, isPending } = useSession();
-
-    if (isPending) {
-        return fallback;
-    }
-
-    return session ? null : children;
-}
-
-/**
  * This is a presentation gate, not an authorization boundary. Validate sessions
  * on the server before returning private data.
  */
@@ -68,6 +54,20 @@ export function SignedInOnly({ children, fallback = null }: SessionGateProps) {
     }
 
     return session ? children : null;
+}
+
+/**
+ * Pass `fallback` to avoid showing signed-out UI to a signed-in user for a
+ * frame while the session resolves.
+ */
+export function SignedOutOnly({ children, fallback = null }: SessionGateProps) {
+    const { data: session, isPending } = useSession();
+
+    if (isPending) {
+        return fallback;
+    }
+
+    return session ? null : children;
 }
 
 /**

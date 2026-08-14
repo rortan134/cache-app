@@ -346,6 +346,16 @@ export function UnsubscribedOnly({
     return hasAccess ? null : children;
 }
 
+/**
+ * Use for small inline affordances. Prefer route-level loading for full-page
+ * suspense to avoid shell churn.
+ */
+export function SubscriptionLoadingOnly({ children }: React.PropsWithChildren) {
+    const { isLoading } = useSubscriptionAccess();
+
+    return isLoading ? children : null;
+}
+
 interface WithSubscriptionOnlyProps {
     children: (
         subscription: ReturnType<typeof useSubscriptionAccess>["subscription"]
