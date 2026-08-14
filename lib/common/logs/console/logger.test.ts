@@ -61,7 +61,7 @@ function formattedArgsFor(
     const spy = spyOn(console, level).mockImplementation(() => undefined);
     try {
         logger[level]("message", ...args);
-        const firstCall = spy.mock.calls[0];
+        const [firstCall] = spy.mock.calls;
         if (firstCall === undefined) {
             throw new Error(
                 `Expected logger.${level} to write to console.${level}`

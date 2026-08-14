@@ -382,8 +382,8 @@ async function downloadRemoteAsset(
         if (result.status !== "response") {
             return null;
         }
-        const response = result.response;
 
+        const { response } = result;
         if (!(response.ok && response.body)) {
             return null;
         }

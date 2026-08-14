@@ -448,7 +448,7 @@ async function processChromeBookmarkEventBatch(args: {
             continue;
         }
 
-        const bookmark = event.bookmark;
+        const { bookmark } = event;
         if (!bookmark) {
             continue;
         }

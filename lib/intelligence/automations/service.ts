@@ -701,7 +701,7 @@ export async function markAutomationRunRunning(args: {
         return null;
     }
 
-    const automation = run.automation;
+    const { automation } = run;
     if (automation.status !== AutomationStatus.active) {
         await prisma.automationRun.updateMany({
             data: {

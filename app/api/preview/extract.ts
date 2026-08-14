@@ -41,7 +41,7 @@ export function extractPreviewImageUrls(
         {
             onopentag(tag, attrs) {
                 if (tag === "meta") {
-                    const content = attrs.content;
+                    const { content } = attrs;
 
                     if (attrs.property === "og:image") {
                         hasPropertyOgImage = true;
@@ -67,7 +67,7 @@ export function extractPreviewImageUrls(
                     ) {
                         return;
                     }
-                    const href = attrs.href;
+                    const { href } = attrs;
                     if (attrs.rel === "image_src") {
                         imageSrcLinkChecked = true;
                         if (href) {
@@ -82,7 +82,7 @@ export function extractPreviewImageUrls(
                     ) {
                         return;
                     }
-                    const src = attrs.src;
+                    const { src } = attrs;
                     if (!src) {
                         return;
                     }

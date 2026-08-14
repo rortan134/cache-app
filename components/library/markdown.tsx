@@ -473,7 +473,7 @@ export function MarkdownImportDialog() {
                     });
 
                     if (response.status === "SUCCESS") {
-                        const data = response.data;
+                        const { data } = response;
                         mergeImportResult(aggregatedResult, data);
                         collectionsFromImport = data.collections;
                     } else {

@@ -1517,7 +1517,7 @@ function nextPreviewSlideSrc(
     readySlides: ReadyPreviewSlide[],
     activeSrc: string | null
 ): string | null {
-    const first = readySlides[0];
+    const [first] = readySlides;
     if (!first) {
         return null;
     }

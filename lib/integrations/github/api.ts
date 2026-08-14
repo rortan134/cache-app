@@ -123,7 +123,7 @@ function parseRepository(
     }
 
     const record = parsed.data;
-    const owner = record.owner;
+    const { owner } = record;
     const fullName = record.full_name ?? null;
     const language = record.language ?? null;
     const topics = record.topics ?? [];

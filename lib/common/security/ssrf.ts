@@ -25,7 +25,7 @@ export function isPrivateIp(ip: string): boolean {
     }
 
     if (addr instanceof ipaddr.IPv6) {
-        const parts = addr.parts;
+        const { parts } = addr;
         const firstSixZero = parts.slice(0, 6).every((part) => part === 0);
         if (firstSixZero) {
             // IPv4-compatible forms (`::a.b.c.d`) embed the address in the

@@ -125,7 +125,7 @@ export function syncBrowserChromeTheme() {
 function applyTheme(theme: Theme, suppressTransitions = false) {
     const ownerDocument = getOwnerDocument();
     const ownerWindow = getOwnerWindow();
-    const documentElement = ownerDocument.documentElement;
+    const { documentElement } = ownerDocument;
     if (suppressTransitions) {
         documentElement.classList.add("no-transitions");
     }
@@ -207,7 +207,7 @@ export function useTheme() {
         getSnapshot,
         getServerSnapshot
     );
-    const theme = snapshot.theme;
+    const { theme } = snapshot;
     const colorScheme = snapshot.systemDark ? "dark" : "light";
     const resolvedTheme: "light" | "dark" =
         theme === "system" ? colorScheme : theme;

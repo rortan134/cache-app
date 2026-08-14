@@ -46,7 +46,7 @@ export function decrypt(
     assertKey(key, "decrypt");
 
     const parts = encryptedValue.split(":");
-    const ivHex = parts[0];
+    const [ivHex] = parts;
     const authTagHex = parts.at(-1);
     const encrypted = parts.slice(1, -1).join(":");
 

@@ -155,7 +155,7 @@ function formatImportedCountMessage(
     noun: string,
     plural?: string
 ): string | null {
-    const importedCount = payload.importedCount;
+    const { importedCount } = payload;
     if (typeof importedCount !== "number") {
         return null;
     }

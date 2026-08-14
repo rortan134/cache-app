@@ -146,9 +146,9 @@ function getFallbackTimeOfDayOption(timeValue: string): TimeOfDayOption {
  * Detect whether the user's locale prefers a 24-hour clock.
  */
 export function uses24HourClock(locale?: string): boolean {
-    const hourCycle = new Intl.DateTimeFormat(locale, {
+    const { hourCycle } = new Intl.DateTimeFormat(locale, {
         hour: "numeric",
-    }).resolvedOptions().hourCycle;
+    }).resolvedOptions();
 
     return hourCycle === "h23" || hourCycle === "h24";
 }

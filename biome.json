@@ -53,8 +53,7 @@
             },
             "suspicious": {
                 "noBitwiseOperators": "off",
-                "noUnnecessaryConditions": "off",
-                "useArraySortCompare": "off"
+                "noUnnecessaryConditions": "off"
             },
             "style": {
                 "useDestructuring": "off"

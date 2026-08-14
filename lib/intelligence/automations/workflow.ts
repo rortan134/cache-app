@@ -270,7 +270,7 @@ function isGenAiProtectionErrorData(
         return false;
     }
 
-    const data = error.data;
+    const { data } = error;
     if (typeof data !== "object" || data === null) {
         return false;
     }
