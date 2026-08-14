@@ -4,6 +4,7 @@ import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T, Var } from "gt-next";
 import * as React from "react";
 import useSWR from "swr";
+import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
@@ -18,18 +19,10 @@ const PERIOD_END_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
     month: "short",
 });
 
-function readStringProperty(value: unknown, field: string): string | undefined {
-    if (!value || typeof value !== "object" || !(field in value)) {
-        return;
-    }
-    const result = Reflect.get(value, field);
-    return typeof result === "string" ? result : undefined;
-}
-
-function extractRedirectUrl(data: unknown): string | undefined {
-    const url = readStringProperty(data, "url");
-    return url && url.length > 0 ? url : undefined;
-}
+const SubscriptionRedirectResultSchema = z.object({
+    data: z.object({ url: z.string() }).nullish(),
+    error: z.object({ message: z.string() }).nullish(),
+});
 
 /**
  * Unified action wrapper for Stripe redirects. Standardizes loading states, URL
@@ -37,7 +30,7 @@ function extractRedirectUrl(data: unknown): string | undefined {
  * and portal actions.
  */
 function useSubscriptionRedirectAction(
-    request: () => Promise<{ data?: unknown; error?: unknown }>,
+    request: () => Promise<{ data: unknown; error: unknown }>,
     fallbackMessage: React.ReactNode
 ) {
     const [isPending, startTransition] = React.useTransition();
@@ -48,16 +41,23 @@ function useSubscriptionRedirectAction(
         startTransition(async () => {
             setErrorMessage(null);
             try {
-                const { data, error } = await request();
+                const parsed = SubscriptionRedirectResultSchema.safeParse(
+                    await request()
+                );
 
-                if (error) {
-                    setErrorMessage(
-                        readStringProperty(error, "message") ?? fallbackMessage
-                    );
+                if (!parsed.success) {
+                    setErrorMessage(fallbackMessage);
                     return;
                 }
 
-                const url = extractRedirectUrl(data);
+                const { data, error } = parsed.data;
+
+                if (error) {
+                    setErrorMessage(error.message);
+                    return;
+                }
+
+                const url = data?.url;
                 if (url) {
                     window.location.assign(url);
                     return;

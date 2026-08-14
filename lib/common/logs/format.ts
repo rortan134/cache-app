@@ -56,7 +56,18 @@ function formatValueForLog(
 
 function readPropertyValueForLog(target: object, key: string): unknown {
     try {
-        return Reflect.get(target, key);
+        return (target as Record<string, unknown>)[key];
+    } catch {
+        return UNREADABLE_PROPERTY_LOG_VALUE;
+    }
+}
+
+function readErrorField(
+    error: Error,
+    field: "message" | "name" | "stack"
+): unknown {
+    try {
+        return error[field];
     } catch {
         return UNREADABLE_PROPERTY_LOG_VALUE;
     }
@@ -110,20 +121,16 @@ function formatErrorForLog(
     const record: Record<string, unknown> = {
         message: formatValueForLog(
             "message",
-            readPropertyValueForLog(error, "message"),
+            readErrorField(error, "message"),
             context
         ),
-        name: formatValueForLog(
-            "name",
-            readPropertyValueForLog(error, "name"),
-            context
-        ),
+        name: formatValueForLog("name", readErrorField(error, "name"), context),
     };
 
     if (context.options.includeErrorStack) {
         record.stack = formatValueForLog(
             "stack",
-            readPropertyValueForLog(error, "stack"),
+            readErrorField(error, "stack"),
             context
         );
     }
