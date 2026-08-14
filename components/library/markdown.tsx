@@ -42,25 +42,78 @@ const EMPTY_FILE_SKIP_MESSAGE = "This file is empty.";
 
 type ImportStep = "choose" | "create-new" | "pick-files" | "importing" | "done";
 
-interface ImportFileEntry {
+interface MarkdownFileEntry {
     markdown: string;
     relativePath: string;
 }
 
-interface SkippedFilePath {
+interface SkippedMarkdownFile {
     message: string;
     relativePath: string;
 }
 
+interface MarkdownFileSelection {
+    entries: MarkdownFileEntry[];
+    skippedFiles: SkippedMarkdownFile[];
+}
+
+const TEXT_ENCODER = new TextEncoder();
+
+const STEP_TITLES: Record<ImportStep, string> = {
+    choose: "Import Markdown files",
+    "create-new": "New import",
+    done: "Import complete",
+    importing: "Importing...",
+    "pick-files": "Select files",
+};
+
+const STEP_DESCRIPTIONS: Record<Exclude<ImportStep, "done">, string> = {
+    choose: "Create a new import namespace or choose an existing one. Each namespace keeps imports from a folder separate.",
+    "create-new":
+        'Name this import. For example, "Obsidian vault", "Bear notes", or "Research papers".',
+    importing: "",
+    "pick-files":
+        "Choose a folder or .md files to import. Nested folders create matching collections.",
+};
+
+const UNSUPPORTED_CONSTRUCTS: ReadonlyArray<{
+    description: string;
+    key: keyof MarkdownImportResult["unsupportedReport"];
+    singular: string;
+}> = [
+    {
+        description: "skipped (alt text preserved)",
+        key: "imageCount",
+        singular: "image",
+    },
+    {
+        description: "skipped (text preserved)",
+        key: "tableCount",
+        singular: "table",
+    },
+    {
+        description: "skipped",
+        key: "htmlCount",
+        singular: "raw HTML block",
+    },
+    {
+        description: "rendered as text markers",
+        key: "taskListCount",
+        singular: "task-list item",
+    },
+];
+
 const log = createLogger("library:markdown-import-dialog");
 
-const { useStore: useMarkdownImportStore, actions: mdImportStoreActions } =
-    createStore({
-        isOpen: false,
-    });
+const {
+    useStore: useMarkdownImportStore,
+    actions: markdownImportStoreActions,
+} = createStore({
+    isOpen: false,
+});
 
 export function openMarkdownImportDialog() {
-    mdImportStoreActions.setIsOpen(true);
+    markdownImportStoreActions.setIsOpen(true);
 }
 
 function buildResultSummary(result: MarkdownImportResult): string {
@@ -82,60 +135,77 @@ function buildResultSummary(result: MarkdownImportResult): string {
         : "Import finished with no changes.";
 }
 
+function getStepDescription(
+    step: ImportStep,
+    result: MarkdownImportResult | null
+): string {
+    if (step === "done") {
+        return result ? buildResultSummary(result) : "";
+    }
+    return STEP_DESCRIPTIONS[step];
+}
+
 function isMarkdownFile(fileName: string): boolean {
     return MARKDOWN_FILE_EXTENSIONS.some((extension) =>
         fileName.endsWith(`.${extension}`)
     );
 }
 
-function getFileRelativePath(file: File): string {
-    return (
-        (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
-        file.name
-    );
+function createEmptyFileSelection(): MarkdownFileSelection {
+    return { entries: [], skippedFiles: [] };
+}
+
+function pluralize(count: number, singular: string): string {
+    return count === 1 ? singular : `${singular}s`;
+}
+
+function getFileRelativePath(file: File, stripRootSegment: boolean): string {
+    const relativePath = file.webkitRelativePath || file.name;
+    if (!stripRootSegment) {
+        return relativePath;
+    }
+    return relativePath.split("/").slice(1).join("/") || file.name;
 }
 
 async function readMarkdownFileEntries(
     files: File[],
     stripRootSegment: boolean
-): Promise<{ entries: ImportFileEntry[]; skippedPaths: SkippedFilePath[] }> {
-    const entries: ImportFileEntry[] = [];
-    const skippedPaths: SkippedFilePath[] = [];
+): Promise<MarkdownFileSelection> {
+    const entries: MarkdownFileEntry[] = [];
+    const skippedFiles: SkippedMarkdownFile[] = [];
     for (const file of files) {
         if (!isMarkdownFile(file.name)) {
             continue;
         }
-        let relativePath = getFileRelativePath(file);
-        if (stripRootSegment) {
-            relativePath = relativePath.split("/").slice(1).join("/");
-        }
-        const resolvedPath = relativePath || file.name;
+        const relativePath = getFileRelativePath(file, stripRootSegment);
         if (file.size > MAX_FILE_SIZE_BYTES) {
-            skippedPaths.push({
+            skippedFiles.push({
                 message: FILE_SIZE_SKIP_MESSAGE,
-                relativePath: resolvedPath,
+                relativePath,
             });
             continue;
         }
         const markdown = await file.text();
         if (markdown.trim().length === 0) {
-            skippedPaths.push({
+            skippedFiles.push({
                 message: EMPTY_FILE_SKIP_MESSAGE,
-                relativePath: resolvedPath,
+                relativePath,
             });
             continue;
         }
-        entries.push({ markdown, relativePath: resolvedPath });
+        entries.push({ markdown, relativePath });
     }
-    return { entries, skippedPaths };
+    return { entries, skippedFiles };
 }
 
-function buildImportBatches(files: ImportFileEntry[]): ImportFileEntry[][] {
-    const batches: ImportFileEntry[][] = [];
-    let currentBatch: ImportFileEntry[] = [];
+function buildImportBatches(
+    entries: MarkdownFileEntry[]
+): MarkdownFileEntry[][] {
+    const batches: MarkdownFileEntry[][] = [];
+    let currentBatch: MarkdownFileEntry[] = [];
     let currentBatchBytes = 0;
-    for (const file of files) {
-        const fileBytes = new TextEncoder().encode(file.markdown).length;
+    for (const file of entries) {
+        const fileBytes = TEXT_ENCODER.encode(file.markdown).length;
         if (
             currentBatch.length > 0 &&
             (currentBatch.length >= MAX_FILES_PER_BATCH ||
@@ -158,6 +228,55 @@ function isPickerAbortError(error: unknown): boolean {
     return error instanceof Error && error.name === "AbortError";
 }
 
+function createImportResult(
+    skippedFiles: SkippedMarkdownFile[]
+): MarkdownImportResult {
+    return {
+        createdCount: 0,
+        errors: [],
+        failedCount: 0,
+        items: [],
+        skipped: [...skippedFiles],
+        skippedCount: skippedFiles.length,
+        unsupportedReport: {
+            htmlCount: 0,
+            imageCount: 0,
+            tableCount: 0,
+            taskListCount: 0,
+        },
+        updatedCount: 0,
+    };
+}
+
+function mergeImportResult(
+    target: MarkdownImportResult,
+    source: MarkdownImportResult
+): void {
+    target.createdCount += source.createdCount;
+    target.updatedCount += source.updatedCount;
+    target.skippedCount += source.skippedCount;
+    target.failedCount += source.failedCount;
+    target.items.push(...source.items);
+    target.skipped.push(...source.skipped);
+    target.errors.push(...source.errors);
+    target.unsupportedReport.imageCount += source.unsupportedReport.imageCount;
+    target.unsupportedReport.tableCount += source.unsupportedReport.tableCount;
+    target.unsupportedReport.htmlCount += source.unsupportedReport.htmlCount;
+    target.unsupportedReport.taskListCount +=
+        source.unsupportedReport.taskListCount;
+}
+
+function addBatchFailure(
+    result: MarkdownImportResult,
+    files: MarkdownFileEntry[],
+    message: string
+): void {
+    result.failedCount += files.length;
+    for (const file of files) {
+        result.errors.push({ message, relativePath: file.relativePath });
+    }
+}
+
 export function MarkdownImportDialog() {
     const { isOpen, setIsOpen } = useMarkdownImportStore();
 
@@ -169,22 +288,20 @@ export function MarkdownImportDialog() {
         string | null
     >(null);
     const [newImportName, setNewImportName] = React.useState("");
-    const [files, setFiles] = React.useState<ImportFileEntry[]>([]);
-    const [sourceCount, setSourceCount] = React.useState(0);
+    const [fileSelection, setFileSelection] = React.useState(
+        createEmptyFileSelection
+    );
     const [result, setResult] = React.useState<MarkdownImportResult | null>(
         null
     );
     const [isLoading, startLoading] = React.useTransition();
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-    const [skippedFiles, setSkippedFiles] = React.useState<SkippedFilePath[]>(
-        []
-    );
     const { replaceCollections } = useCollectionsContext();
     const { mergeImportedItems: mergeLibraryItems } = useLibraryItemsContext();
     const router = useRouter();
     const importSessionIdRef = React.useRef(0);
-    const createSubmissionPendingRef = React.useRef(false);
-    const importSubmissionPendingRef = React.useRef(false);
+    const isCreateSubmissionPendingRef = React.useRef(false);
+    const isImportSubmissionPendingRef = React.useRef(false);
 
     const loadImports = useStableCallback(() => {
         startLoading(async () => {
@@ -204,18 +321,20 @@ export function MarkdownImportDialog() {
         });
     });
 
+    const resetFileSelection = useStableCallback(() => {
+        setFileSelection(createEmptyFileSelection());
+    });
+
     const resetDialog = useStableCallback(() => {
         importSessionIdRef.current += 1;
-        importSubmissionPendingRef.current = false;
-        createSubmissionPendingRef.current = false;
+        isImportSubmissionPendingRef.current = false;
+        isCreateSubmissionPendingRef.current = false;
         setStep("choose");
         setSelectedImportId(null);
         setNewImportName("");
-        setFiles([]);
-        setSourceCount(0);
+        resetFileSelection();
         setResult(null);
         setErrorMessage(null);
-        setSkippedFiles([]);
     });
 
     const handleOpenChange = useStableCallback((open: boolean) => {
@@ -238,12 +357,12 @@ export function MarkdownImportDialog() {
             setErrorMessage("Enter a name for this import.");
             return;
         }
-        if (createSubmissionPendingRef.current) {
+        if (isCreateSubmissionPendingRef.current) {
             return;
         }
 
         setErrorMessage(null);
-        createSubmissionPendingRef.current = true;
+        isCreateSubmissionPendingRef.current = true;
         startLoading(async () => {
             try {
                 const response = await createMarkdownImport({ name: trimmed });
@@ -265,7 +384,7 @@ export function MarkdownImportDialog() {
                 log.error("Failed to create import", err);
                 setErrorMessage("We couldn't create this import.");
             } finally {
-                createSubmissionPendingRef.current = false;
+                isCreateSubmissionPendingRef.current = false;
             }
         });
     });
@@ -277,13 +396,12 @@ export function MarkdownImportDialog() {
     });
 
     const handleEntriesReady = useStableCallback(
-        (entries: ImportFileEntry[], skipped: SkippedFilePath[]) => {
-            setSkippedFiles(skipped);
-            setFiles(entries);
-            setSourceCount(entries.length);
+        (selection: MarkdownFileSelection) => {
+            setFileSelection(selection);
+            const { entries, skippedFiles } = selection;
             if (entries.length === 0) {
                 setErrorMessage(
-                    skipped.length > 0
+                    skippedFiles.length > 0
                         ? "None of the selected files can be imported. Check the file sizes and content."
                         : "No Markdown files found there. Choose a folder that contains .md or .markdown files."
                 );
@@ -299,11 +417,8 @@ export function MarkdownImportDialog() {
                 extensions: MARKDOWN_FILE_EXTENSIONS,
                 multiple: true,
             });
-            const { entries, skippedPaths } = await readMarkdownFileEntries(
-                openedFiles,
-                false
-            );
-            handleEntriesReady(entries, skippedPaths);
+            const selection = await readMarkdownFileEntries(openedFiles, false);
+            handleEntriesReady(selection);
         } catch (error) {
             if (isPickerAbortError(error)) {
                 return;
@@ -318,11 +433,8 @@ export function MarkdownImportDialog() {
         try {
             const { directoryOpen } = await import("browser-fs-access");
             const dirFiles = await directoryOpen({ recursive: true });
-            const { entries, skippedPaths } = await readMarkdownFileEntries(
-                dirFiles,
-                true
-            );
-            handleEntriesReady(entries, skippedPaths);
+            const selection = await readMarkdownFileEntries(dirFiles, true);
+            handleEntriesReady(selection);
         } catch (error) {
             if (isPickerAbortError(error)) {
                 return;
@@ -333,44 +445,27 @@ export function MarkdownImportDialog() {
     });
 
     const handleImport = useStableCallback(async () => {
-        if (!selectedImportId || files.length === 0) {
+        if (!selectedImportId || fileSelection.entries.length === 0) {
             return;
         }
-        if (importSubmissionPendingRef.current) {
+        if (isImportSubmissionPendingRef.current) {
             return;
         }
 
-        importSubmissionPendingRef.current = true;
+        isImportSubmissionPendingRef.current = true;
 
         try {
             const sessionId = importSessionIdRef.current + 1;
             importSessionIdRef.current = sessionId;
             setStep("importing");
 
-            const aggregatedResult: MarkdownImportResult = {
-                createdCount: 0,
-                errors: [],
-                failedCount: 0,
-                items: [],
-                skipped: [],
-                skippedCount: 0,
-                unsupportedReport: {
-                    htmlCount: 0,
-                    imageCount: 0,
-                    tableCount: 0,
-                    taskListCount: 0,
-                },
-                updatedCount: 0,
-            };
-
-            for (const skippedFile of skippedFiles) {
-                aggregatedResult.skippedCount += 1;
-                aggregatedResult.skipped.push(skippedFile);
-            }
+            const aggregatedResult = createImportResult(
+                fileSelection.skippedFiles
+            );
 
             let collectionsFromImport: LibraryCollectionSummary[] | null = null;
 
-            for (const batch of buildImportBatches(files)) {
+            for (const batch of buildImportBatches(fileSelection.entries)) {
                 try {
                     const response = await importMarkdownBatch({
                         files: batch,
@@ -379,40 +474,22 @@ export function MarkdownImportDialog() {
 
                     if (response.status === "SUCCESS") {
                         const data = response.data;
-                        aggregatedResult.createdCount += data.createdCount;
-                        aggregatedResult.updatedCount += data.updatedCount;
-                        aggregatedResult.skippedCount += data.skippedCount;
-                        aggregatedResult.failedCount += data.failedCount;
-                        aggregatedResult.items.push(...data.items);
-                        aggregatedResult.skipped.push(...data.skipped);
-                        aggregatedResult.errors.push(...data.errors);
-                        aggregatedResult.unsupportedReport.imageCount +=
-                            data.unsupportedReport.imageCount;
-                        aggregatedResult.unsupportedReport.tableCount +=
-                            data.unsupportedReport.tableCount;
-                        aggregatedResult.unsupportedReport.htmlCount +=
-                            data.unsupportedReport.htmlCount;
-                        aggregatedResult.unsupportedReport.taskListCount +=
-                            data.unsupportedReport.taskListCount;
+                        mergeImportResult(aggregatedResult, data);
                         collectionsFromImport = data.collections;
                     } else {
-                        for (const file of batch) {
-                            aggregatedResult.failedCount += 1;
-                            aggregatedResult.errors.push({
-                                message: response.message,
-                                relativePath: file.relativePath,
-                            });
-                        }
+                        addBatchFailure(
+                            aggregatedResult,
+                            batch,
+                            response.message
+                        );
                     }
                 } catch (err) {
                     log.error("Failed to import markdown batch", err);
-                    for (const file of batch) {
-                        aggregatedResult.failedCount += 1;
-                        aggregatedResult.errors.push({
-                            message: BATCH_IMPORT_FAILURE_MESSAGE,
-                            relativePath: file.relativePath,
-                        });
-                    }
+                    addBatchFailure(
+                        aggregatedResult,
+                        batch,
+                        BATCH_IMPORT_FAILURE_MESSAGE
+                    );
                 }
             }
 
@@ -429,7 +506,7 @@ export function MarkdownImportDialog() {
                 setStep("done");
             }
         } finally {
-            importSubmissionPendingRef.current = false;
+            isImportSubmissionPendingRef.current = false;
         }
     });
 
@@ -450,44 +527,14 @@ export function MarkdownImportDialog() {
     const handleBack = useStableCallback(() => {
         if (step === "create-new" || step === "pick-files") {
             setStep("choose");
-            setFiles([]);
-            setSkippedFiles([]);
-            setSourceCount(0);
+            resetFileSelection();
             setErrorMessage(null);
         }
     });
 
-    const stepTitle = (() => {
-        switch (step) {
-            case "choose":
-                return "Import Markdown files";
-            case "create-new":
-                return "New import";
-            case "pick-files":
-                return "Select files";
-            case "importing":
-                return "Importing...";
-            case "done":
-                return "Import complete";
-            default:
-                return "";
-        }
-    })();
-
-    const stepDescription = (() => {
-        switch (step) {
-            case "choose":
-                return "Create a new import namespace or choose an existing one. Each namespace keeps imports from a folder separate.";
-            case "create-new":
-                return 'Name this import. For example, "Obsidian vault", "Bear notes", or "Research papers".';
-            case "pick-files":
-                return "Choose a folder or .md files to import. Nested folders create matching collections.";
-            case "done":
-                return result ? buildResultSummary(result) : "";
-            default:
-                return "";
-        }
-    })();
+    const sourceCount = fileSelection.entries.length;
+    const stepTitle = STEP_TITLES[step];
+    const stepDescription = getStepDescription(step, result);
 
     const renderChooseStep = (
         <div className="flex flex-col gap-3 py-2">
@@ -575,59 +622,32 @@ export function MarkdownImportDialog() {
         </div>
     );
 
-    const renderDoneStep = result !== null && (
+    const renderDoneStep = result ? (
         <div className="flex flex-col gap-2 py-2 text-sm">
             <p>
                 <strong>{result.createdCount}</strong> created
-                {result.updatedCount > 0 && (
+                {result.updatedCount > 0 ? (
                     <span>
                         , <strong>{result.updatedCount}</strong> updated
                     </span>
-                )}
-                {result.skippedCount > 0 && (
+                ) : null}
+                {result.skippedCount > 0 ? (
                     <span>
                         , <strong>{result.skippedCount}</strong> skipped
                     </span>
-                )}
-                {result.failedCount > 0 && (
+                ) : null}
+                {result.failedCount > 0 ? (
                     <span>
                         , <strong>{result.failedCount}</strong> failed
                     </span>
-                )}
+                ) : null}
             </p>
-            {result.unsupportedReport.imageCount > 0 && (
-                <p className="text-muted-foreground">
-                    {result.unsupportedReport.imageCount} image
-                    {result.unsupportedReport.imageCount === 1 ? "" : "s"}{" "}
-                    skipped (alt text preserved)
-                </p>
-            )}
-            {result.unsupportedReport.tableCount > 0 && (
-                <p className="text-muted-foreground">
-                    {result.unsupportedReport.tableCount} table
-                    {result.unsupportedReport.tableCount === 1 ? "" : "s"}{" "}
-                    skipped (text preserved)
-                </p>
-            )}
-            {result.unsupportedReport.htmlCount > 0 && (
-                <p className="text-muted-foreground">
-                    {result.unsupportedReport.htmlCount} raw HTML block
-                    {result.unsupportedReport.htmlCount === 1 ? "" : "s"}{" "}
-                    skipped
-                </p>
-            )}
-            {result.unsupportedReport.taskListCount > 0 && (
-                <p className="text-muted-foreground">
-                    {result.unsupportedReport.taskListCount} task-list item
-                    {result.unsupportedReport.taskListCount === 1 ? "" : "s"}{" "}
-                    rendered as text markers
-                </p>
-            )}
-            {result.skipped.length > 0 && (
+            <UnsupportedConstructItems report={result.unsupportedReport} />
+            {result.skipped.length > 0 ? (
                 <details className="mt-1">
                     <summary className="cursor-pointer text-muted-foreground text-xs">
-                        {result.skipped.length} file
-                        {result.skipped.length === 1 ? "" : "s"} left out
+                        {result.skipped.length}{" "}
+                        {pluralize(result.skipped.length, "file")} left out
                     </summary>
                     <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-muted-foreground text-xs">
                         {result.skipped.map((skippedFile) => (
@@ -640,30 +660,25 @@ export function MarkdownImportDialog() {
                         ))}
                     </ul>
                 </details>
-            )}
-            {result.errors.length > 0 && (
+            ) : null}
+            {result.errors.length > 0 ? (
                 <details className="mt-1">
                     <summary className="cursor-pointer text-destructive text-xs">
-                        {result.errors.length} error
-                        {result.errors.length === 1 ? "" : "s"}
+                        {result.errors.length}{" "}
+                        {pluralize(result.errors.length, "error")}
                     </summary>
                     <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-muted-foreground text-xs">
-                        {result.errors.map(
-                            (err: {
-                                relativePath: string;
-                                message: string;
-                            }) => (
-                                <li key={`${err.relativePath}-${err.message}`}>
-                                    <code>{err.relativePath}</code>:{" "}
-                                    {err.message}
-                                </li>
-                            )
-                        )}
+                        {result.errors.map((error) => (
+                            <li key={`${error.relativePath}-${error.message}`}>
+                                <code>{error.relativePath}</code>:{" "}
+                                {error.message}
+                            </li>
+                        ))}
                     </ul>
                 </details>
-            )}
+            ) : null}
         </div>
-    );
+    ) : null;
 
     const renderFooter = () => {
         if (step === "done") {
@@ -678,17 +693,17 @@ export function MarkdownImportDialog() {
 
         return (
             <>
-                {step !== "choose" && (
+                {step === "choose" ? null : (
                     <Button onClick={handleBack} size="sm" variant="ghost">
                         Back
                     </Button>
                 )}
-                {step === "pick-files" && files.length > 0 && (
+                {step === "pick-files" && fileSelection.entries.length > 0 ? (
                     <Button onClick={handleImport} size="sm">
-                        Import {files.length} file
-                        {files.length === 1 ? "" : "s"}
+                        Import {fileSelection.entries.length} file
+                        {fileSelection.entries.length === 1 ? "" : "s"}
                     </Button>
-                )}
+                ) : null}
             </>
         );
     };
@@ -733,4 +748,20 @@ function ImportItemButton({ id, name, onSelect }: ImportItemButtonProps) {
             <span className="min-w-0 flex-1 truncate">{name}</span>
         </Button>
     );
+}
+
+interface UnsupportedConstructItemsProps {
+    report: MarkdownImportResult["unsupportedReport"];
+}
+
+function UnsupportedConstructItems({ report }: UnsupportedConstructItemsProps) {
+    return UNSUPPORTED_CONSTRUCTS.map((construct) => {
+        const count = report[construct.key];
+        return count > 0 ? (
+            <p className="text-muted-foreground" key={construct.key}>
+                {count} {pluralize(count, construct.singular)}{" "}
+                {construct.description}
+            </p>
+        ) : null;
+    });
 }
