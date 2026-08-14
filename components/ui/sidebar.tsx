@@ -25,19 +25,21 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 type SidebarState = "expanded" | "collapsed";
 
-interface SidebarContextValue {
+interface SidebarContext {
     open: boolean;
     setOpen: (open: boolean) => void;
     state: SidebarState;
     toggleSidebar: () => void;
 }
 
-const SidebarContext = React.createContext<SidebarContextValue | null>(null);
+const SidebarContext = React.createContext<SidebarContext | null>(null);
 
-export function useSidebar() {
+export function useSidebarContext() {
     const context = React.use(SidebarContext);
     if (!context) {
-        throw new Error("useSidebar must be used within a SidebarProvider.");
+        throw new Error(
+            "useSidebarContext must be used within a SidebarProvider."
+        );
     }
     return context;
 }
@@ -150,7 +152,7 @@ export function SidebarProvider({
         setOpen,
         state,
         toggleSidebar,
-    } satisfies SidebarContextValue;
+    } satisfies SidebarContext;
 
     return <SidebarContext value={contextValue}>{children}</SidebarContext>;
 }
@@ -182,7 +184,7 @@ export function SidebarRail({
     ...props
 }: React.ComponentProps<"button">) {
     const gt = useGT();
-    const { toggleSidebar, open } = useSidebar();
+    const { toggleSidebar, open } = useSidebarContext();
 
     return (
         <button
@@ -228,7 +230,7 @@ export function SidebarTrigger({
     ...props
 }: React.ComponentProps<typeof Button>) {
     const gt = useGT();
-    const { open, toggleSidebar } = useSidebar();
+    const { open, toggleSidebar } = useSidebarContext();
 
     const handleClick = useStableCallback(
         (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {

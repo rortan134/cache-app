@@ -7,6 +7,7 @@ import type {
 import { Toolbar } from "@base-ui/react/toolbar";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
+import { T } from "gt-next";
 import { ChevronDown, CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
@@ -31,9 +32,9 @@ import {
 import {
     DataList,
     DataListChart,
+    DataListGroup,
     DataListHeader,
     DataListItem,
-    DataListItems,
     DataListSection,
     DataListTitle,
 } from "@/components/ui/data-list";
@@ -52,19 +53,15 @@ import { cn } from "@/lib/common/cn";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { formatSharePercent } from "@/lib/common/numbers";
 
-const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
+const MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
 
-const NORMALIZED_PALETTE_ITEM_CACHE_LIMIT = 2000;
-
-const log = createLogger("library:composer");
-
-export interface PaletteStackEntry {
+export interface ComposerPaletteStackEntry {
     chip: React.ReactNode;
     key: string;
     onRemove: () => void;
 }
 
-export interface CommandPaletteItem {
+export interface ComposerPaletteItem {
     description?: string;
     disabled?: boolean;
     isActive?: boolean;
@@ -72,41 +69,41 @@ export interface CommandPaletteItem {
     onSelect: (
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
     ) => void | Promise<void>;
-    render?: (item: CommandPaletteItem) => React.ReactNode;
+    render?: (item: ComposerPaletteItem) => React.ReactNode;
     shortcut?: string;
     value: string;
 }
 
-export interface CommandPaletteGroup {
-    items: CommandPaletteItem[];
+export interface ComposerPaletteGroup {
+    items: ComposerPaletteItem[];
     label: string;
     layout?: "horizontal" | "vertical";
 }
 
-export interface CommandSuggestion {
+export interface ComposerSuggestion {
     icon?: React.ReactNode;
     label: string;
     onSelect: () => void;
 }
 
-interface CommandItemRank {
+interface ComposerItemRank {
     index: number;
     score: number;
 }
 
-interface RankedCommandPaletteItem {
-    item: CommandPaletteItem;
-    rank: CommandItemRank;
-}
-
-interface NormalizedPaletteItem {
+interface ComposerItemSearchFields {
     lowerDescription: string;
     lowerLabel: string;
     lowerValue: string;
     words: string[];
 }
 
-interface ComposerActionsProps {
+interface RankedComposerItem {
+    item: ComposerPaletteItem;
+    rank: ComposerItemRank;
+}
+
+interface ComposerActions {
     canClear: boolean;
     duplicatesFilterEnabled: boolean;
     groupBy: string;
@@ -118,66 +115,36 @@ interface ComposerActionsProps {
     sectionsLength: number;
 }
 
-interface ComposerInputProps {
-    containerRef: React.RefObject<HTMLDivElement | null>;
-    groups: CommandPaletteGroup[];
+interface ComposerActionsContext extends ComposerActions {
+    metrics: LibraryMetricsSnapshot;
+}
+
+const log = createLogger("library:composer");
+
+const ComposerActionsContext =
+    React.createContext<ComposerActionsContext | null>(null);
+
+function useComposerActionsContext(): ComposerActionsContext {
+    const context = React.use(ComposerActionsContext);
+    if (!context) {
+        throw new Error(
+            "Composer action components must be used inside <ComposerActionsList>."
+        );
+    }
+    return context;
+}
+
+interface UseVisibleItemGroupsProps {
+    groups: ComposerPaletteGroup[];
     isOpen: boolean;
-    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-    onOpenChange: (
-        nextOpen: boolean,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    onValueChange: (
-        next: string,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    placeholder: string;
     query: string;
-    ref: React.RefObject<HTMLInputElement | null>;
-    stackEntries: PaletteStackEntry[];
 }
 
-interface ComposerInputEndAddonProps {
-    stackEntries: PaletteStackEntry[];
-}
-
-interface CommandPaletteItemComponentProps {
-    isHorizontal?: boolean;
-    item: CommandPaletteItem;
-}
-
-interface ComposerActionsListProps
-    extends React.ComponentProps<typeof Toolbar.Group> {
-    actions: ComposerActionsProps;
-    children: React.ReactNode;
-    metrics: LibraryMetricsSnapshot;
-}
-
-interface ComposerSuggestionsListProps
-    extends Omit<React.ComponentProps<typeof CollapsiblePanel>, "children"> {
-    children: (suggestion: CommandSuggestion, index: number) => React.ReactNode;
-    onOpenChange?: (open: boolean) => void;
-    open?: boolean;
-    suggestions: CommandSuggestion[];
-}
-
-interface ComposerActionMetricsPanelProps {
-    canClear: boolean;
-    metrics: LibraryMetricsSnapshot;
-    onClearPalette: () => void;
-}
-
-const normalizedPaletteItemCache = new Map<string, NormalizedPaletteItem>();
-
-function useVisibleGroups({
+function useVisibleItemGroups({
     groups,
     isOpen,
     query,
-}: {
-    groups: CommandPaletteGroup[];
-    isOpen: boolean;
-    query: string;
-}): CommandPaletteGroup[] {
+}: UseVisibleItemGroupsProps): ComposerPaletteGroup[] {
     const filter = useCommandFilter();
 
     const normalizedQuery = query.trim();
@@ -186,13 +153,13 @@ function useVisibleGroups({
     }
 
     const lowerQuery = normalizedQuery.toLowerCase();
-    const visibleGroups: CommandPaletteGroup[] = [];
+    const visibleGroups: ComposerPaletteGroup[] = [];
 
     for (const group of groups) {
-        const rankedItems: RankedCommandPaletteItem[] = [];
+        const rankedItems: RankedComposerItem[] = [];
 
         for (const [index, item] of group.items.entries()) {
-            const score = getCommandItemScore(filter, item, lowerQuery);
+            const score = getComposerItemScore(filter, item, lowerQuery);
             if (score !== null) {
                 rankedItems.push({
                     item,
@@ -220,39 +187,25 @@ function useVisibleGroups({
     return visibleGroups;
 }
 
-function getNormalizedPaletteItem(
-    item: CommandPaletteItem
-): NormalizedPaletteItem {
-    const key = `${item.label}\u0000${item.value}\u0000${item.description ?? ""}`;
-    const cached = normalizedPaletteItemCache.get(key);
-    if (cached) {
-        return cached;
-    }
-
+function getComposerItemSearchFields(
+    item: ComposerPaletteItem
+): ComposerItemSearchFields {
     const lowerLabel = item.label.trim().toLowerCase();
-    const normalized: NormalizedPaletteItem = {
+    return {
         lowerDescription: (item.description ?? "").toLowerCase(),
         lowerLabel,
         lowerValue: item.value.toLowerCase(),
-        words: lowerLabel.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN),
+        words: lowerLabel.split(MATCH_WORD_SEPARATOR_PATTERN),
     };
-
-    if (
-        normalizedPaletteItemCache.size >= NORMALIZED_PALETTE_ITEM_CACHE_LIMIT
-    ) {
-        normalizedPaletteItemCache.clear();
-    }
-    normalizedPaletteItemCache.set(key, normalized);
-    return normalized;
 }
 
-function getCommandItemScore(
+function getComposerItemScore(
     filter: ReturnType<typeof useCommandFilter>,
-    item: CommandPaletteItem,
+    item: ComposerPaletteItem,
     lowerQuery: string
 ): number | null {
     const { lowerDescription, lowerLabel, lowerValue, words } =
-        getNormalizedPaletteItem(item);
+        getComposerItemSearchFields(item);
 
     if (lowerLabel === lowerQuery) {
         return 0;
@@ -299,33 +252,6 @@ function formatShareValue(value: number, total: number): React.ReactNode {
     );
 }
 
-const ComposerActionsContext = React.createContext<ComposerActionsProps | null>(
-    null
-);
-
-function useComposerActionsContext(): ComposerActionsProps {
-    const context = React.use(ComposerActionsContext);
-    if (!context) {
-        throw new Error(
-            "ComposerActions sub-components must be used inside <ComposerActions>."
-        );
-    }
-    return context;
-}
-
-const ComposerMetricsContext =
-    React.createContext<LibraryMetricsSnapshot | null>(null);
-
-function useComposerMetricsContext(): LibraryMetricsSnapshot {
-    const context = React.use(ComposerMetricsContext);
-    if (!context) {
-        throw new Error(
-            "ComposerActionMetrics sub-components must be used inside <ComposerActionMetrics>."
-        );
-    }
-    return context;
-}
-
 export function Composer({
     className,
     ...props
@@ -334,11 +260,30 @@ export function Composer({
         <Toolbar.Root
             {...props}
             className={cn(
-                "sticky top-1 z-50 w-full max-w-2xl overflow-clip rounded-t-3xl rounded-b-3xl bg-muted",
+                "squircle sticky top-1 z-50 w-full max-w-2xl overflow-clip rounded-t-3xl rounded-b-3xl bg-muted",
                 className
             )}
         />
     );
+}
+
+interface ComposerInputProps {
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    groups: ComposerPaletteGroup[];
+    isOpen: boolean;
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+    onOpenChange: (
+        nextOpen: boolean,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    onValueChange: (
+        next: string,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    placeholder: string;
+    query: string;
+    ref: React.RefObject<HTMLInputElement | null>;
+    stackEntries: ComposerPaletteStackEntry[];
 }
 
 export function ComposerInput({
@@ -353,11 +298,11 @@ export function ComposerInput({
     ref,
     stackEntries,
 }: ComposerInputProps) {
-    const filteredGroups = useVisibleGroups({ groups, isOpen, query });
+    const filteredItemGroups = useVisibleItemGroups({ groups, isOpen, query });
 
     return (
         <Command
-            filteredItems={filteredGroups}
+            filteredItems={filteredItemGroups}
             items={groups}
             onOpenChange={onOpenChange}
             onValueChange={onValueChange}
@@ -370,6 +315,7 @@ export function ComposerInput({
                         <CommandInput
                             autoCapitalize="sentences"
                             autoCorrect="on"
+                            className="squircle"
                             endAddon={
                                 <ComposerInputEndAddon
                                     stackEntries={stackEntries}
@@ -386,43 +332,52 @@ export function ComposerInput({
                     }
                 />
                 <CommandPopup className="max-w-2xl" positionMethod="fixed">
-                    <CommandEmpty>No matching commands</CommandEmpty>
+                    <CommandEmpty>
+                        <T>No matching commands</T>
+                    </CommandEmpty>
                     <CommandStatus />
                     <CommandList className="max-w-2xl">
-                        {(group: CommandPaletteGroup) => (
-                            <CommandGroup items={group.items} key={group.label}>
-                                <CommandGroupLabel>
-                                    {group.label}
-                                </CommandGroupLabel>
-                                {group.layout === "horizontal" ? (
-                                    <CommandRow className="grid grid-cols-2 gap-2 pt-1 pr-2 pb-4 md:grid-cols-3 lg:grid-cols-4">
-                                        <CommandCollection>
-                                            {(item: CommandPaletteItem) => (
-                                                <CommandPaletteItemComponent
-                                                    isHorizontal
-                                                    item={item}
-                                                    key={item.value}
-                                                />
-                                            )}
-                                        </CommandCollection>
-                                    </CommandRow>
-                                ) : (
-                                    <CommandCollection>
-                                        {(item: CommandPaletteItem) => (
-                                            <CommandPaletteItemComponent
-                                                item={item}
-                                                key={item.value}
-                                            />
-                                        )}
-                                    </CommandCollection>
-                                )}
-                            </CommandGroup>
-                        )}
+                        {(group: ComposerPaletteGroup) => {
+                            const isHorizontal = group.layout === "horizontal";
+                            const items = (
+                                <CommandCollection>
+                                    {(item: ComposerPaletteItem) => (
+                                        <ComposerItem
+                                            isHorizontal={isHorizontal}
+                                            item={item}
+                                            key={item.value}
+                                        />
+                                    )}
+                                </CommandCollection>
+                            );
+
+                            return (
+                                <CommandGroup
+                                    items={group.items}
+                                    key={group.label}
+                                >
+                                    <CommandGroupLabel>
+                                        {group.label}
+                                    </CommandGroupLabel>
+                                    {isHorizontal ? (
+                                        <CommandRow className="grid grid-cols-2 gap-2 pt-1 pr-2 pb-4 md:grid-cols-3 lg:grid-cols-4">
+                                            {items}
+                                        </CommandRow>
+                                    ) : (
+                                        items
+                                    )}
+                                </CommandGroup>
+                            );
+                        }}
                     </CommandList>
                 </CommandPopup>
             </CommandPanel>
         </Command>
     );
+}
+
+interface ComposerInputEndAddonProps {
+    stackEntries: ComposerPaletteStackEntry[];
 }
 
 function ComposerInputEndAddon({ stackEntries }: ComposerInputEndAddonProps) {
@@ -468,17 +423,119 @@ function ComposerInputShortcut() {
     );
 }
 
-function CommandPaletteItemComponent({
-    item,
-    isHorizontal = false,
-}: CommandPaletteItemComponentProps) {
+interface ComposerActionsListProps
+    extends React.ComponentProps<typeof Toolbar.Group>,
+        ComposerActions {
+    metrics: LibraryMetricsSnapshot;
+}
+
+export function ComposerActionsList({
+    className,
+    canClear,
+    duplicatesFilterEnabled,
+    groupBy,
+    metrics,
+    onClearPalette,
+    onCreateNote,
+    onRemoveDuplicates,
+    removableDuplicateCount,
+    resultsSummary,
+    sectionsLength,
+    ...props
+}: ComposerActionsListProps) {
+    const contextValue: ComposerActionsContext = {
+        canClear,
+        duplicatesFilterEnabled,
+        groupBy,
+        metrics,
+        onClearPalette,
+        onCreateNote,
+        onRemoveDuplicates,
+        removableDuplicateCount,
+        resultsSummary,
+        sectionsLength,
+    };
+
+    return (
+        <ComposerActionsContext value={contextValue}>
+            <ScrollArea className="h-fit" shouldScrollFade>
+                <Toolbar.Group
+                    {...props}
+                    className={cn(
+                        "flex items-center gap-2.5 text-nowrap px-3 py-2",
+                        className
+                    )}
+                />
+            </ScrollArea>
+        </ComposerActionsContext>
+    );
+}
+
+export function ComposerActionNew() {
+    const { onCreateNote } = useComposerActionsContext();
+
+    return (
+        <ComposerActionTrigger onClick={onCreateNote} title="Add new">
+            <SquarePen className="inline-block size-3.5 shrink-0" />
+            &nbsp;Add new
+        </ComposerActionTrigger>
+    );
+}
+
+export function ComposerActionMetrics() {
+    return (
+        <Popover>
+            <PopoverTrigger openOnHover render={<ComposerMetricsTrigger />} />
+            <PopoverPopup align="start" side="top">
+                <ComposerMetricsPopoverPanel />
+            </PopoverPopup>
+        </Popover>
+    );
+}
+
+export function ComposerActionRemoveDuplicates() {
+    const {
+        duplicatesFilterEnabled,
+        onRemoveDuplicates,
+        removableDuplicateCount,
+    } = useComposerActionsContext();
+
+    const canRemove = removableDuplicateCount > 0;
+
+    if (!duplicatesFilterEnabled) {
+        return null;
+    }
+
+    return (
+        <ComposerActionTrigger
+            disabled={!canRemove}
+            onClick={onRemoveDuplicates}
+            title={
+                canRemove
+                    ? "Remove duplicate bookmarks"
+                    : "No duplicates to remove"
+            }
+        >
+            <CopyX className="inline-block size-3.5 shrink-0" />
+            &nbsp;Remove duplicates
+        </ComposerActionTrigger>
+    );
+}
+
+interface ComposerItemProps {
+    isHorizontal?: boolean;
+    item: ComposerPaletteItem;
+}
+
+function ComposerItem({ item, isHorizontal = false }: ComposerItemProps) {
     const onSelect = item.onSelect;
+
     const handleSelect = useStableCallback(
         (event: BaseUIEvent<React.MouseEvent>) => {
             const result = onSelect(event);
             if (result) {
                 result.catch((error: unknown) => {
-                    log.error("Command palette item failed", error, {
+                    log.error("ComposerItem selection failed", error, {
                         value: item.value,
                     });
                 });
@@ -490,7 +547,7 @@ function CommandPaletteItemComponent({
         <CommandItem
             className={cn(
                 isHorizontal &&
-                    "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
+                    "group squircle relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
             )}
             disabled={item.disabled}
             onClick={handleSelect}
@@ -518,125 +575,12 @@ function CommandPaletteItemComponent({
     );
 }
 
-export function ComposerSuggestionsList({
-    children,
-    suggestions,
-    className,
-    open: openProp,
-    onOpenChange: onOpenChangeProp,
-    ...props
-}: ComposerSuggestionsListProps) {
-    const [isInternalOpen, setInternalOpen] = React.useState(true);
-    const isOpen = openProp === undefined ? isInternalOpen : openProp;
-
-    const setIsOpen = useStableCallback((next: boolean) => {
-        setInternalOpen(next);
-        onOpenChangeProp?.(next);
-    });
-
-    const handleDismiss = useStableCallback(() => setIsOpen(false));
-
-    if (!suggestions.length) {
-        return null;
-    }
-
-    const dismissSuggestion: CommandSuggestion = {
-        label: "Dismiss",
-        onSelect: handleDismiss,
-    };
-
-    return (
-        <Collapsible
-            className="relative -mt-1"
-            onOpenChange={setIsOpen}
-            open={isOpen}
-        >
-            <CollapsiblePanel {...props} className={cn("px-3", className)}>
-                <ScrollArea shouldScrollFade>
-                    <div className="flex w-max flex-nowrap items-center gap-1.5 text-nowrap">
-                        {suggestions.map((suggestion, i) => (
-                            <React.Fragment key={suggestion.label}>
-                                {children(suggestion, i)}
-                                <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs">
-                                    ·
-                                </span>
-                            </React.Fragment>
-                        ))}
-                        {children(dismissSuggestion, suggestions.length)}
-                    </div>
-                </ScrollArea>
-            </CollapsiblePanel>
-        </Collapsible>
-    );
-}
-
-export function ComposerActionsList({
-    className,
-    actions,
-    metrics,
-    ...props
-}: ComposerActionsListProps) {
-    return (
-        <ComposerActionsContext value={actions}>
-            <ComposerMetricsContext value={metrics}>
-                <ScrollArea className="h-fit" shouldScrollFade>
-                    <Toolbar.Group
-                        {...props}
-                        className={cn(
-                            "flex items-center gap-2.5 overflow-clip text-nowrap px-3 py-2",
-                            className
-                        )}
-                    />
-                </ScrollArea>
-            </ComposerMetricsContext>
-        </ComposerActionsContext>
-    );
-}
-
-export function ComposerActionNew() {
-    const { onCreateNote } = useComposerActionsContext();
-
-    return (
-        <ComposerActionButton onClick={onCreateNote} title="Add new">
-            <SquarePen className="inline-block size-3.5 shrink-0" />
-            &nbsp;Add new
-        </ComposerActionButton>
-    );
-}
-
-export function ComposerActionMetrics() {
-    const { canClear, onClearPalette } = useComposerActionsContext();
-    const metrics = useComposerMetricsContext();
-
-    return (
-        <Popover>
-            <Toolbar.Button
-                render={
-                    <PopoverTrigger
-                        openOnHover
-                        render={<ComposerActionMetricsTrigger />}
-                    />
-                }
-            />
-            <PopoverPopup align="start" side="top">
-                <ComposerActionMetricsPanel
-                    canClear={canClear}
-                    metrics={metrics}
-                    onClearPalette={onClearPalette}
-                />
-            </PopoverPopup>
-        </Popover>
-    );
-}
-
-function ComposerActionMetricsTrigger(
-    props: React.ComponentProps<typeof Button>
-) {
+function ComposerMetricsTrigger(props: React.ComponentProps<typeof Button>) {
     const { canClear, groupBy, resultsSummary, sectionsLength } =
         useComposerActionsContext();
 
     return (
-        <ComposerActionButton {...props}>
+        <ComposerActionTrigger {...props}>
             {canClear ? (
                 <Grid2x2X className="inline-block size-3.5 shrink-0" />
             ) : (
@@ -652,49 +596,41 @@ function ComposerActionMetricsTrigger(
                 )}
             </span>
             <ChevronDown className="inline-block size-3.5 shrink-0" />
-        </ComposerActionButton>
+        </ComposerActionTrigger>
     );
 }
 
-function ComposerActionMetricsPanel({
-    canClear,
-    metrics,
-    onClearPalette,
-}: ComposerActionMetricsPanelProps) {
+function ComposerMetricsPopoverPanel() {
+    const { canClear, metrics, onClearPalette } = useComposerActionsContext();
+
     const {
         duplicateCount,
+        favoriteCount,
+        inCollectionCount,
         itemCount,
+        noteCount,
         sourceSegments,
         uncollectedCount,
         unreachableCount,
     } = metrics;
 
-    const gapRows: {
-        key: string;
-        label: string;
-        value: React.ReactNode;
-    }[] = [];
-    if (uncollectedCount > 0) {
-        gapRows.push({
+    const additionalRows = [
+        {
             key: "uncollected",
             label: "Not in Collections",
-            value: formatShareValue(uncollectedCount, itemCount),
-        });
-    }
-    if (duplicateCount > 0) {
-        gapRows.push({
+            value: uncollectedCount,
+        },
+        {
             key: "duplicates",
             label: "Duplicates",
-            value: formatShareValue(duplicateCount, itemCount),
-        });
-    }
-    if (unreachableCount > 0) {
-        gapRows.push({
+            value: duplicateCount,
+        },
+        {
             key: "unreachable",
             label: "Unreachable",
-            value: formatShareValue(unreachableCount, itemCount),
-        });
-    }
+            value: unreachableCount,
+        },
+    ].filter((row) => row.value > 0);
 
     return (
         <DataList>
@@ -719,7 +655,7 @@ function ComposerActionMetricsPanel({
             </DataListHeader>
             <DataListSection>
                 <DataListChart segments={sourceSegments} />
-                <DataListItems>
+                <DataListGroup>
                     {sourceSegments.map((segment) => (
                         <DataListItem
                             color={segment.color}
@@ -728,73 +664,38 @@ function ComposerActionMetricsPanel({
                             value={formatShareValue(segment.value, itemCount)}
                         />
                     ))}
-                </DataListItems>
+                </DataListGroup>
             </DataListSection>
             <DataListSection>
-                <DataListItems>
+                <DataListGroup>
                     <DataListItem
                         label="Favorites"
-                        value={formatShareValue(
-                            metrics.favoriteCount,
-                            itemCount
-                        )}
+                        value={formatShareValue(favoriteCount, itemCount)}
                     />
                     <DataListItem
                         label="Notes"
-                        value={formatShareValue(metrics.noteCount, itemCount)}
+                        value={formatShareValue(noteCount, itemCount)}
                     />
-                </DataListItems>
-                <DataListItems>
+                </DataListGroup>
+                <DataListGroup>
                     <DataListItem
                         label="In Collections"
-                        value={formatShareValue(
-                            metrics.inCollectionCount,
-                            itemCount
-                        )}
+                        value={formatShareValue(inCollectionCount, itemCount)}
                     />
-                    {gapRows.map((row) => (
+                    {additionalRows.map((row) => (
                         <DataListItem
                             key={row.key}
                             label={row.label}
-                            value={row.value}
+                            value={formatShareValue(row.value, itemCount)}
                         />
                     ))}
-                </DataListItems>
+                </DataListGroup>
             </DataListSection>
         </DataList>
     );
 }
 
-export function ComposerActionRemoveDuplicates() {
-    const {
-        duplicatesFilterEnabled,
-        onRemoveDuplicates,
-        removableDuplicateCount,
-    } = useComposerActionsContext();
-
-    const canRemove = removableDuplicateCount > 0;
-
-    if (!duplicatesFilterEnabled) {
-        return null;
-    }
-
-    return (
-        <ComposerActionButton
-            disabled={!canRemove}
-            onClick={onRemoveDuplicates}
-            title={
-                canRemove
-                    ? "Remove duplicate bookmarks"
-                    : "No duplicates to remove"
-            }
-        >
-            <CopyX className="inline-block size-3.5 shrink-0" />
-            &nbsp;Remove duplicates
-        </ComposerActionButton>
-    );
-}
-
-function ComposerActionButton({
+function ComposerActionTrigger({
     render,
     ...props
 }: React.ComponentProps<typeof Toolbar.Button>) {
@@ -803,5 +704,71 @@ function ComposerActionButton({
             {...props}
             render={render ?? <Button size="xs" variant="ghost" />}
         />
+    );
+}
+
+interface ComposerSuggestionsListProps
+    extends Omit<React.ComponentProps<typeof CollapsiblePanel>, "children"> {
+    children: (
+        suggestion: ComposerSuggestion,
+        index: number
+    ) => React.ReactNode;
+    isOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    suggestions: ComposerSuggestion[];
+}
+
+export function ComposerSuggestionsList({
+    children,
+    suggestions,
+    className,
+    isOpen: isOpenProp,
+    onOpenChange: onOpenChangeProp,
+    ...props
+}: ComposerSuggestionsListProps) {
+    const [internalOpen, setInternalOpen] = React.useState(true);
+    const isOpen = isOpenProp ?? internalOpen;
+    const setIsOpen = useStableCallback((open: boolean) => {
+        onOpenChangeProp?.(open);
+        if (isOpenProp === undefined) {
+            setInternalOpen(open);
+        }
+    });
+
+    const handleDismiss = useStableCallback(() => setIsOpen(false));
+
+    const dismissSuggestion: ComposerSuggestion = {
+        label: "Dismiss",
+        onSelect: handleDismiss,
+    };
+
+    if (!suggestions.length) {
+        return null;
+    }
+
+    return (
+        <Collapsible
+            className="relative -mt-1"
+            onOpenChange={setIsOpen}
+            open={isOpen}
+        >
+            <CollapsiblePanel
+                {...props}
+                className={cn("px-3", className)}
+                render={<ScrollArea shouldScrollFade />}
+            >
+                <div className="flex w-max flex-nowrap items-center gap-1.5 text-nowrap">
+                    {suggestions.map((suggestion, i) => (
+                        <React.Fragment key={suggestion.label}>
+                            {children(suggestion, i)}
+                            <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs">
+                                ·
+                            </span>
+                        </React.Fragment>
+                    ))}
+                    {children(dismissSuggestion, suggestions.length)}
+                </div>
+            </CollapsiblePanel>
+        </Collapsible>
     );
 }

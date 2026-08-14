@@ -34,11 +34,7 @@ export interface LibraryMetricsItem {
     url: string;
 }
 
-/**
- * Build a compact metrics snapshot for the currently visible library set.
- * Source breakdown is the primary signal (Cache unifies multi-platform libraries).
- */
-export function buildLibraryMetrics({
+export function buildComposerMetrics({
     getSourceLabel,
     items,
 }: {

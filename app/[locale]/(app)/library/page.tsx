@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { buildPageMetadata } from "@/app/metadata";
-import { BrowserRoot } from "@/components/library/browser";
+import { BrowserProvider } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
 import { Integrations } from "@/components/library/integrations";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
@@ -71,7 +71,7 @@ export default async function LibraryPage() {
     ]);
 
     return (
-        <BrowserRoot
+        <BrowserProvider
             connectedIntegrationCount={connectedIntegrations.size}
             initialCollections={collections}
             initialItems={items}
@@ -83,6 +83,6 @@ export default async function LibraryPage() {
                 <Integrations connectedIntegrations={connectedIntegrations} />
                 <Collections />
             </ApplicationSidebar>
-        </BrowserRoot>
+        </BrowserProvider>
     );
 }

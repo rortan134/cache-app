@@ -4,6 +4,11 @@ import type {
     AutocompleteRootChangeEventDetails,
     BaseUIEvent,
 } from "@base-ui/react";
+import {
+    activeElement,
+    contains,
+    getTarget,
+} from "@base-ui/react/internals/shadowDom";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -60,9 +65,9 @@ import {
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
     buildCollectionItemIndexes,
+    buildFavoriteItemIndexes,
     CollectionsProvider,
     LibraryItemsContext,
-    type LibraryItemsContextValue,
     reconcileCollectionTags,
     replaceMultipleItemCollections,
     sortCollections,
@@ -70,17 +75,17 @@ import {
 } from "@/components/library/collections";
 import { CommentTextarea } from "@/components/library/comments";
 import {
-    type CommandPaletteGroup,
-    type CommandPaletteItem,
-    type CommandSuggestion,
     Composer,
     ComposerActionMetrics,
     ComposerActionNew,
     ComposerActionRemoveDuplicates,
     ComposerActionsList,
     ComposerInput,
+    type ComposerPaletteGroup,
+    type ComposerPaletteItem,
+    type ComposerPaletteStackEntry,
+    type ComposerSuggestion,
     ComposerSuggestionsList,
-    type PaletteStackEntry,
 } from "@/components/library/composer";
 import {
     type NoteDraft,
@@ -180,7 +185,7 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useSidebarContext } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -218,7 +223,7 @@ import {
     LINK_REACHABILITY_BATCH_MAX,
     needsLinkReachabilityProbe,
 } from "@/lib/collections/library-quality";
-import { buildLibraryMetrics } from "@/lib/collections/metrics";
+import { buildComposerMetrics } from "@/lib/collections/metrics";
 import {
     buildItemsCsv,
     isRecentlySmartCollected,
@@ -272,6 +277,7 @@ import {
     slugify,
     truncateLabel,
 } from "@/lib/common/strings";
+import { fetchWithTimeout } from "@/lib/common/timeout";
 import {
     normalizeURL,
     openExternalUrl,
@@ -310,10 +316,6 @@ import {
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 
-const log = createLogger("library:browser");
-
-const SQUIRCLE_PATH_D = "M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9";
-
 const UNSPECIFIC_LIBRARY_DOMAIN = "Other";
 
 const COBALT_SOURCES = new Set<LibraryItemSource>([
@@ -336,7 +338,281 @@ const SUGGESTION_LIMIT = 3;
 const SUGGESTION_ICON_CLASS = "size-3.5 shrink-0";
 const MULTI_WORD_QUERY_PATTERN = /\S+\s+\S+/;
 
-interface BuildCommandSuggestionsInput {
+const COMBOBOX_ITEM_PRESS_REASON = "item-press";
+const COMBOBOX_ESCAPE_KEY_REASON = "escape-key";
+const ALL_DOMAIN_FILTER = "__all_domains__";
+
+const COMPOSER_OPEN_HOTKEYS = [
+    "ctrl+g",
+    "ctrl+k",
+    "ctrl+p",
+    "cmd+g",
+    "cmd+k",
+    "cmd+p",
+    "Meta+g",
+    "Meta+k",
+    "Meta+p",
+] as const;
+
+const COLLECTION_NAME_MAX_LENGTH = 64;
+
+const ALL_GROUPING_MODES: GroupByMode[] = [
+    "source",
+    "domain",
+    "collection",
+    "year-added",
+    "year-created",
+    "month-added",
+    "month-created",
+];
+
+const DEFAULT_SORT_MODE: SortMode = "added-newest";
+
+const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
+
+const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
+
+const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
+
+const DOMAIN_RELATED_SOURCES = new Set<LibraryItemSource>([
+    LibraryItemSource.chrome_bookmarks,
+    LibraryItemSource.other,
+]);
+
+const FILTERABLE_LIBRARY_SOURCES = [
+    LibraryItemSource.cache_note,
+    LibraryItemSource.chrome_bookmarks,
+    LibraryItemSource.extension_clip,
+    LibraryItemSource.github_starred_repositories,
+    LibraryItemSource.google_photos,
+    LibraryItemSource.instagram,
+    LibraryItemSource.markdown_import,
+    LibraryItemSource.pinterest,
+    LibraryItemSource.rss_feed,
+    LibraryItemSource.tiktok,
+    LibraryItemSource.x_bookmarks,
+    LibraryItemSource.youtube_watch_later,
+] as const satisfies LibraryItemSource[];
+
+const SOURCE_LABEL_BY_VALUE: Partial<Record<string, string>> = {
+    [LibraryItemSource.cache_note]: "Notes",
+    [LibraryItemSource.chrome_bookmarks]: "Chrome",
+    [LibraryItemSource.extension_clip]: "Web",
+    [LibraryItemSource.markdown_import]: "Markdown",
+    [LibraryItemSource.github_starred_repositories]: "GitHub",
+    [LibraryItemSource.google_photos]: "Google Photos",
+    [LibraryItemSource.instagram]: "Instagram",
+    [LibraryItemSource.pinterest]: "Pinterest",
+    [LibraryItemSource.rss_feed]: "RSS",
+    [LibraryItemSource.tiktok]: "TikTok",
+    [LibraryItemSource.x_bookmarks]: "X",
+    [LibraryItemSource.youtube_watch_later]: "YouTube",
+};
+
+const PALETTE_PLACEHOLDER_BY_SECTION: Partial<Record<PaletteSection, string>> =
+    {
+        columns: "Set the number of columns",
+        filter: "Filter the library",
+        group: "Group results",
+        sort: "Sort results",
+    };
+
+const EMPTY_LIBRARY_PEEK_PLACEHOLDERS = [
+    { aspect: "aspect-[3/4]", id: "library-empty-peek-0" },
+    { aspect: "aspect-[4/5]", id: "library-empty-peek-1" },
+    { aspect: "aspect-square", id: "library-empty-peek-2" },
+    { aspect: "aspect-[5/6]", id: "library-empty-peek-3" },
+    { aspect: "aspect-[3/4]", id: "library-empty-peek-4" },
+    { aspect: "aspect-square", id: "library-empty-peek-5" },
+    { aspect: "aspect-[4/5]", id: "library-empty-peek-6" },
+    { aspect: "aspect-[3/4]", id: "library-empty-peek-7" },
+    { aspect: "aspect-[5/6]", id: "library-empty-peek-8" },
+    { aspect: "aspect-[4/5]", id: "library-empty-peek-9" },
+] as const;
+
+const PALETTE_SORT_OPTIONS = [
+    { label: "Added: Newest first", value: "added-newest" },
+    { label: "Added: Oldest first", value: "added-oldest" },
+    { label: "Created: Newest first", value: "created-newest" },
+    { label: "Created: Oldest first", value: "created-oldest" },
+    { label: "Count: Most items first", value: "count-desc" },
+    { label: "Source", value: "source" },
+    { label: "Domain", value: "domain" },
+    { label: "Title", value: "title" },
+] satisfies readonly { label: string; value: SortMode }[];
+
+const PALETTE_GROUP_OPTIONS = [
+    { label: "No grouping", value: "none" },
+    { label: "Source", value: "source" },
+    { label: "Domain", value: "domain" },
+    { label: "Collection", value: "collection" },
+    { label: "Year Added", value: "year-added" },
+    { label: "Year Created", value: "year-created" },
+    { label: "Month Added", value: "month-added" },
+    { label: "Month Created", value: "month-created" },
+] satisfies readonly { label: string; value: GroupByMode }[];
+
+const PALETTE_COLUMN_OPTIONS = [
+    { label: "Adjust automatically", value: "auto" },
+    { label: "2 columns", value: "2" },
+    { label: "3 columns", value: "3" },
+    { label: "4 columns", value: "4" },
+    { label: "5 columns", value: "5" },
+    { label: "6 columns", value: "6" },
+] satisfies readonly { label: string; value: ColumnCountMode }[];
+
+const PALETTE_SOURCE_OPTIONS = [
+    { label: "All sources", value: "all" },
+    ...FILTERABLE_LIBRARY_SOURCES.map((source) => ({
+        label: SOURCE_LABEL_BY_VALUE[source] ?? "Other",
+        value: source,
+    })),
+    {
+        label: SOURCE_LABEL_BY_VALUE[LibraryItemSource.other] ?? "Other",
+        value: LibraryItemSource.other,
+    },
+] satisfies readonly { label: string; value: LibraryItemSource | "all" }[];
+
+const PALETTE_SOURCE_FILTER_OPTIONS = PALETTE_SOURCE_OPTIONS.filter(
+    (
+        option
+    ): option is {
+        label: string;
+        value: Exclude<(typeof PALETTE_SOURCE_OPTIONS)[number]["value"], "all">;
+    } => option.value !== "all"
+);
+
+const MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE: Record<
+    string,
+    MediaDownloadFileExtension
+> = {
+    [MIME_TYPES.avif]: "avif",
+    [MIME_TYPES.bmp]: "bmp",
+    [MIME_TYPES.gif]: "gif",
+    [MIME_TYPES.ico]: "ico",
+    [MIME_TYPES.jfif]: "jfif",
+    [MIME_TYPES.jpg]: "jpg",
+    [MIME_TYPES.mov]: "mov",
+    [MIME_TYPES.mp4]: "mp4",
+    [MIME_TYPES.png]: "png",
+    [MIME_TYPES.svg]: "svg",
+    [MIME_TYPES.webp]: "webp",
+    [MIME_TYPES.webm]: "webm",
+} as const;
+
+const MEDIA_CARD_ACTION_PLUGINS = [
+    {
+        contextMenu: MediaCardContextMenuFavoriteAction,
+        id: "favorite",
+        isAvailable: () => true,
+        menu: MediaCardMenuFavoriteAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuNoteAction,
+        id: "edit-note",
+        isAvailable: ({ isNote }) => isNote,
+        menu: MediaCardMenuNoteAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuQuickLookAction,
+        id: "quick-look",
+        isAvailable: ({ item }) =>
+            item.kind !== ITEM_KIND_NOTE &&
+            toValidUrl(normalizeURL(item.url)) !== FALLBACK_URL,
+        menu: MediaCardMenuQuickLookAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuZoomAction,
+        id: "zoom",
+        isAvailable: ({ previewImageUrl }) => previewImageUrl !== null,
+        menu: MediaCardMenuZoomAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuOpenLinkAction,
+        id: "open-link",
+        isAvailable: ({ isNote }) => !isNote,
+        menu: MediaCardMenuOpenLinkAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuCopyLinkAction,
+        id: "copy-link",
+        isAvailable: ({ isNote }) => !isNote,
+        menu: MediaCardMenuCopyLinkAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuDownloadAction,
+        id: "download",
+        isAvailable: ({ isNote, item }) =>
+            !isNote && COBALT_SOURCES.has(item.source),
+        menu: MediaCardMenuDownloadAction,
+        separatorBefore: true,
+    },
+    {
+        contextMenu: MediaCardContextMenuFindSimilarAction,
+        id: "find-similar",
+        isAvailable: () => true,
+        menu: MediaCardMenuFindSimilarAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuWaybackAction,
+        id: "wayback",
+        isAvailable: ({ isNote }) => !isNote,
+        menu: MediaCardMenuWaybackAction,
+        separatorBefore: false,
+    },
+    {
+        contextMenu: MediaCardContextMenuDeleteAction,
+        id: "delete",
+        isAvailable: () => true,
+        menu: MediaCardMenuDeleteAction,
+        separatorBefore: true,
+    },
+] satisfies readonly MediaCardActionPlugin[];
+
+const LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS = [
+    {
+        aspect: "aspect-[4/5]",
+        id: "locked-library-preview-1",
+        kind: "bookmark",
+    },
+    { aspect: "aspect-[3/4]", id: "locked-library-preview-2", kind: "note" },
+    {
+        aspect: "aspect-square",
+        id: "locked-library-preview-3",
+        kind: "bookmark",
+    },
+    {
+        aspect: "aspect-[5/6]",
+        id: "locked-library-preview-4",
+        kind: "bookmark",
+    },
+    { aspect: "aspect-[4/5]", id: "locked-library-preview-5", kind: "note" },
+    {
+        aspect: "aspect-[3/4]",
+        id: "locked-library-preview-6",
+        kind: "bookmark",
+    },
+    {
+        aspect: "aspect-square",
+        id: "locked-library-preview-7",
+        kind: "bookmark",
+    },
+    { aspect: "aspect-[5/6]", id: "locked-library-preview-8", kind: "note" },
+    {
+        aspect: "aspect-[4/5]",
+        id: "locked-library-preview-9",
+        kind: "bookmark",
+    },
+] satisfies LockedLibraryPreviewPlaceholder[];
+
+interface BuildComposerSuggestionsInput {
     clearLibraryPalette: () => void;
     collectionMembershipFilter: CollectionMembershipFilter;
     collections: LibraryCollectionSummary[];
@@ -356,7 +632,7 @@ interface BuildCommandSuggestionsInput {
         value: string[] | ((value: string[]) => string[])
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
-    setIsCommandOpen: (
+    setIsComposerOpen: (
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
     setQuery: (value: string) => void;
@@ -372,406 +648,745 @@ interface BuildCommandSuggestionsInput {
     unreachableFilterEnabled: boolean;
 }
 
-function buildCommandSuggestions({
-    clearLibraryPalette,
-    collectionMembershipFilter,
-    collections,
-    items,
-    lastVisitedFilterEnabled,
-    onClearCollectionFilters,
-    onCreateCollection,
-    onToggleCollectionSelection,
-    searchTerms,
-    selectedCollectionIds,
-    setCollectionMembershipFilter,
-    setDomainFilters,
-    setGroupBy,
-    setIsCommandOpen,
-    setQuery,
-    setSearchTerms,
-    setSortMode,
-    setSourceFilters,
-    sourceFilters,
-    domainFilters,
-    duplicatesFilterEnabled,
-    groupBy,
-    isExtensionInstalled,
-    sortMode,
-    unreachableFilterEnabled,
-}: BuildCommandSuggestionsInput): CommandSuggestion[] {
-    const suggestions: CommandSuggestion[] = [];
-    const suggestionLabels = new Set<string>();
-    const collectionById = new Map(
-        collections.map((collection) => [collection.id, collection])
-    );
-    const collectionCounts = new Map<string, number>();
-    const sourceCounts = new Map<LibraryItemSource, number>();
-    const domainCounts = new Map<string, number>();
-    const addedMonthKeys = new Set<string>();
-    const createdMonthKeys = new Set<string>();
-    const addedYearKeys = new Set<string>();
-    const createdYearKeys = new Set<string>();
-
-    for (const item of items) {
-        const itemCollectionIds = new Set<string>();
-        for (const collection of item.collections) {
-            if (itemCollectionIds.has(collection.id)) {
-                continue;
-            }
-            itemCollectionIds.add(collection.id);
-            collectionCounts.set(
-                collection.id,
-                (collectionCounts.get(collection.id) ?? 0) + 1
-            );
-        }
-        sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
-
-        const domain = getLibraryItemDomain(item.url);
-        domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
-        addedMonthKeys.add(itemMonthKey(item, "added"));
-        createdMonthKeys.add(itemMonthKey(item, "created"));
-        addedYearKeys.add(itemYearKey(item, "added"));
-        createdYearKeys.add(itemYearKey(item, "created"));
-    }
-
-    const hasAnyRefinements =
-        searchTerms.length > 0 ||
-        selectedCollectionIds.length > 0 ||
-        sourceFilters.length > 0 ||
-        domainFilters.length > 0 ||
-        collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
-        groupBy !== "none" ||
-        sortMode !== DEFAULT_SORT_MODE ||
-        lastVisitedFilterEnabled ||
-        duplicatesFilterEnabled ||
-        unreachableFilterEnabled;
-
-    const commitSelection = (fn: () => void) => () => {
-        fn();
-        setQuery("");
-        setIsCommandOpen(false);
-    };
-
-    const addSuggestion = (suggestion: CommandSuggestion | null) => {
-        if (
-            suggestion === null ||
-            suggestionLabels.has(suggestion.label) ||
-            suggestions.length >= SUGGESTION_LIMIT
-        ) {
-            return;
-        }
-
-        suggestionLabels.add(suggestion.label);
-        suggestions.push(suggestion);
-    };
-
-    const addDefaultSuggestion = (suggestion: CommandSuggestion | null) => {
-        if (hasAnyRefinements) {
-            return;
-        }
-
-        addSuggestion(suggestion);
-    };
-
-    const pickTopEntry = <T,>(
-        counts: Map<T, number>,
-        isAllowed: (value: T) => boolean,
-        getLabel: (value: T) => string
-    ): T | null => {
-        const entries = Array.from(counts.entries()).filter(([value]) =>
-            isAllowed(value)
-        );
-
-        entries.sort(
-            ([aValue, aCount], [bValue, bCount]) =>
-                bCount - aCount ||
-                NAME_COLLATOR.compare(getLabel(aValue), getLabel(bValue))
-        );
-
-        return entries[0]?.[0] ?? null;
-    };
-
-    const topCollectionId = pickTopEntry(
-        collectionCounts,
-        (collectionId) => !selectedCollectionIds.includes(collectionId),
-        (collectionId) => collectionById.get(collectionId)?.name ?? collectionId
-    );
-    const topSource = pickTopEntry(
-        sourceCounts,
-        (source) => !sourceFilters.includes(source),
-        (source) => sourceLabel(source)
-    );
-    const topDomain = pickTopEntry(
-        domainCounts,
-        (domain) => !domainFilters.includes(domain),
-        (domain) => domain
-    );
-
-    const topCollection =
-        topCollectionId === null ? null : collectionById.get(topCollectionId);
-
-    const currentGroupCount = getGroupCount(items, groupBy);
-
-    const buildCollectionSuggestion = (): CommandSuggestion | null => {
-        if (!topCollection) {
-            return null;
-        }
-
-        const collectionLabel = truncateLabel(topCollection.name, 24);
-        let label = `Browse \u201c${collectionLabel}\u201d`;
-        if (selectedCollectionIds.length > 0) {
-            label = `Add \u201c${collectionLabel}\u201d collection`;
-        } else if (hasAnyRefinements) {
-            label = `Filter to \u201c${collectionLabel}\u201d`;
-        }
-
-        return {
-            icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
-            label,
-            onSelect: commitSelection(() =>
-                onToggleCollectionSelection(topCollection.id)
-            ),
-        };
-    };
-
-    const buildSourceSuggestion = (): CommandSuggestion | null => {
-        if (!topSource) {
-            return null;
-        }
-
-        return {
-            icon: <Funnel className={SUGGESTION_ICON_CLASS} />,
-            label: `Filter by ${sourceLabel(topSource)}`,
-            onSelect: commitSelection(() =>
-                setSourceFilters((current) => toggleValue(current, topSource))
-            ),
-        };
-    };
-
-    const buildDomainSuggestion = (): CommandSuggestion | null => {
-        if (!topDomain) {
-            return null;
-        }
-
-        return {
-            icon: <Globe className={SUGGESTION_ICON_CLASS} />,
-            label: `Filter to ${truncateLabel(topDomain, 24)}`,
-            onSelect: commitSelection(() =>
-                setDomainFilters((current) => toggleValue(current, topDomain))
-            ),
-        };
-    };
-
-    let groupingCandidates: GroupByMode[];
-    if (sourceFilters.length > 0) {
-        groupingCandidates = buildGroupingCandidatesForPreferLast("source");
-    } else if (domainFilters.length > 0) {
-        groupingCandidates = buildGroupingCandidatesForPreferLast("domain");
-    } else {
-        groupingCandidates = ALL_GROUPING_MODES;
-    }
-
-    const nextGroupBy =
-        groupingCandidates.find((mode) => {
-            if (mode === groupBy) {
-                return false;
-            }
-
-            if (mode === "source") {
-                return sourceCounts.size > 1;
-            }
-            if (mode === "domain") {
-                return domainCounts.size > 1;
-            }
-            if (mode === "collection") {
-                return collectionCounts.size > 0;
-            }
-            if (mode === "month-added") {
-                return addedMonthKeys.size > 1;
-            }
-            if (mode === "month-created") {
-                return createdMonthKeys.size > 1;
-            }
-            if (mode === "year-added") {
-                return addedYearKeys.size > 1;
-            }
-            return createdYearKeys.size > 1;
-        }) ?? null;
-
-    const buildGroupingSuggestion = (): CommandSuggestion | null => {
-        if (!nextGroupBy) {
-            return null;
-        }
-
-        const label =
-            groupBy === "none"
-                ? `Group by ${groupByLabel(nextGroupBy).toLowerCase()}`
-                : `Try ${groupByLabel(nextGroupBy).toLowerCase()} groups`;
-
-        return {
-            icon: <Layers3 className={SUGGESTION_ICON_CLASS} />,
-            label,
-            onSelect: commitSelection(() => setGroupBy(nextGroupBy)),
-        };
-    };
-
-    if (
-        groupBy !== "none" &&
-        sortMode !== "count-desc" &&
-        currentGroupCount > 1
-    ) {
-        addSuggestion({
-            icon: <ArrowDownWideNarrow className={SUGGESTION_ICON_CLASS} />,
-            label: "Sort groups by size",
-            onSelect: commitSelection(() => setSortMode("count-desc")),
-        });
-    }
-
-    if (!isExtensionInstalled) {
-        addDefaultSuggestion({
-            icon: <DownloadIcon className={SUGGESTION_ICON_CLASS} />,
-            label: "Get extension",
-            onSelect: commitSelection(() =>
-                openExternalUrl(CACHE_EXTENSION_DOWNLOAD_URL)
-            ),
-        });
-    }
-
-    const addPrimarySuggestions = (
-        builders: ReadonlyArray<() => CommandSuggestion | null>
-    ) => {
-        for (const build of builders) {
-            const suggestion = build();
-            if (suggestion !== null) {
-                addSuggestion(suggestion);
-            }
-        }
-    };
-
-    if (!hasAnyRefinements) {
-        addDefaultSuggestion(buildCollectionSuggestion());
-        addDefaultSuggestion(buildSourceSuggestion());
-        addDefaultSuggestion(buildGroupingSuggestion());
-        addDefaultSuggestion(buildDomainSuggestion());
-    } else if (selectedCollectionIds.length > 0) {
-        addPrimarySuggestions([
-            buildSourceSuggestion,
-            buildDomainSuggestion,
-            buildGroupingSuggestion,
-            buildCollectionSuggestion,
-        ]);
-    } else {
-        const hasContentRefinement =
-            sourceFilters.length > 0 ||
-            domainFilters.length > 0 ||
-            searchTerms.length > 0 ||
-            collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER;
-
-        addPrimarySuggestions(
-            hasContentRefinement
-                ? [
-                      buildCollectionSuggestion,
-                      buildGroupingSuggestion,
-                      buildSourceSuggestion,
-                      buildDomainSuggestion,
-                  ]
-                : [
-                      buildCollectionSuggestion,
-                      buildSourceSuggestion,
-                      buildGroupingSuggestion,
-                      buildDomainSuggestion,
-                  ]
-        );
-    }
-
-    if (items.length === 0 || suggestions.length < SUGGESTION_LIMIT) {
-        if (searchTerms.length > 0) {
-            addSuggestion({
-                icon: <SearchX className={SUGGESTION_ICON_CLASS} />,
-                label: "Clear searches",
-                onSelect: commitSelection(() => setSearchTerms([])),
-            });
-        }
-
-        if (selectedCollectionIds.length > 0) {
-            addSuggestion({
-                icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
-                label: "Show all collections",
-                onSelect: commitSelection(onClearCollectionFilters),
-            });
-        }
-
-        if (sourceFilters.length > 0) {
-            addSuggestion({
-                icon: <Funnel className={SUGGESTION_ICON_CLASS} />,
-                label: "Show all sources",
-                onSelect: commitSelection(() => setSourceFilters([])),
-            });
-        }
-
-        if (domainFilters.length > 0) {
-            addSuggestion({
-                icon: <Globe className={SUGGESTION_ICON_CLASS} />,
-                label: "Show all domains",
-                onSelect: commitSelection(() => setDomainFilters([])),
-            });
-        }
-
-        if (
-            collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER
-        ) {
-            addSuggestion({
-                icon: <Tags className={SUGGESTION_ICON_CLASS} />,
-                label: "Show all items",
-                onSelect: commitSelection(() =>
-                    setCollectionMembershipFilter(
-                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER
-                    )
-                ),
-            });
-        }
-
-        if (groupBy !== "none") {
-            addSuggestion({
-                icon: <Layers3 className={SUGGESTION_ICON_CLASS} />,
-                label: "Ungroup",
-                onSelect: commitSelection(() => setGroupBy("none")),
-            });
-        }
-
-        if (sortMode !== DEFAULT_SORT_MODE) {
-            addSuggestion({
-                icon: <ArrowDownWideNarrow className={SUGGESTION_ICON_CLASS} />,
-                label: "Reset sort",
-                onSelect: commitSelection(() => setSortMode(DEFAULT_SORT_MODE)),
-            });
-        }
-
-        if (hasAnyRefinements) {
-            addSuggestion({
-                icon: <RotateCcw className={SUGGESTION_ICON_CLASS} />,
-                label: "Reset filters",
-                onSelect: commitSelection(clearLibraryPalette),
-            });
-        }
-    }
-
-    if (items.length === 0 && !hasAnyRefinements) {
-        addSuggestion({
-            icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
-            label: "Create a new collection",
-            onSelect: commitSelection(() => onCreateCollection()),
-        });
-    }
-
-    return suggestions;
-}
-
 interface SectionDescriptionResponse {
     summary: string;
 }
 
 type SectionDescriptionSWRKey = readonly [requestBody: string];
+
+type GroupByMode =
+    | "none"
+    | "source"
+    | "domain"
+    | "collection"
+    | "year-added"
+    | "year-created"
+    | "month-added"
+    | "month-created";
+
+/** Includes forced clustering modes that are not user-selectable. */
+type EffectiveGroupByMode = GroupByMode | "canonical-url";
+
+type SortMode =
+    | "added-newest"
+    | "added-oldest"
+    | "created-newest"
+    | "created-oldest"
+    | "count-desc"
+    | "source"
+    | "domain"
+    | "title";
+
+type CollectionMembershipFilter =
+    | "all"
+    | "in-collections"
+    | "not-in-collections";
+type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
+
+type PaletteSection =
+    | "search"
+    | "filter"
+    | "group"
+    | "sort"
+    | "columns"
+    | "ai-response";
+
+interface BrowserGroup {
+    items: LibraryItemWithCollections[];
+    key: string;
+    title: string | null;
+}
+
+interface ComposerAttachment extends ReturnType<typeof createFileAttachment> {
+    id: string;
+}
+
+/**
+ * Build the ordered palette stack entries that both the trailing chips
+ * and the Backspace-removal logic consume.  Keeping the shape in one
+ * place guarantees that removing the last entry always corresponds to
+ * the right-most visible chip.
+ */
+interface BuildPaletteStackEntriesInput {
+    collectionMembershipFilter: CollectionMembershipFilter;
+    collections: LibraryCollectionSummary[];
+    columnCountMode: ColumnCountMode;
+    composerAttachments: ComposerAttachment[];
+    domainFilters: string[];
+    duplicatesFilterEnabled: boolean;
+    groupBy: GroupByMode;
+    lastVisitedFilterEnabled: boolean;
+    onRemoveCollectionFilter: (id: string) => void;
+    onRemoveComposerAttachment: (id: string) => void;
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
+    setColumnCountMode: (value: ColumnCountMode) => void;
+    setDomainFilters: (
+        value: string[] | ((value: string[]) => string[])
+    ) => void;
+    setDuplicatesFilterEnabled: (value: boolean) => void;
+    setGroupBy: (value: GroupByMode) => void;
+    setLastVisitedFilterEnabled: (value: boolean) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+    setSortMode: (value: SortMode) => void;
+    setSourceFilters: (
+        value:
+            | LibraryItemSource[]
+            | ((value: LibraryItemSource[]) => LibraryItemSource[])
+    ) => void;
+    setUnreachableFilterEnabled: (value: boolean) => void;
+    sortMode: SortMode;
+    sourceFilters: LibraryItemSource[];
+    unreachableFilterEnabled: boolean;
+}
+
+interface BrowserContext {
+    clearLibraryPalette: () => void;
+    collapsedSectionKeys: Set<string>;
+    collections: LibraryCollectionSummary[];
+    columnCount?: number;
+    enableSectionCollapse: boolean;
+    favoriteItemIdSet: ReadonlySet<string>;
+    hoveredItemIdRef: React.RefObject<string | null>;
+    hoverPinnedItemIdRef: React.RefObject<string | null>;
+    onCollapseAllSections?: () => void;
+    onCopyLink: (item: LibraryItemWithCollections) => void;
+    onCreateCollectionFromResults?: () => void;
+    onDelete: (item: LibraryItemWithCollections) => void;
+    onExpandAllSections?: () => void;
+    onExportSectionResults?: (
+        sectionTitle: string,
+        items: LibraryItemWithCollections[]
+    ) => void;
+    onFindSimilar: (item: LibraryItemWithCollections) => void;
+    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
+    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
+    onOpenNote: (item: LibraryItemWithCollections) => void;
+    onToggleSection: (key: string) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
+    openPickerItemId: string | null;
+    pendingDeleteItemId: string | null;
+    setOpenPickerItemId: (id: string | null) => void;
+    shouldShowEmptyLibraryPeek: boolean;
+    shouldShowNoFilteredResults: boolean;
+    shouldShowUnreachableProbePending: boolean;
+}
+
+interface BrowserGroupContext {
+    accentKey: string;
+    collapsed: boolean;
+    isMainResults: boolean;
+    items: LibraryItemWithCollections[];
+    key: string;
+    onToggle: () => void;
+    title: string;
+}
+
+interface BuildPaletteGroupsInput {
+    askCacheResponse: AskCacheResponseState | null;
+    clearLibraryPalette: () => void;
+    collectionMembershipFilter: CollectionMembershipFilter;
+    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
+    collections: LibraryCollectionSummary[];
+    columnCountMode: ColumnCountMode;
+    domainFilters: string[];
+    domainOptions: {
+        itemCount: number;
+        label: string;
+        value: string;
+    }[];
+    duplicateItemCount: number;
+    duplicatesFilterEnabled: boolean;
+    groupBy: GroupByMode;
+    lastVisitedFilterEnabled: boolean;
+    lastVisitedItemIds: string[];
+    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
+    onClearCollectionFilters: () => void;
+    onClearSearchHistory: () => void;
+    onToggleCollectionSelection: (id: string) => void;
+    openPaletteSection: (
+        section: Exclude<PaletteSection, "search">,
+        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
+    ) => void;
+    paletteSection: PaletteSection;
+    query: string;
+    returnToSearchSection: () => void;
+    searchHistory: string[];
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
+    setColumnCountMode: (value: ColumnCountMode) => void;
+    setDomainFilters: (
+        value: string[] | ((value: string[]) => string[])
+    ) => void;
+    setDuplicatesFilterEnabled: (value: boolean) => void;
+    setGroupBy: (value: GroupByMode) => void;
+    setIsComposerOpen: (
+        value: boolean | ((previous: boolean) => boolean)
+    ) => void;
+    setLastVisitedFilterEnabled: (value: boolean) => void;
+    setQuery: (value: string) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+    setSortMode: (value: SortMode) => void;
+    setSourceFilters: (
+        value:
+            | LibraryItemSource[]
+            | ((value: LibraryItemSource[]) => LibraryItemSource[])
+    ) => void;
+    setUnreachableFilterEnabled: (value: boolean) => void;
+    sortMode: SortMode;
+    sourceFilters: LibraryItemSource[];
+    unreachableFilterEnabled: boolean;
+}
+
+interface MediaCardEnvironmentContext {
+    collections: LibraryCollectionSummary[];
+    favoriteItemIdSet: ReadonlySet<string>;
+    hoveredItemIdRef: React.RefObject<string | null>;
+    hoverPinnedItemIdRef: React.RefObject<string | null>;
+    onCopyLink: (item: LibraryItemWithCollections) => void;
+    onDelete: (item: LibraryItemWithCollections) => void;
+    onFindSimilar: (item: LibraryItemWithCollections) => void;
+    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
+    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
+    onOpenNote: (item: LibraryItemWithCollections) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
+    openPickerItemId: string | null;
+    pendingDeleteItemId: string | null;
+    setOpenPickerItemId: (id: string | null) => void;
+}
+
+interface MediaCardData {
+    displayTitle: string;
+    isNote: boolean;
+    item: LibraryItemWithCollections;
+    previewImageUrl: string | null;
+}
+
+interface MediaCardInteractionContext {
+    isDownloading: boolean;
+    isZoomed: boolean;
+    onDownload: () => void;
+    onZoomChange: (nextZoomed: boolean) => void;
+    onZoomIn: () => void;
+}
+
+interface MediaCardSurfaceContext {
+    isMenuOpen: boolean;
+    isOverlayOpen: boolean;
+    onMenuOpenChange: (open: boolean) => void;
+}
+
+type MediaCardActionEntry = () => React.ReactElement | null;
+
+interface MediaCardActionPlugin {
+    contextMenu: MediaCardActionEntry;
+    id: string;
+    isAvailable: (data: MediaCardData) => boolean;
+    menu: MediaCardActionEntry;
+    separatorBefore: boolean;
+}
+
+type MediaDownloadFileExtension = Exclude<keyof typeof MIME_TYPES, "binary">;
+
+interface LockedLibraryPreviewPlaceholder {
+    aspect: string;
+    id: string;
+    kind: "bookmark" | "note";
+}
+
+interface BrowserSimilarFilterState {
+    collectionMembershipFilter: CollectionMembershipFilter;
+    domainFilters: string[];
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    sourceFilters: LibraryItemSource[];
+}
+
+interface BrowserSimilarFilterOptions {
+    domain: string;
+    source: LibraryItemSource;
+}
+
+const log = createLogger("library:browser");
+
+const BrowserContext = React.createContext<BrowserContext | null>(null);
+
+function useBrowserContext(): BrowserContext {
+    const context = React.use(BrowserContext);
+    if (!context) {
+        throw new Error(
+            "Browser components must be used inside BrowserProvider."
+        );
+    }
+    return context;
+}
+
+const BrowserGroupContext = React.createContext<BrowserGroupContext | null>(
+    null
+);
+
+function useBrowserGroupContext(): BrowserGroupContext {
+    const context = React.use(BrowserGroupContext);
+    if (!context) {
+        throw new Error(
+            "BrowserGroup components must be used inside <BrowserGroupProvider>."
+        );
+    }
+    return context;
+}
+
+const BrowserMasonryChildrenContext = React.createContext<
+    | ((data: LibraryItemWithCollections, index: number) => React.ReactNode)
+    | null
+>(null);
+
+const MediaCardEnvironmentContext =
+    React.createContext<MediaCardEnvironmentContext | null>(null);
+
+function useMediaCardEnvironmentContext(): MediaCardEnvironmentContext {
+    const environment = React.use(MediaCardEnvironmentContext);
+    if (!environment) {
+        throw new Error(
+            "MediaCard components must be used inside <MediaCardEnvironmentContext>."
+        );
+    }
+    return environment;
+}
+
+const MediaCardDataContext = React.createContext<MediaCardData | null>(null);
+
+function useMediaCardDataContext(): MediaCardData {
+    const data = React.use(MediaCardDataContext);
+    if (!data) {
+        throw new Error(
+            "Media card components must be used inside <MediaCardDataProvider>."
+        );
+    }
+    return data;
+}
+
+const MediaCardInteractionContext =
+    React.createContext<MediaCardInteractionContext | null>(null);
+
+function useMediaCardInteractionContext(): MediaCardInteractionContext {
+    const context = React.use(MediaCardInteractionContext);
+    if (!context) {
+        throw new Error(
+            "Media card components must be used inside <MediaCardInteractionProvider>."
+        );
+    }
+    return context;
+}
+
+const MediaCardSurfaceContext =
+    React.createContext<MediaCardSurfaceContext | null>(null);
+
+function useMediaCardSurfaceContext(): MediaCardSurfaceContext {
+    const context = React.use(MediaCardSurfaceContext);
+    if (!context) {
+        throw new Error(
+            "Media card surfaces must be used inside <MediaCardContextMenuSurface>."
+        );
+    }
+    return context;
+}
+
+function useMediaCardFavoriteAction() {
+    const { item } = useMediaCardDataContext();
+    const { favoriteItemIdSet, onItemFavoriteToggle } =
+        useMediaCardEnvironmentContext();
+    const isFavorite = favoriteItemIdSet.has(item.id);
+    const handleToggle = useStableCallback(() => onItemFavoriteToggle(item));
+
+    return { handleToggle, isFavorite };
+}
+
+function useMediaCardNoteAction() {
+    const { item } = useMediaCardDataContext();
+    const { onOpenNote } = useMediaCardEnvironmentContext();
+
+    return useStableCallback(() => onOpenNote(item));
+}
+
+function useMediaCardLinkActions() {
+    const { item } = useMediaCardDataContext();
+    const { onCopyLink, onOpenInNewTab } = useMediaCardEnvironmentContext();
+    const SourceIcon = getSourceIcon(item.source);
+
+    const handleOpenInNewTab = useStableCallback(() => onOpenInNewTab(item));
+    const handleCopyLink = useStableCallback(() => onCopyLink(item));
+
+    return { handleCopyLink, handleOpenInNewTab, SourceIcon };
+}
+
+function useMediaCardFindSimilarAction() {
+    const { item } = useMediaCardDataContext();
+    const { onFindSimilar } = useMediaCardEnvironmentContext();
+
+    return useStableCallback(() => onFindSimilar(item));
+}
+
+function useMediaCardWaybackActions() {
+    const { item } = useMediaCardDataContext();
+
+    const handleWayback30 = useStableCallback(() =>
+        openExternalUrl(
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-30) +
+                "/" +
+                item.url
+        )
+    );
+
+    const handleWayback90 = useStableCallback(() =>
+        openExternalUrl(
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-90) +
+                "/" +
+                item.url
+        )
+    );
+
+    const handleWayback180 = useStableCallback(() =>
+        openExternalUrl(
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-180) +
+                "/" +
+                item.url
+        )
+    );
+
+    const handleWayback365 = useStableCallback(() =>
+        openExternalUrl(
+            "https://web.archive.org/web/" +
+                formatWaybackDate(-365) +
+                "/" +
+                item.url
+        )
+    );
+
+    const handleWaybackAll = useStableCallback(() =>
+        openExternalUrl(`https://web.archive.org/web/*/${item.url}`)
+    );
+
+    return {
+        handleWayback30,
+        handleWayback90,
+        handleWayback180,
+        handleWayback365,
+        handleWaybackAll,
+    };
+}
+
+function formatWaybackDate(daysOffset: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() + daysOffset);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const h = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+    const s = String(date.getSeconds()).padStart(2, "0");
+    return `${y}${m}${d}${h}${min}${s}`;
+}
+
+function useMediaCardDeleteAction() {
+    const { item } = useMediaCardDataContext();
+    const { onDelete, pendingDeleteItemId } = useMediaCardEnvironmentContext();
+    const isDeletePending = pendingDeleteItemId === item.id;
+    const handleDelete = useStableCallback(() => onDelete(item));
+
+    return { handleDelete, isDeletePending };
+}
+
+function useSectionCollapseState({
+    groupBy,
+    hasActiveFilters,
+    groups,
+    shouldShowEmptyLibraryPeek,
+    shouldShowNoFilteredResults,
+}: {
+    groupBy: EffectiveGroupByMode;
+    hasActiveFilters: boolean;
+    groups: BrowserGroup[];
+    shouldShowEmptyLibraryPeek: boolean;
+    shouldShowNoFilteredResults: boolean;
+}) {
+    const [collapsedSectionKeys, setCollapsedSectionKeys] = React.useState<
+        string[]
+    >([]);
+
+    const enableSectionCollapse =
+        !(shouldShowEmptyLibraryPeek || shouldShowNoFilteredResults) &&
+        (hasActiveFilters || groupBy !== "none");
+
+    const sectionKeySignature = groups.map((section) => section.key).join("\0");
+    const [prevSectionKeySignature, setPrevSectionKeySignature] =
+        React.useState(sectionKeySignature);
+
+    if (!Object.is(sectionKeySignature, prevSectionKeySignature)) {
+        setPrevSectionKeySignature(sectionKeySignature);
+        const validKeys = new Set(groups.map((section) => section.key));
+        setCollapsedSectionKeys((current) => {
+            const next = current.filter((key) => validKeys.has(key));
+            return next.length === current.length ? current : next;
+        });
+    }
+
+    const [prevEnableSectionCollapse, setPrevEnableSectionCollapse] =
+        React.useState(enableSectionCollapse);
+
+    if (!Object.is(prevEnableSectionCollapse, enableSectionCollapse)) {
+        setPrevEnableSectionCollapse(enableSectionCollapse);
+        if (!enableSectionCollapse) {
+            setCollapsedSectionKeys((current) =>
+                current.length === 0 ? current : []
+            );
+        }
+    }
+
+    const toggleSection = useStableCallback((key: string) => {
+        setCollapsedSectionKeys((current) =>
+            current.includes(key)
+                ? current.filter((entry) => entry !== key)
+                : [...current, key]
+        );
+    });
+
+    const collapseAllSections = useStableCallback(() => {
+        setCollapsedSectionKeys(groups.map((section) => section.key));
+    });
+
+    const expandAllSections = useStableCallback(() => {
+        setCollapsedSectionKeys([]);
+    });
+
+    return {
+        collapseAllSections,
+        collapsedSectionKeys,
+        enableSectionCollapse,
+        expandAllSections,
+        toggleSection,
+    };
+}
+
+function useLibraryItemActions(args: {
+    onDeleteSuccess?: (collectionSummaries: LibraryCollectionSummary[]) => void;
+    removeItems: (itemIds: string[]) => void;
+}) {
+    const [pendingDeleteItem, setPendingDeleteItem] =
+        React.useState<LibraryItemWithCollections | null>(null);
+    const [isDeletePending, startDeleteTransition] = React.useTransition();
+    const { copyToClipboard } = useCopyToClipboard();
+
+    const handleOpenInNewTab = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            openExternalUrl(normalizeURL(item.url));
+        }
+    );
+
+    const handleCopyLink = useStableCallback(
+        async (item: LibraryItemWithCollections) => {
+            await copyToClipboard(normalizeURL(item.url));
+        }
+    );
+
+    const handleRequestDelete = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            setPendingDeleteItem(item);
+        }
+    );
+
+    const handleDeleteDialogOpenChange = useStableCallback((open: boolean) => {
+        if (!(open || isDeletePending)) {
+            setPendingDeleteItem(null);
+        }
+    });
+
+    const handleConfirmDelete = useStableCallback(() => {
+        const targetItem = pendingDeleteItem;
+        if (!targetItem) {
+            return;
+        }
+
+        const targetItemId = targetItem.id;
+
+        startDeleteTransition(async () => {
+            let result: LibraryItemDeleteResult;
+
+            try {
+                result = await deleteLibraryItem(targetItemId);
+            } catch {
+                result = {
+                    message: "We couldn't delete this saved item right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status === ACTION_STATUS.DELETED) {
+                args.removeItems([result.itemId]);
+                args.onDeleteSuccess?.(result.collectionSummaries);
+            }
+
+            if (pendingDeleteItem && pendingDeleteItem.id === targetItemId) {
+                setPendingDeleteItem(null);
+            }
+        });
+    });
+
+    return {
+        handleConfirmDelete,
+        handleCopyLink,
+        handleDeleteDialogOpenChange,
+        handleOpenInNewTab,
+        handleRequestDelete,
+        isDeletePending,
+        pendingDeleteItem,
+    };
+}
+
+/**
+ * Card action shortcuts that target the hovered grid card (via
+ * `hoveredItemIdRef`), matching the collections-list hover-hotkey pattern
+ * and the `S` collection-picker shortcut. Registered once at the browser
+ * root so every card does not mount its own `useHotkeys` listeners.
+ */
+function useCardHoverHotkeys({
+    hoveredItemIdRef,
+    itemsRef,
+    onDelete,
+    onItemFavoriteToggle,
+    pendingDeleteItemIdRef,
+}: {
+    hoveredItemIdRef: React.RefObject<string | null>;
+    itemsRef: React.RefObject<LibraryItemWithCollections[]>;
+    onDelete: (item: LibraryItemWithCollections) => void;
+    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
+    pendingDeleteItemIdRef: React.RefObject<string | null>;
+}) {
+    const quickLookTriggerId = React.useId();
+
+    const resolveHoveredItem = useStableCallback(() => {
+        // Collection rows claim the surface while hovered so pinned card
+        // menus do not steal Alt+E / Alt+F / ⌘⌫ from collection shortcuts.
+        if (isCollectionHoverHotkeySurface()) {
+            return null;
+        }
+        const id = hoveredItemIdRef.current;
+        if (!id || pendingDeleteItemIdRef.current === id) {
+            return null;
+        }
+        return itemsRef.current.find((item) => item.id === id) ?? null;
+    });
+
+    useHotkeys(
+        "alt+f",
+        (event: KeyboardEvent) => {
+            const item = resolveHoveredItem();
+            if (!item) {
+                return;
+            }
+            event.preventDefault();
+            onItemFavoriteToggle(item);
+        },
+        {
+            description: "Toggle favorite on hovered item",
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [onItemFavoriteToggle, resolveHoveredItem]
+    );
+
+    useHotkeys(
+        "alt+e",
+        (event: KeyboardEvent) => {
+            const item = resolveHoveredItem();
+            if (!item || item.kind === ITEM_KIND_NOTE) {
+                return;
+            }
+            const href = normalizeURL(item.url);
+            if (toValidUrl(href) === FALLBACK_URL) {
+                return;
+            }
+            event.preventDefault();
+            openQuickLook(
+                {
+                    description: getLibraryItemDomain(item.url),
+                    title: getLibraryItemTitle(item),
+                    url: item.url,
+                },
+                quickLookTriggerId
+            );
+        },
+        {
+            description: "Quick look on hovered item",
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [quickLookTriggerId, resolveHoveredItem]
+    );
+
+    useHotkeys(
+        "mod+backspace",
+        (event: KeyboardEvent) => {
+            const item = resolveHoveredItem();
+            if (!item) {
+                return;
+            }
+            event.preventDefault();
+            onDelete(item);
+        },
+        {
+            description: "Delete hovered item",
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [onDelete, resolveHoveredItem]
+    );
+}
+
+function getLibraryItemDomain(url: string): string {
+    return parseDisplayUrl(url) || UNSPECIFIC_LIBRARY_DOMAIN;
+}
+
+function getLibraryItemTitle(item: LibraryItemWithCollections): string {
+    if (item.kind === ITEM_KIND_NOTE) {
+        return "";
+    }
+    const caption = item.caption?.trim();
+    if (caption) {
+        return caption;
+    }
+    return item.url;
+}
+
+function sourceLabel(source: LibraryItemSource): string {
+    return SOURCE_LABEL_BY_VALUE[source] ?? "Other";
+}
+
+function groupByLabel(mode: GroupByMode): string {
+    return (
+        PALETTE_GROUP_OPTIONS.find((opt) => opt.value === mode)?.label ?? "None"
+    );
+}
+
+function getLibraryItemPrimaryText(item: LibraryItemWithCollections): string {
+    if (item.kind === ITEM_KIND_NOTE) {
+        return item.noteContentText?.trim() || "Untitled note";
+    }
+    const caption = item.caption?.trim();
+    return caption && caption.length > 0 ? caption : item.url;
+}
+
+const getBrowserMasonryItemKey = (item: LibraryItemWithCollections) => item.id;
 
 async function fetchSectionDescription([
     payload,
@@ -886,48 +1501,6 @@ function buildSectionDescriptionContextItem(
     };
 }
 
-const COMBOBOX_ITEM_PRESS_REASON = "item-press";
-const COMBOBOX_ESCAPE_KEY_REASON = "escape-key";
-const ALL_DOMAIN_FILTER = "__all_domains__";
-
-const SEARCH_HOTKEYS = [
-    "ctrl+g",
-    "ctrl+k",
-    "ctrl+p",
-    "cmd+g",
-    "cmd+k",
-    "cmd+p",
-    "Meta+g",
-    "Meta+k",
-    "Meta+p",
-    "/",
-] as const;
-
-const COLLECTION_NAME_MAX_LENGTH = 64;
-
-type GroupByMode =
-    | "none"
-    | "source"
-    | "domain"
-    | "collection"
-    | "year-added"
-    | "year-created"
-    | "month-added"
-    | "month-created";
-
-/** Includes forced clustering modes that are not user-selectable. */
-type EffectiveGroupByMode = GroupByMode | "canonical-url";
-
-const ALL_GROUPING_MODES: GroupByMode[] = [
-    "source",
-    "domain",
-    "collection",
-    "year-added",
-    "year-created",
-    "month-added",
-    "month-created",
-];
-
 function buildGroupingCandidatesForPreferLast(
     mode: "source" | "domain"
 ): GroupByMode[] {
@@ -937,164 +1510,6 @@ function buildGroupingCandidatesForPreferLast(
     const otherFirst = mode === "source" ? "domain" : "source";
     return [otherFirst, ...middle, mode];
 }
-
-type SortMode =
-    | "added-newest"
-    | "added-oldest"
-    | "created-newest"
-    | "created-oldest"
-    | "count-desc"
-    | "source"
-    | "domain"
-    | "title";
-
-type CollectionMembershipFilter =
-    | "all"
-    | "in-collections"
-    | "not-in-collections";
-type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
-
-type PaletteSection =
-    | "search"
-    | "filter"
-    | "group"
-    | "sort"
-    | "columns"
-    | "ai-response";
-
-const DEFAULT_SORT_MODE: SortMode = "added-newest";
-const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
-
-const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
-const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
-
-const DOMAIN_RELATED_SOURCES = new Set<LibraryItemSource>([
-    LibraryItemSource.chrome_bookmarks,
-    LibraryItemSource.other,
-]);
-
-const FILTERABLE_LIBRARY_SOURCES = [
-    LibraryItemSource.cache_note,
-    LibraryItemSource.chrome_bookmarks,
-    LibraryItemSource.extension_clip,
-    LibraryItemSource.github_starred_repositories,
-    LibraryItemSource.google_photos,
-    LibraryItemSource.instagram,
-    LibraryItemSource.markdown_import,
-    LibraryItemSource.pinterest,
-    LibraryItemSource.rss_feed,
-    LibraryItemSource.tiktok,
-    LibraryItemSource.x_bookmarks,
-    LibraryItemSource.youtube_watch_later,
-] as const satisfies LibraryItemSource[];
-
-const SOURCE_LABEL_BY_VALUE: Partial<Record<string, string>> = {
-    [LibraryItemSource.cache_note]: "Notes",
-    [LibraryItemSource.chrome_bookmarks]: "Chrome",
-    [LibraryItemSource.extension_clip]: "Web",
-    [LibraryItemSource.markdown_import]: "Markdown",
-    [LibraryItemSource.github_starred_repositories]: "GitHub",
-    [LibraryItemSource.google_photos]: "Google Photos",
-    [LibraryItemSource.instagram]: "Instagram",
-    [LibraryItemSource.pinterest]: "Pinterest",
-    [LibraryItemSource.rss_feed]: "RSS",
-    [LibraryItemSource.tiktok]: "TikTok",
-    [LibraryItemSource.x_bookmarks]: "X",
-    [LibraryItemSource.youtube_watch_later]: "YouTube",
-};
-
-const EMPTY_LIBRARY_PEEK_PLACEHOLDERS = [
-    { aspect: "aspect-[3/4]", id: "library-empty-peek-0" },
-    { aspect: "aspect-[4/5]", id: "library-empty-peek-1" },
-    { aspect: "aspect-square", id: "library-empty-peek-2" },
-    { aspect: "aspect-[5/6]", id: "library-empty-peek-3" },
-    { aspect: "aspect-[3/4]", id: "library-empty-peek-4" },
-    { aspect: "aspect-square", id: "library-empty-peek-5" },
-    { aspect: "aspect-[4/5]", id: "library-empty-peek-6" },
-    { aspect: "aspect-[3/4]", id: "library-empty-peek-7" },
-    { aspect: "aspect-[5/6]", id: "library-empty-peek-8" },
-    { aspect: "aspect-[4/5]", id: "library-empty-peek-9" },
-] as const;
-
-const PALETTE_SORT_OPTIONS = [
-    { label: "Added: Newest first", value: "added-newest" },
-    { label: "Added: Oldest first", value: "added-oldest" },
-    { label: "Created: Newest first", value: "created-newest" },
-    { label: "Created: Oldest first", value: "created-oldest" },
-    { label: "Count: Most items first", value: "count-desc" },
-    { label: "Source", value: "source" },
-    { label: "Domain", value: "domain" },
-    { label: "Title", value: "title" },
-] satisfies readonly { label: string; value: SortMode }[];
-
-const PALETTE_GROUP_OPTIONS = [
-    { label: "No grouping", value: "none" },
-    { label: "Source", value: "source" },
-    { label: "Domain", value: "domain" },
-    { label: "Collection", value: "collection" },
-    { label: "Year Added", value: "year-added" },
-    { label: "Year Created", value: "year-created" },
-    { label: "Month Added", value: "month-added" },
-    { label: "Month Created", value: "month-created" },
-] satisfies readonly { label: string; value: GroupByMode }[];
-
-const PALETTE_COLUMN_OPTIONS = [
-    { label: "Adjust automatically", value: "auto" },
-    { label: "2 columns", value: "2" },
-    { label: "3 columns", value: "3" },
-    { label: "4 columns", value: "4" },
-    { label: "5 columns", value: "5" },
-    { label: "6 columns", value: "6" },
-] satisfies readonly { label: string; value: ColumnCountMode }[];
-
-const PALETTE_SOURCE_OPTIONS = [
-    { label: "All sources", value: "all" },
-    ...FILTERABLE_LIBRARY_SOURCES.map((source) => ({
-        label: SOURCE_LABEL_BY_VALUE[source] ?? "Other",
-        value: source,
-    })),
-    {
-        label: SOURCE_LABEL_BY_VALUE[LibraryItemSource.other] ?? "Other",
-        value: LibraryItemSource.other,
-    },
-] satisfies readonly { label: string; value: LibraryItemSource | "all" }[];
-
-const PALETTE_SOURCE_FILTER_OPTIONS = PALETTE_SOURCE_OPTIONS.filter(
-    (
-        option
-    ): option is {
-        label: string;
-        value: Exclude<(typeof PALETTE_SOURCE_OPTIONS)[number]["value"], "all">;
-    } => option.value !== "all"
-);
-
-interface BrowserGroup {
-    items: LibraryItemWithCollections[];
-    key: string;
-    title: string | null;
-}
-
-interface LibraryCommandAttachment
-    extends ReturnType<typeof createFileAttachment> {
-    id: string;
-}
-
-type AskCacheResponseState =
-    | {
-          prompt: string;
-          status: "loading";
-      }
-    | {
-          markdown: string;
-          operationCount: number;
-          prompt: string;
-          status: "success";
-      }
-    | {
-          message: string;
-          prompt: string;
-          status: "error";
-      };
 
 function getBrowserSectionExportFileName(sectionTitle: string): string {
     const slug = slugify(sectionTitle);
@@ -1239,8 +1654,19 @@ function collectVisibleDuplicateExcessItemIds(
     return excessIds;
 }
 
-function sourceLabel(source: LibraryItemSource): string {
-    return SOURCE_LABEL_BY_VALUE[source] ?? "Other";
+function buildRemovableDuplicateItemIds({
+    allItems,
+    duplicatesFilterEnabled,
+    filteredItems,
+}: {
+    allItems: LibraryItemWithCollections[];
+    duplicatesFilterEnabled: boolean;
+    filteredItems: LibraryItemWithCollections[];
+}): string[] {
+    const filteredItemIdSet = new Set(filteredItems.map((item) => item.id));
+    return duplicatesFilterEnabled
+        ? collectVisibleDuplicateExcessItemIds(allItems, filteredItemIdSet)
+        : [];
 }
 
 function buildResultsCollectionName(searchTerms: string[]): string {
@@ -1381,278 +1807,9 @@ function isMultiWordQuery(query: string): boolean {
     return MULTI_WORD_QUERY_PATTERN.test(query.trim());
 }
 
-/**
- * Build the ordered palette stack entries that both the trailing chips
- * and the Backspace-removal logic consume.  Keeping the shape in one
- * place guarantees that removing the last entry always corresponds to
- * the right-most visible chip.
- */
-interface BuildPaletteStackEntriesInput {
-    collectionMembershipFilter: CollectionMembershipFilter;
-    collections: LibraryCollectionSummary[];
-    columnCountMode: ColumnCountMode;
-    commandAttachments: LibraryCommandAttachment[];
-    domainFilters: string[];
-    duplicatesFilterEnabled: boolean;
-    groupBy: GroupByMode;
-    lastVisitedFilterEnabled: boolean;
-    onRemoveCollectionFilter: (id: string) => void;
-    onRemoveCommandAttachment: (id: string) => void;
-    searchTerms: string[];
-    selectedCollectionIds: string[];
-    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
-    setColumnCountMode: (value: ColumnCountMode) => void;
-    setDomainFilters: (
-        value: string[] | ((value: string[]) => string[])
-    ) => void;
-    setDuplicatesFilterEnabled: (value: boolean) => void;
-    setGroupBy: (value: GroupByMode) => void;
-    setLastVisitedFilterEnabled: (value: boolean) => void;
-    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
-    setSortMode: (value: SortMode) => void;
-    setSourceFilters: (
-        value:
-            | LibraryItemSource[]
-            | ((value: LibraryItemSource[]) => LibraryItemSource[])
-    ) => void;
-    setUnreachableFilterEnabled: (value: boolean) => void;
-    sortMode: SortMode;
-    sourceFilters: LibraryItemSource[];
-    unreachableFilterEnabled: boolean;
-}
-
-function buildPaletteStackEntries({
-    collectionMembershipFilter,
-    collections,
-    columnCountMode,
-    commandAttachments,
-    domainFilters,
-    duplicatesFilterEnabled,
-    groupBy,
-    lastVisitedFilterEnabled,
-    onRemoveCollectionFilter,
-    onRemoveCommandAttachment,
-    searchTerms,
-    selectedCollectionIds,
-    setCollectionMembershipFilter,
-    setColumnCountMode,
-    setDomainFilters,
-    setDuplicatesFilterEnabled,
-    setGroupBy,
-    setLastVisitedFilterEnabled,
-    setSearchTerms,
-    setSortMode,
-    setSourceFilters,
-    setUnreachableFilterEnabled,
-    sortMode,
-    sourceFilters,
-    unreachableFilterEnabled,
-}: BuildPaletteStackEntriesInput): PaletteStackEntry[] {
-    const entries: PaletteStackEntry[] = [];
-    const collectionById = new Map(collections.map((c) => [c.id, c]));
-
-    for (const collectionId of selectedCollectionIds) {
-        const collection = collectionById.get(collectionId);
-        if (collection) {
-            const onRemove = () => onRemoveCollectionFilter(collectionId);
-            entries.push({
-                chip: (
-                    <PaletteChip
-                        key={`collection-${collectionId}`}
-                        label={`Collection: ${truncateLabel(collection.name)}`}
-                        // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                        onRemove={onRemove}
-                    />
-                ),
-                key: `collection-${collectionId}`,
-                onRemove,
-            });
-        }
-    }
-
-    for (const attachment of commandAttachments) {
-        const onRemove = () => onRemoveCommandAttachment(attachment.id);
-        entries.push({
-            chip: (
-                <PaletteAttachmentChip
-                    attachment={attachment}
-                    key={`attachment-${attachment.id}`}
-                    onRemove={onRemoveCommandAttachment}
-                />
-            ),
-            key: `attachment-${attachment.id}`,
-            onRemove,
-        });
-    }
-
-    for (const term of searchTerms) {
-        const onRemove = () =>
-            setSearchTerms((current) => removeValue(current, term));
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key={`search-${term}`}
-                    label={`Search: ${truncateLabel(term)}`}
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: `search-${term}`,
-            onRemove,
-        });
-    }
-
-    for (const source of sourceFilters) {
-        const onRemove = () =>
-            setSourceFilters((current) => removeValue(current, source));
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key={`source-${source}`}
-                    label={`Source: ${sourceLabel(source)}`}
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: `source-${source}`,
-            onRemove,
-        });
-    }
-
-    for (const domainFilter of domainFilters) {
-        const onRemove = () =>
-            setDomainFilters((current) => removeValue(current, domainFilter));
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key={`domain-${domainFilter}`}
-                    label={`Domain: ${truncateLabel(domainFilter)}`}
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: `domain-${domainFilter}`,
-            onRemove,
-        });
-    }
-
-    if (collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER) {
-        const onRemove = () =>
-            setCollectionMembershipFilter(DEFAULT_COLLECTION_MEMBERSHIP_FILTER);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="collection-membership"
-                    label={`Collections: ${collectionMembershipFilterLabel(collectionMembershipFilter)}`}
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: "collection-membership",
-            onRemove,
-        });
-    }
-
-    if (groupBy !== "none") {
-        const onRemove = () => setGroupBy("none");
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="group"
-                    label={`Group: ${groupByLabel(groupBy)}`}
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: "group",
-            onRemove,
-        });
-    }
-
-    if (lastVisitedFilterEnabled) {
-        const onRemove = () => setLastVisitedFilterEnabled(false);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="last-visited"
-                    label="Last visited"
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: "last-visited",
-            onRemove,
-        });
-    }
-
-    if (duplicatesFilterEnabled) {
-        const onRemove = () => setDuplicatesFilterEnabled(false);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="duplicates"
-                    label="Duplicates"
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: "duplicates",
-            onRemove,
-        });
-    }
-
-    if (unreachableFilterEnabled) {
-        const onRemove = () => setUnreachableFilterEnabled(false);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="unreachable"
-                    label="Unreachable"
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: "unreachable",
-            onRemove,
-        });
-    }
-
-    if (sortMode !== DEFAULT_SORT_MODE) {
-        const onRemove = () => setSortMode(DEFAULT_SORT_MODE);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="sort"
-                    label={`Sort: ${sortModeLabel(sortMode)}`}
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: "sort",
-            onRemove,
-        });
-    }
-
-    if (columnCountMode !== DEFAULT_COLUMN_COUNT_MODE) {
-        const onRemove = () => setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="columns"
-                    label={`Columns: ${columnCountLabel(columnCountMode)}`}
-                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
-                    onRemove={onRemove}
-                />
-            ),
-            key: "columns",
-            onRemove,
-        });
-    }
-
-    return entries;
-}
-
-function removeLastPaletteStackEntry(entries: PaletteStackEntry[]): boolean {
+function removeLastPaletteStackEntry(
+    entries: ComposerPaletteStackEntry[]
+): boolean {
     const lastEntry = entries.at(-1);
     if (!lastEntry) {
         return false;
@@ -1679,7 +1836,7 @@ function isSearchHotkey(event: KeyboardEvent): boolean {
         eventHotkeys.add(`ctrl+${key}`);
     }
 
-    return SEARCH_HOTKEYS.some((hotkey) => eventHotkeys.has(hotkey));
+    return COMPOSER_OPEN_HOTKEYS.some((hotkey) => eventHotkeys.has(hotkey));
 }
 
 function isPrintablePaletteKey(event: KeyboardEvent): boolean {
@@ -1698,12 +1855,6 @@ function sortModeLabel(mode: SortMode): string {
     return (
         PALETTE_SORT_OPTIONS.find((opt) => opt.value === mode)?.label ??
         sortModeLabel(DEFAULT_SORT_MODE)
-    );
-}
-
-function groupByLabel(mode: GroupByMode): string {
-    return (
-        PALETTE_GROUP_OPTIONS.find((opt) => opt.value === mode)?.label ?? "None"
     );
 }
 
@@ -1757,7 +1908,7 @@ function buildCollectionPaletteItems({
     onToggleCollectionSelection: (id: string) => void;
     selectedCollectionIds: string[];
     wrapOnSelect: (fn: () => void) => () => void;
-}): CommandPaletteItem[] {
+}): ComposerPaletteItem[] {
     return [
         {
             description:
@@ -1783,12 +1934,1714 @@ function buildCollectionPaletteItems({
                     onToggleCollectionSelection(collection.id)
                 ),
                 value: `filter collection ${collection.id}`,
-            } satisfies CommandPaletteItem;
+            } satisfies ComposerPaletteItem;
         }),
     ];
 }
 
-function PaletteChip({
+function buildDomainPaletteOptions(
+    items: LibraryItemWithCollections[]
+): { itemCount: number; label: string; value: string }[] {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+        const domain = getLibraryItemDomain(item.url);
+        counts.set(domain, (counts.get(domain) ?? 0) + 1);
+    }
+
+    const dynamicDomains = Array.from(counts.entries())
+        .sort(
+            ([aDomain, aCount], [bDomain, bCount]) =>
+                bCount - aCount || NAME_COLLATOR.compare(aDomain, bDomain)
+        )
+        .map(([domain, count]) => ({
+            itemCount: count,
+            label: `${domain} (${count})`,
+            value: domain,
+        }));
+
+    return [
+        {
+            itemCount: items.length,
+            label: "All domains",
+            value: ALL_DOMAIN_FILTER,
+        },
+        ...dynamicDomains,
+    ];
+}
+
+function buildPaletteGroupValueSet(
+    groups: ComposerPaletteGroup[]
+): Set<string> {
+    const valueSet = new Set<string>();
+    for (const group of groups) {
+        for (const item of group.items) {
+            valueSet.add(item.value);
+        }
+    }
+    return valueSet;
+}
+
+function buildPaletteGroups({
+    askCacheResponse,
+    clearLibraryPalette,
+    columnCountMode,
+    collectionMembershipFilter,
+    collectionPreviewThumbnailUrlsById,
+    collections,
+    domainFilters,
+    domainOptions,
+    duplicateItemCount,
+    duplicatesFilterEnabled,
+    groupBy,
+    lastVisitedFilterEnabled,
+    lastVisitedItemIds,
+    onClearCollectionFilters,
+    onClearSearchHistory,
+    onAskCacheSubmit,
+    onToggleCollectionSelection,
+    openPaletteSection,
+    query,
+    paletteSection,
+    returnToSearchSection,
+    searchHistory,
+    searchTerms,
+    selectedCollectionIds,
+    setCollectionMembershipFilter,
+    setColumnCountMode,
+    setIsComposerOpen,
+    setDomainFilters,
+    setDuplicatesFilterEnabled,
+    setGroupBy,
+    setLastVisitedFilterEnabled,
+    setQuery,
+    setSearchTerms,
+    setSortMode,
+    setSourceFilters,
+    setUnreachableFilterEnabled,
+    sortMode,
+    sourceFilters,
+    unreachableFilterEnabled,
+}: BuildPaletteGroupsInput): ComposerPaletteGroup[] {
+    const draft = query.trim();
+    const groups: ComposerPaletteGroup[] = [];
+
+    const applyAndReturn = (fn: () => void | Promise<void>) => async () => {
+        await fn();
+        returnToSearchSection();
+    };
+
+    const applyAndStay = (fn: () => void) => () => {
+        fn();
+        setQuery("");
+        setIsComposerOpen(true);
+    };
+
+    const navigationItems: ComposerPaletteItem[] = [
+        {
+            description: "Source and domain filters",
+            label: "Add filters…",
+            onSelect: (event) => openPaletteSection("filter", event),
+            value: "navigate filters",
+        },
+        {
+            description: `Current: ${groupByLabel(groupBy)}`,
+            label: "Group items…",
+            onSelect: (event) => openPaletteSection("group", event),
+            value: "navigate grouping",
+        },
+        {
+            description: `Current: ${sortModeLabel(sortMode)}`,
+            label: "Sort items…",
+            onSelect: (event) => openPaletteSection("sort", event),
+            value: "navigate sorting",
+        },
+        {
+            description: `Current: ${columnCountLabel(columnCountMode)}`,
+            label: "Columns…",
+            onSelect: (event) => openPaletteSection("columns", event),
+            value: "navigate columns",
+        },
+    ];
+
+    const backItem: ComposerPaletteItem = {
+        description: "Return to search and quick actions",
+        label: "Back",
+        onSelect: returnToSearchSection,
+        shortcut: "Esc",
+        value: "navigate back",
+    };
+
+    const hasAnyRefinements =
+        searchTerms.length > 0 ||
+        selectedCollectionIds.length > 0 ||
+        sourceFilters.length > 0 ||
+        domainFilters.length > 0 ||
+        collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
+        groupBy !== "none" ||
+        sortMode !== DEFAULT_SORT_MODE ||
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
+        duplicatesFilterEnabled ||
+        unreachableFilterEnabled ||
+        lastVisitedFilterEnabled;
+
+    if (paletteSection === "search") {
+        return buildSearchPaletteGroups({
+            clearLibraryPalette,
+            collectionPreviewThumbnailUrlsById,
+            collections,
+            draft,
+            hasAnyRefinements,
+            lastVisitedFilterEnabled,
+            lastVisitedItemIds,
+            navigationItems,
+            onAskCacheSubmit,
+            onClearCollectionFilters,
+            onClearSearchHistory,
+            onToggleCollectionSelection,
+            searchHistory,
+            searchTerms,
+            selectedCollectionIds,
+            setIsComposerOpen,
+            setLastVisitedFilterEnabled,
+            setQuery,
+            setSearchTerms,
+        });
+    }
+
+    if (paletteSection === "ai-response") {
+        return buildAskCachePaletteGroups({
+            askCacheResponse,
+            backItem,
+            draft,
+            onAskCacheSubmit,
+        });
+    }
+
+    if (paletteSection === "filter") {
+        groups.push({
+            items: [backItem],
+            label: "Navigation",
+        });
+        groups.push({
+            items: [
+                {
+                    description:
+                        duplicateItemCount > 0
+                            ? `Show ${duplicateItemCount} bookmark${duplicateItemCount === 1 ? "" : "s"} that share a URL`
+                            : "No duplicate bookmarks found right now",
+                    isActive: duplicatesFilterEnabled,
+                    label: "Duplicates",
+                    onSelect: applyAndStay(() =>
+                        setDuplicatesFilterEnabled(!duplicatesFilterEnabled)
+                    ),
+                    value: "filter duplicates",
+                },
+                {
+                    description:
+                        "Check which bookmark links fail to load or time out",
+                    isActive: unreachableFilterEnabled,
+                    label: "Unreachable links",
+                    onSelect: applyAndStay(() =>
+                        setUnreachableFilterEnabled(!unreachableFilterEnabled)
+                    ),
+                    value: "filter unreachable",
+                },
+            ],
+            label: "Library quality",
+        });
+        groups.push({
+            items: [
+                {
+                    description: "Show every source",
+                    isActive: sourceFilters.length === 0,
+                    label: "Source: All sources",
+                    onSelect: applyAndStay(() => setSourceFilters([])),
+                    value: "filter source all",
+                },
+                ...PALETTE_SOURCE_FILTER_OPTIONS.map((option) => ({
+                    description: "Toggle this source in the filter stack",
+                    isActive: sourceFilters.includes(option.value),
+                    label: `Source: ${option.label}`,
+                    onSelect: applyAndStay(() =>
+                        setSourceFilters((current) =>
+                            toggleValue(current, option.value)
+                        )
+                    ),
+                    value: `filter source ${option.value}`,
+                })),
+            ],
+            label: "Conditions",
+        });
+        groups.push({
+            items: [
+                {
+                    description:
+                        "Show items whether or not they are in collections",
+                    isActive:
+                        collectionMembershipFilter ===
+                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
+                    label: "Collections: All items",
+                    onSelect: applyAndStay(() =>
+                        setCollectionMembershipFilter(
+                            DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+                        )
+                    ),
+                    value: "filter collections all",
+                },
+                {
+                    description:
+                        "Show only items that belong to at least one collection",
+                    isActive: collectionMembershipFilter === "in-collections",
+                    label: "Collections: In collections",
+                    onSelect: applyAndStay(() =>
+                        setCollectionMembershipFilter("in-collections")
+                    ),
+                    value: "filter collections in",
+                },
+                {
+                    description:
+                        "Show only items that do not belong to any collection",
+                    isActive:
+                        collectionMembershipFilter === "not-in-collections",
+                    label: "Collections: Not in collections",
+                    onSelect: applyAndStay(() =>
+                        setCollectionMembershipFilter("not-in-collections")
+                    ),
+                    value: "filter collections not-in",
+                },
+            ],
+            label: "Collection state",
+        });
+        groups.push({
+            items: buildCollectionPaletteItems({
+                collections,
+                onClearCollectionFilters,
+                onToggleCollectionSelection,
+                selectedCollectionIds,
+                wrapOnSelect: applyAndStay,
+            }),
+            label: "Collections",
+        });
+        groups.push({
+            items: domainOptions.map((option) => ({
+                description:
+                    option.value === ALL_DOMAIN_FILTER
+                        ? "Show items from every domain"
+                        : "Toggle this domain in the filter stack",
+                isActive:
+                    option.value === ALL_DOMAIN_FILTER
+                        ? domainFilters.length === 0
+                        : domainFilters.includes(option.value),
+                label: `Domain: ${option.label}`,
+                onSelect: applyAndStay(() =>
+                    option.value === ALL_DOMAIN_FILTER
+                        ? setDomainFilters([])
+                        : setDomainFilters((current) =>
+                              toggleValue(current, option.value)
+                          )
+                ),
+                value: `filter domain ${option.value}`,
+            })),
+            label: "Domain",
+        });
+        return groups;
+    }
+
+    if (paletteSection === "group") {
+        return [
+            { items: [backItem], label: "Navigation" },
+            {
+                items: PALETTE_GROUP_OPTIONS.map((option) => ({
+                    description: "Organize the grid into sections",
+                    isActive: groupBy === option.value,
+                    label: option.label,
+                    onSelect: applyAndReturn(() => setGroupBy(option.value)),
+                    value: `group ${option.value}`,
+                })),
+                label: "Grouping",
+            },
+        ];
+    }
+
+    if (paletteSection === "sort") {
+        return [
+            { items: [backItem], label: "Navigation" },
+            {
+                items: PALETTE_SORT_OPTIONS.map((option) => ({
+                    description: "Change the ordering within the current view",
+                    isActive: sortMode === option.value,
+                    label: option.label,
+                    onSelect: applyAndReturn(() => setSortMode(option.value)),
+                    value: `sort ${option.value}`,
+                })),
+                label: "Sorting",
+            },
+        ];
+    }
+
+    if (paletteSection === "columns") {
+        return [
+            { items: [backItem], label: "Navigation" },
+            {
+                items: PALETTE_COLUMN_OPTIONS.map((option) => ({
+                    description:
+                        option.value === "auto"
+                            ? "Choose the best column count for the available width"
+                            : "Force a specific number of columns",
+                    isActive: columnCountMode === option.value,
+                    label: option.label,
+                    onSelect: applyAndReturn(() =>
+                        setColumnCountMode(option.value)
+                    ),
+                    value: `columns ${option.value}`,
+                })),
+                label: "Columns",
+            },
+        ];
+    }
+
+    return [{ items: [backItem], label: "Navigation" }];
+}
+
+function filterComposerItems(
+    items: LibraryItemWithCollections[],
+    input: {
+        collectionMembershipFilter: CollectionMembershipFilter;
+        domainFilters: string[];
+        duplicateItemIds: ReadonlySet<string>;
+        duplicatesFilterEnabled: boolean;
+        lastVisitedItemIds: string[];
+        searchTerms: string[];
+        selectedCollectionIds: string[];
+        sourceFilters: LibraryItemSource[];
+        unreachableFilterEnabled: boolean;
+        unreachableItemIds: ReadonlySet<string>;
+    }
+): LibraryItemWithCollections[] {
+    if (!browserHasActiveFilters(input)) {
+        return items;
+    }
+
+    let list = [...items];
+    const normalizedSearchTerms = input.searchTerms.map((term) =>
+        term.trim().toLowerCase()
+    );
+
+    if (input.lastVisitedItemIds.length > 0) {
+        const lastVisitedIdSet = new Set(input.lastVisitedItemIds);
+        list = list.filter((item) => lastVisitedIdSet.has(item.id));
+    }
+
+    if (input.duplicatesFilterEnabled) {
+        list = list.filter((item) => input.duplicateItemIds.has(item.id));
+    }
+
+    if (input.unreachableFilterEnabled) {
+        list = list.filter((item) => input.unreachableItemIds.has(item.id));
+    }
+
+    if (input.selectedCollectionIds.length > 0) {
+        const selectedCollectionIdSet = new Set(input.selectedCollectionIds);
+        list = list.filter((item) =>
+            item.collections.some((collection) =>
+                selectedCollectionIdSet.has(collection.id)
+            )
+        );
+    }
+
+    if (input.collectionMembershipFilter === "in-collections") {
+        list = list.filter((item) => item.collections.length > 0);
+    }
+
+    if (input.collectionMembershipFilter === "not-in-collections") {
+        list = list.filter((item) => item.collections.length === 0);
+    }
+
+    if (normalizedSearchTerms.length > 0) {
+        list = list.filter((item) => {
+            const cap = item.caption?.toLowerCase() ?? "";
+            const noteText = item.noteContentText?.toLowerCase() ?? "";
+            const url = item.url.toLowerCase();
+            return normalizedSearchTerms.some(
+                (term) =>
+                    cap.includes(term) ||
+                    noteText.includes(term) ||
+                    url.includes(term)
+            );
+        });
+    }
+
+    if (input.sourceFilters.length > 0) {
+        const sourceFilterSet = new Set(input.sourceFilters);
+        list = list.filter((item) => sourceFilterSet.has(item.source));
+    }
+
+    if (input.domainFilters.length > 0) {
+        const domainFilterSet = new Set(input.domainFilters);
+        list = list.filter((item) =>
+            domainFilterSet.has(getLibraryItemDomain(item.url))
+        );
+    }
+
+    return list;
+}
+
+function sortComposerItems(
+    filteredItems: LibraryItemWithCollections[],
+    sortMode: SortMode
+): LibraryItemWithCollections[] {
+    const itemSortMode =
+        sortMode === "count-desc" ? DEFAULT_SORT_MODE : sortMode;
+    return filteredItems.toSorted((a, b) => compareItems(a, b, itemSortMode));
+}
+
+function buildBrowserGroups(
+    sortedItems: LibraryItemWithCollections[],
+    groupBy: EffectiveGroupByMode,
+    sortMode: SortMode,
+    collections?: LibraryCollectionSummary[]
+): BrowserGroup[] {
+    if (groupBy === "none") {
+        return [
+            {
+                items: sortedItems,
+                key: "all",
+                title: null,
+            },
+        ];
+    }
+
+    const collectionNames = new Map(collections?.map((c) => [c.id, c.name]));
+
+    const buckets = new Map<string, LibraryItemWithCollections[]>();
+    for (const item of sortedItems) {
+        if (groupBy === "collection") {
+            if (item.collections.length === 0) {
+                const bucket = buckets.get("__uncategorized__") ?? [];
+                bucket.push(item);
+                buckets.set("__uncategorized__", bucket);
+            } else {
+                for (const collection of item.collections) {
+                    const bucket = buckets.get(collection.id) ?? [];
+                    bucket.push(item);
+                    buckets.set(collection.id, bucket);
+                }
+            }
+            continue;
+        }
+
+        const key = getItemGroupKey(item, groupBy);
+        const bucket = buckets.get(key) ?? [];
+        bucket.push(item);
+        buckets.set(key, bucket);
+    }
+
+    return Array.from(buckets.entries())
+        .sort(([a, aItems], [b, bItems]) => {
+            if (sortMode === "count-desc") {
+                return (
+                    bItems.length - aItems.length ||
+                    compareSectionKeys(a, b, groupBy, sortMode, collectionNames)
+                );
+            }
+
+            return compareSectionKeys(a, b, groupBy, sortMode, collectionNames);
+        })
+        .map(([key, sectionItems]) => ({
+            items: sectionItems,
+            key,
+            title: formatGroupHeading(groupBy, key, collectionNames),
+        }));
+}
+
+async function saveLibraryNoteDraft({
+    activeNoteId,
+    draft,
+}: {
+    activeNoteId: string | null;
+    draft: {
+        contentHtml: string;
+        contentState: unknown | null;
+    };
+}): Promise<NoteMutationResult> {
+    try {
+        return activeNoteId
+            ? await updateNote({
+                  contentHtml: draft.contentHtml,
+                  contentState: draft.contentState ?? undefined,
+                  itemId: activeNoteId,
+              })
+            : await createNote({
+                  contentHtml: draft.contentHtml,
+                  contentState: draft.contentState ?? undefined,
+              });
+    } catch {
+        return {
+            message: activeNoteId
+                ? "We couldn't save this note right now."
+                : "We couldn't create this note right now.",
+            status: "ERROR",
+        };
+    }
+}
+
+async function createLibraryBookmarkFromPastedUrl({
+    url,
+}: {
+    url: string;
+}): Promise<CreateChromeBookmarkFromUrlResult> {
+    try {
+        return await createChromeBookmarkFromUrl({
+            url,
+        });
+    } catch {
+        return {
+            message: "We couldn't save this URL right now.",
+            status: "ERROR",
+        };
+    }
+}
+
+function browserHasActiveFilters(input: {
+    collectionMembershipFilter: CollectionMembershipFilter;
+    domainFilters: string[];
+    duplicatesFilterEnabled: boolean;
+    lastVisitedItemIds: string[];
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    sourceFilters: LibraryItemSource[];
+    unreachableFilterEnabled: boolean;
+}): boolean {
+    return (
+        input.searchTerms.length > 0 ||
+        input.selectedCollectionIds.length > 0 ||
+        input.sourceFilters.length > 0 ||
+        input.domainFilters.length > 0 ||
+        input.collectionMembershipFilter !==
+            DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
+        input.lastVisitedItemIds.length > 0 ||
+        input.duplicatesFilterEnabled ||
+        input.unreachableFilterEnabled
+    );
+}
+
+function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
+    if (items.length === 0) {
+        return [];
+    }
+
+    const [firstItem, ...remainingItems] = items;
+    const sharedCollectionIds = new Set(
+        firstItem?.collections.map((collection) => collection.id)
+    );
+
+    for (const item of remainingItems) {
+        const itemCollectionIds = new Set(
+            item.collections.map((collection) => collection.id)
+        );
+        for (const collectionId of [...sharedCollectionIds]) {
+            if (!itemCollectionIds.has(collectionId)) {
+                sharedCollectionIds.delete(collectionId);
+            }
+        }
+    }
+
+    return Array.from(sharedCollectionIds);
+}
+
+function getMediaDownloadFileExtension(
+    url: string,
+    contentType: string | null
+): MediaDownloadFileExtension | null {
+    const normalizedContentType = contentType
+        ?.split(";", 1)[0]
+        ?.trim()
+        .toLowerCase();
+    const contentTypeExtension =
+        normalizedContentType &&
+        MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE[normalizedContentType];
+    if (contentTypeExtension) {
+        return contentTypeExtension;
+    }
+
+    let pathname: string;
+    try {
+        pathname = new URL(url).pathname;
+    } catch {
+        return null;
+    }
+
+    let urlExtension = pathname
+        .slice(pathname.lastIndexOf(".") + 1)
+        .toLowerCase();
+    if (urlExtension === "jpeg") {
+        urlExtension = "jpg";
+    }
+    for (const extension of Object.values(
+        MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE
+    )) {
+        if (extension === urlExtension) {
+            return extension;
+        }
+    }
+
+    return null;
+}
+
+function itemDateLabel(dateValue: Date | string | null | undefined): string {
+    const date = parseDate(dateValue);
+    if (!date) {
+        return "";
+    }
+    return date.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+    });
+}
+
+async function saveLibraryItemMedia(
+    item: LibraryItemWithCollections
+): Promise<void> {
+    if (!COBALT_SOURCES.has(item.source)) {
+        throw new Error("Media downloads are not available for this source.");
+    }
+
+    const result = await downloadMedia(item.url);
+    if (result.status !== ACTION_STATUS.SUCCESS) {
+        throw new Error(result.message);
+    }
+
+    const response = await fetchWithTimeout(
+        result.downloadUrl,
+        {},
+        MEDIA_DOWNLOAD_TIMEOUT_MS
+    );
+    if (!response.ok) {
+        throw new Error(`Failed to fetch media download (${response.status})`);
+    }
+
+    const blob = await response.blob();
+    const extension = getMediaDownloadFileExtension(
+        response.url || result.downloadUrl,
+        response.headers.get("content-type") || blob.type
+    );
+    if (!extension) {
+        throw new Error("Could not determine the downloaded media type.");
+    }
+
+    await saveFile(blob, {
+        description: "Media file",
+        extension,
+        name: slugify(getLibraryItemTitle(item)) || "cache-media",
+    });
+}
+
+function buildSimilarBrowserFilterState(
+    state: BrowserSimilarFilterState,
+    options: BrowserSimilarFilterOptions
+): BrowserSimilarFilterState {
+    const shouldUseDomainFilter =
+        DOMAIN_RELATED_SOURCES.has(options.source) &&
+        options.domain !== UNSPECIFIC_LIBRARY_DOMAIN;
+
+    return {
+        ...state,
+        collectionMembershipFilter: DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
+        domainFilters: shouldUseDomainFilter ? [options.domain] : [],
+        searchTerms: [],
+        selectedCollectionIds: [],
+        sourceFilters: shouldUseDomainFilter ? [] : [options.source],
+    };
+}
+
+function buildComposerSuggestions({
+    clearLibraryPalette,
+    collectionMembershipFilter,
+    collections,
+    items,
+    lastVisitedFilterEnabled,
+    onClearCollectionFilters,
+    onCreateCollection,
+    onToggleCollectionSelection,
+    searchTerms,
+    selectedCollectionIds,
+    setCollectionMembershipFilter,
+    setDomainFilters,
+    setGroupBy,
+    setIsComposerOpen,
+    setQuery,
+    setSearchTerms,
+    setSortMode,
+    setSourceFilters,
+    sourceFilters,
+    domainFilters,
+    duplicatesFilterEnabled,
+    groupBy,
+    isExtensionInstalled,
+    sortMode,
+    unreachableFilterEnabled,
+}: BuildComposerSuggestionsInput): ComposerSuggestion[] {
+    const suggestions: ComposerSuggestion[] = [];
+    const suggestionLabels = new Set<string>();
+    const collectionById = new Map(
+        collections.map((collection) => [collection.id, collection])
+    );
+    const collectionCounts = new Map<string, number>();
+    const sourceCounts = new Map<LibraryItemSource, number>();
+    const domainCounts = new Map<string, number>();
+    const addedMonthKeys = new Set<string>();
+    const createdMonthKeys = new Set<string>();
+    const addedYearKeys = new Set<string>();
+    const createdYearKeys = new Set<string>();
+
+    for (const item of items) {
+        const itemCollectionIds = new Set<string>();
+        for (const collection of item.collections) {
+            if (itemCollectionIds.has(collection.id)) {
+                continue;
+            }
+            itemCollectionIds.add(collection.id);
+            collectionCounts.set(
+                collection.id,
+                (collectionCounts.get(collection.id) ?? 0) + 1
+            );
+        }
+        sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
+
+        const domain = getLibraryItemDomain(item.url);
+        domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
+        addedMonthKeys.add(itemMonthKey(item, "added"));
+        createdMonthKeys.add(itemMonthKey(item, "created"));
+        addedYearKeys.add(itemYearKey(item, "added"));
+        createdYearKeys.add(itemYearKey(item, "created"));
+    }
+
+    const hasAnyRefinements =
+        searchTerms.length > 0 ||
+        selectedCollectionIds.length > 0 ||
+        sourceFilters.length > 0 ||
+        domainFilters.length > 0 ||
+        collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
+        groupBy !== "none" ||
+        sortMode !== DEFAULT_SORT_MODE ||
+        lastVisitedFilterEnabled ||
+        duplicatesFilterEnabled ||
+        unreachableFilterEnabled;
+
+    const commitSelection = (fn: () => void) => () => {
+        fn();
+        setQuery("");
+        setIsComposerOpen(false);
+    };
+
+    const addSuggestion = (suggestion: ComposerSuggestion | null) => {
+        if (
+            suggestion === null ||
+            suggestionLabels.has(suggestion.label) ||
+            suggestions.length >= SUGGESTION_LIMIT
+        ) {
+            return;
+        }
+
+        suggestionLabels.add(suggestion.label);
+        suggestions.push(suggestion);
+    };
+
+    const addDefaultSuggestion = (suggestion: ComposerSuggestion | null) => {
+        if (hasAnyRefinements) {
+            return;
+        }
+
+        addSuggestion(suggestion);
+    };
+
+    const pickTopEntry = <T,>(
+        counts: Map<T, number>,
+        isAllowed: (value: T) => boolean,
+        getLabel: (value: T) => string
+    ): T | null => {
+        const entries = Array.from(counts.entries()).filter(([value]) =>
+            isAllowed(value)
+        );
+
+        entries.sort(
+            ([aValue, aCount], [bValue, bCount]) =>
+                bCount - aCount ||
+                NAME_COLLATOR.compare(getLabel(aValue), getLabel(bValue))
+        );
+
+        return entries[0]?.[0] ?? null;
+    };
+
+    const topCollectionId = pickTopEntry(
+        collectionCounts,
+        (collectionId) => !selectedCollectionIds.includes(collectionId),
+        (collectionId) => collectionById.get(collectionId)?.name ?? collectionId
+    );
+    const topSource = pickTopEntry(
+        sourceCounts,
+        (source) => !sourceFilters.includes(source),
+        (source) => sourceLabel(source)
+    );
+    const topDomain = pickTopEntry(
+        domainCounts,
+        (domain) => !domainFilters.includes(domain),
+        (domain) => domain
+    );
+
+    const topCollection =
+        topCollectionId === null ? null : collectionById.get(topCollectionId);
+
+    const currentGroupCount = getGroupCount(items, groupBy);
+
+    const buildCollectionSuggestion = (): ComposerSuggestion | null => {
+        if (!topCollection) {
+            return null;
+        }
+
+        const collectionLabel = truncateLabel(topCollection.name, 24);
+        let label = `Browse \u201c${collectionLabel}\u201d`;
+        if (selectedCollectionIds.length > 0) {
+            label = `Add \u201c${collectionLabel}\u201d collection`;
+        } else if (hasAnyRefinements) {
+            label = `Filter to \u201c${collectionLabel}\u201d`;
+        }
+
+        return {
+            icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
+            label,
+            onSelect: commitSelection(() =>
+                onToggleCollectionSelection(topCollection.id)
+            ),
+        };
+    };
+
+    const buildSourceSuggestion = (): ComposerSuggestion | null => {
+        if (!topSource) {
+            return null;
+        }
+
+        return {
+            icon: <Funnel className={SUGGESTION_ICON_CLASS} />,
+            label: `Filter by ${sourceLabel(topSource)}`,
+            onSelect: commitSelection(() =>
+                setSourceFilters((current) => toggleValue(current, topSource))
+            ),
+        };
+    };
+
+    const buildDomainSuggestion = (): ComposerSuggestion | null => {
+        if (!topDomain) {
+            return null;
+        }
+
+        return {
+            icon: <Globe className={SUGGESTION_ICON_CLASS} />,
+            label: `Filter to ${truncateLabel(topDomain, 24)}`,
+            onSelect: commitSelection(() =>
+                setDomainFilters((current) => toggleValue(current, topDomain))
+            ),
+        };
+    };
+
+    let groupingCandidates: GroupByMode[];
+    if (sourceFilters.length > 0) {
+        groupingCandidates = buildGroupingCandidatesForPreferLast("source");
+    } else if (domainFilters.length > 0) {
+        groupingCandidates = buildGroupingCandidatesForPreferLast("domain");
+    } else {
+        groupingCandidates = ALL_GROUPING_MODES;
+    }
+
+    const nextGroupBy =
+        groupingCandidates.find((mode) => {
+            if (mode === groupBy) {
+                return false;
+            }
+
+            if (mode === "source") {
+                return sourceCounts.size > 1;
+            }
+            if (mode === "domain") {
+                return domainCounts.size > 1;
+            }
+            if (mode === "collection") {
+                return collectionCounts.size > 0;
+            }
+            if (mode === "month-added") {
+                return addedMonthKeys.size > 1;
+            }
+            if (mode === "month-created") {
+                return createdMonthKeys.size > 1;
+            }
+            if (mode === "year-added") {
+                return addedYearKeys.size > 1;
+            }
+            return createdYearKeys.size > 1;
+        }) ?? null;
+
+    const buildGroupingSuggestion = (): ComposerSuggestion | null => {
+        if (!nextGroupBy) {
+            return null;
+        }
+
+        const label =
+            groupBy === "none"
+                ? `Group by ${groupByLabel(nextGroupBy).toLowerCase()}`
+                : `Try ${groupByLabel(nextGroupBy).toLowerCase()} groups`;
+
+        return {
+            icon: <Layers3 className={SUGGESTION_ICON_CLASS} />,
+            label,
+            onSelect: commitSelection(() => setGroupBy(nextGroupBy)),
+        };
+    };
+
+    if (
+        groupBy !== "none" &&
+        sortMode !== "count-desc" &&
+        currentGroupCount > 1
+    ) {
+        addSuggestion({
+            icon: <ArrowDownWideNarrow className={SUGGESTION_ICON_CLASS} />,
+            label: "Sort groups by size",
+            onSelect: commitSelection(() => setSortMode("count-desc")),
+        });
+    }
+
+    if (!isExtensionInstalled) {
+        addDefaultSuggestion({
+            icon: <DownloadIcon className={SUGGESTION_ICON_CLASS} />,
+            label: "Get extension",
+            onSelect: commitSelection(() =>
+                openExternalUrl(CACHE_EXTENSION_DOWNLOAD_URL)
+            ),
+        });
+    }
+
+    const addPrimarySuggestions = (
+        builders: ReadonlyArray<() => ComposerSuggestion | null>
+    ) => {
+        for (const build of builders) {
+            const suggestion = build();
+            if (suggestion !== null) {
+                addSuggestion(suggestion);
+            }
+        }
+    };
+
+    if (!hasAnyRefinements) {
+        addDefaultSuggestion(buildCollectionSuggestion());
+        addDefaultSuggestion(buildSourceSuggestion());
+        addDefaultSuggestion(buildGroupingSuggestion());
+        addDefaultSuggestion(buildDomainSuggestion());
+    } else if (selectedCollectionIds.length > 0) {
+        addPrimarySuggestions([
+            buildSourceSuggestion,
+            buildDomainSuggestion,
+            buildGroupingSuggestion,
+            buildCollectionSuggestion,
+        ]);
+    } else {
+        const hasContentRefinement =
+            sourceFilters.length > 0 ||
+            domainFilters.length > 0 ||
+            searchTerms.length > 0 ||
+            collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER;
+
+        addPrimarySuggestions(
+            hasContentRefinement
+                ? [
+                      buildCollectionSuggestion,
+                      buildGroupingSuggestion,
+                      buildSourceSuggestion,
+                      buildDomainSuggestion,
+                  ]
+                : [
+                      buildCollectionSuggestion,
+                      buildSourceSuggestion,
+                      buildGroupingSuggestion,
+                      buildDomainSuggestion,
+                  ]
+        );
+    }
+
+    if (items.length === 0 || suggestions.length < SUGGESTION_LIMIT) {
+        if (searchTerms.length > 0) {
+            addSuggestion({
+                icon: <SearchX className={SUGGESTION_ICON_CLASS} />,
+                label: "Clear searches",
+                onSelect: commitSelection(() => setSearchTerms([])),
+            });
+        }
+
+        if (selectedCollectionIds.length > 0) {
+            addSuggestion({
+                icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
+                label: "Show all collections",
+                onSelect: commitSelection(onClearCollectionFilters),
+            });
+        }
+
+        if (sourceFilters.length > 0) {
+            addSuggestion({
+                icon: <Funnel className={SUGGESTION_ICON_CLASS} />,
+                label: "Show all sources",
+                onSelect: commitSelection(() => setSourceFilters([])),
+            });
+        }
+
+        if (domainFilters.length > 0) {
+            addSuggestion({
+                icon: <Globe className={SUGGESTION_ICON_CLASS} />,
+                label: "Show all domains",
+                onSelect: commitSelection(() => setDomainFilters([])),
+            });
+        }
+
+        if (
+            collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+        ) {
+            addSuggestion({
+                icon: <Tags className={SUGGESTION_ICON_CLASS} />,
+                label: "Show all items",
+                onSelect: commitSelection(() =>
+                    setCollectionMembershipFilter(
+                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+                    )
+                ),
+            });
+        }
+
+        if (groupBy !== "none") {
+            addSuggestion({
+                icon: <Layers3 className={SUGGESTION_ICON_CLASS} />,
+                label: "Ungroup",
+                onSelect: commitSelection(() => setGroupBy("none")),
+            });
+        }
+
+        if (sortMode !== DEFAULT_SORT_MODE) {
+            addSuggestion({
+                icon: <ArrowDownWideNarrow className={SUGGESTION_ICON_CLASS} />,
+                label: "Reset sort",
+                onSelect: commitSelection(() => setSortMode(DEFAULT_SORT_MODE)),
+            });
+        }
+
+        if (hasAnyRefinements) {
+            addSuggestion({
+                icon: <RotateCcw className={SUGGESTION_ICON_CLASS} />,
+                label: "Reset filters",
+                onSelect: commitSelection(clearLibraryPalette),
+            });
+        }
+    }
+
+    if (items.length === 0 && !hasAnyRefinements) {
+        addSuggestion({
+            icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
+            label: "Create a new collection",
+            onSelect: commitSelection(() => onCreateCollection()),
+        });
+    }
+
+    return suggestions;
+}
+
+function buildPaletteStackEntries({
+    collectionMembershipFilter,
+    collections,
+    columnCountMode,
+    composerAttachments,
+    domainFilters,
+    duplicatesFilterEnabled,
+    groupBy,
+    lastVisitedFilterEnabled,
+    onRemoveCollectionFilter,
+    onRemoveComposerAttachment,
+    searchTerms,
+    selectedCollectionIds,
+    setCollectionMembershipFilter,
+    setColumnCountMode,
+    setDomainFilters,
+    setDuplicatesFilterEnabled,
+    setGroupBy,
+    setLastVisitedFilterEnabled,
+    setSearchTerms,
+    setSortMode,
+    setSourceFilters,
+    setUnreachableFilterEnabled,
+    sortMode,
+    sourceFilters,
+    unreachableFilterEnabled,
+}: BuildPaletteStackEntriesInput): ComposerPaletteStackEntry[] {
+    const entries: ComposerPaletteStackEntry[] = [];
+    const collectionById = new Map(collections.map((c) => [c.id, c]));
+
+    for (const collectionId of selectedCollectionIds) {
+        const collection = collectionById.get(collectionId);
+        if (collection) {
+            const onRemove = () => onRemoveCollectionFilter(collectionId);
+            entries.push({
+                chip: (
+                    <ComposerChip
+                        key={`collection-${collectionId}`}
+                        label={`Collection: ${truncateLabel(collection.name)}`}
+                        // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                        onRemove={onRemove}
+                    />
+                ),
+                key: `collection-${collectionId}`,
+                onRemove,
+            });
+        }
+    }
+
+    for (const attachment of composerAttachments) {
+        const onRemove = () => onRemoveComposerAttachment(attachment.id);
+        entries.push({
+            chip: (
+                <ComposerAttachmentChip
+                    attachment={attachment}
+                    key={`attachment-${attachment.id}`}
+                    onRemove={onRemoveComposerAttachment}
+                />
+            ),
+            key: `attachment-${attachment.id}`,
+            onRemove,
+        });
+    }
+
+    for (const term of searchTerms) {
+        const onRemove = () =>
+            setSearchTerms((current) => removeValue(current, term));
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key={`search-${term}`}
+                    label={`Search: ${truncateLabel(term)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: `search-${term}`,
+            onRemove,
+        });
+    }
+
+    for (const source of sourceFilters) {
+        const onRemove = () =>
+            setSourceFilters((current) => removeValue(current, source));
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key={`source-${source}`}
+                    label={`Source: ${sourceLabel(source)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: `source-${source}`,
+            onRemove,
+        });
+    }
+
+    for (const domainFilter of domainFilters) {
+        const onRemove = () =>
+            setDomainFilters((current) => removeValue(current, domainFilter));
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key={`domain-${domainFilter}`}
+                    label={`Domain: ${truncateLabel(domainFilter)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: `domain-${domainFilter}`,
+            onRemove,
+        });
+    }
+
+    if (collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER) {
+        const onRemove = () =>
+            setCollectionMembershipFilter(DEFAULT_COLLECTION_MEMBERSHIP_FILTER);
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key="collection-membership"
+                    label={`Collections: ${collectionMembershipFilterLabel(collectionMembershipFilter)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "collection-membership",
+            onRemove,
+        });
+    }
+
+    if (groupBy !== "none") {
+        const onRemove = () => setGroupBy("none");
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key="group"
+                    label={`Group: ${groupByLabel(groupBy)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "group",
+            onRemove,
+        });
+    }
+
+    if (lastVisitedFilterEnabled) {
+        const onRemove = () => setLastVisitedFilterEnabled(false);
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key="last-visited"
+                    label="Last visited"
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "last-visited",
+            onRemove,
+        });
+    }
+
+    if (duplicatesFilterEnabled) {
+        const onRemove = () => setDuplicatesFilterEnabled(false);
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key="duplicates"
+                    label="Duplicates"
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "duplicates",
+            onRemove,
+        });
+    }
+
+    if (unreachableFilterEnabled) {
+        const onRemove = () => setUnreachableFilterEnabled(false);
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key="unreachable"
+                    label="Unreachable"
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "unreachable",
+            onRemove,
+        });
+    }
+
+    if (sortMode !== DEFAULT_SORT_MODE) {
+        const onRemove = () => setSortMode(DEFAULT_SORT_MODE);
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key="sort"
+                    label={`Sort: ${sortModeLabel(sortMode)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "sort",
+            onRemove,
+        });
+    }
+
+    if (columnCountMode !== DEFAULT_COLUMN_COUNT_MODE) {
+        const onRemove = () => setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
+        entries.push({
+            chip: (
+                <ComposerChip
+                    key="columns"
+                    label={`Columns: ${columnCountLabel(columnCountMode)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "columns",
+            onRemove,
+        });
+    }
+
+    return entries;
+}
+
+function buildSearchPaletteGroups({
+    collections,
+    collectionPreviewThumbnailUrlsById,
+    clearLibraryPalette,
+    draft,
+    hasAnyRefinements,
+    lastVisitedFilterEnabled,
+    lastVisitedItemIds,
+    navigationItems,
+    onAskCacheSubmit,
+    onClearCollectionFilters,
+    onClearSearchHistory,
+    onToggleCollectionSelection,
+    searchHistory,
+    selectedCollectionIds,
+    searchTerms,
+    setIsComposerOpen,
+    setLastVisitedFilterEnabled,
+    setQuery,
+    setSearchTerms,
+}: {
+    collections: LibraryCollectionSummary[];
+    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
+    clearLibraryPalette: () => void;
+    draft: string;
+    hasAnyRefinements: boolean;
+    lastVisitedFilterEnabled: boolean;
+    lastVisitedItemIds: string[];
+    navigationItems: ComposerPaletteItem[];
+    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
+    onClearCollectionFilters: () => void;
+    onClearSearchHistory: () => void;
+    onToggleCollectionSelection: (id: string) => void;
+    searchHistory: string[];
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    setIsComposerOpen: (value: boolean) => void;
+    setLastVisitedFilterEnabled: (value: boolean) => void;
+    setQuery: (value: string) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+}): ComposerPaletteGroup[] {
+    const groups: ComposerPaletteGroup[] = [];
+    const draftAlreadyIncluded = searchTerms.some(
+        (term) => term.toLowerCase() === draft.toLowerCase()
+    );
+    const isDefaultState = draft.length === 0 && !hasAnyRefinements;
+    const showCollectionsGroup =
+        collections.length > 0 &&
+        (draft.length > 0 ||
+            selectedCollectionIds.length > 0 ||
+            isDefaultState);
+
+    const applyCollectionFilter = (fn: () => void) => () => {
+        fn();
+        setQuery("");
+        setIsComposerOpen(true);
+    };
+
+    if (draft) {
+        const shouldDefaultToAskCache = isMultiWordQuery(draft);
+        const addSearchItem: ComposerPaletteItem = {
+            description: draftAlreadyIncluded
+                ? "Already included in the search"
+                : "Add this search term",
+            isActive: draftAlreadyIncluded,
+            label: `Search "${draft}"`,
+            onSelect: () => {
+                setSearchTerms((current) =>
+                    appendUniqueSearchTerm(current, draft)
+                );
+                setQuery("");
+                setIsComposerOpen(true);
+            },
+            shortcut: shouldDefaultToAskCache ? undefined : "Enter",
+            value: `search ${draft}`,
+        };
+        const askCacheItem: ComposerPaletteItem = {
+            description: "AI Search",
+            label: `Ask Cache "${draft}"`,
+            onSelect: () => onAskCacheSubmit(draft),
+            shortcut: shouldDefaultToAskCache ? "Enter" : "Tab",
+            value: `ask cache ${draft}`,
+        };
+
+        groups.push({
+            items: shouldDefaultToAskCache
+                ? [askCacheItem, addSearchItem]
+                : [addSearchItem, askCacheItem],
+            label: "Search",
+        });
+    }
+
+    if (searchTerms.length > 0) {
+        groups.push({
+            items: [
+                ...searchTerms.map((term) => ({
+                    description: "Active stacked search term",
+                    isActive: true,
+                    label: `Search: ${truncateLabel(term, 28)}`,
+                    onSelect: () =>
+                        setSearchTerms((current) => removeValue(current, term)),
+                    value: `remove search ${term}`,
+                })),
+                {
+                    description: "Remove every search term",
+                    label: "Clear all searches",
+                    onSelect: () => {
+                        setSearchTerms([]);
+                        setIsComposerOpen(true);
+                    },
+                    value: "clear all searches",
+                },
+            ],
+            label: "Current search",
+        });
+    }
+
+    if (showCollectionsGroup) {
+        if (isDefaultState) {
+            const collectionItems: ComposerPaletteItem[] = [];
+            for (const collection of collections) {
+                if (collectionItems.length >= 4) {
+                    break;
+                }
+                const thumbnails =
+                    collectionPreviewThumbnailUrlsById.get(collection.id) ?? [];
+                if (thumbnails.length <= 1) {
+                    continue;
+                }
+                collectionItems.push({
+                    isActive: selectedCollectionIds.includes(collection.id),
+                    label: collection.name,
+                    onSelect: applyCollectionFilter(() =>
+                        onToggleCollectionSelection(collection.id)
+                    ),
+                    render: () => (
+                        <div className="flex aspect-4/3 size-full flex-1 flex-col">
+                            {thumbnails.length > 0 && (
+                                <ComposerCategoryThumbnail urls={thumbnails} />
+                            )}
+                            <span className="truncate p-1 font-medium">
+                                {collection.name}
+                            </span>
+                        </div>
+                    ),
+                    value: `filter collection ${collection.id}`,
+                });
+            }
+
+            if (collectionItems.length > 0) {
+                groups.push({
+                    items: collectionItems,
+                    label: "Collections",
+                    layout: "horizontal",
+                });
+            }
+        } else {
+            groups.push({
+                items: buildCollectionPaletteItems({
+                    collections,
+                    onClearCollectionFilters,
+                    onToggleCollectionSelection,
+                    selectedCollectionIds,
+                    wrapOnSelect: applyCollectionFilter,
+                }),
+                label: "Collections",
+            });
+        }
+    }
+
+    const shouldShowLastVisited =
+        lastVisitedItemIds.length > 0 && !lastVisitedFilterEnabled;
+    const shouldShowSearchHistory = !draft && searchHistory.length > 0;
+    const availableHistory = shouldShowSearchHistory
+        ? searchHistory.filter(
+              (term) =>
+                  !searchTerms.some(
+                      (st) => st.toLowerCase() === term.toLowerCase()
+                  )
+          )
+        : [];
+
+    if (shouldShowLastVisited || availableHistory.length > 0) {
+        groups.push({
+            items: [
+                ...(shouldShowLastVisited
+                    ? [
+                          {
+                              label: "Pick up where you left off",
+                              onSelect: applyCollectionFilter(() =>
+                                  setLastVisitedFilterEnabled(true)
+                              ),
+                              render: () => (
+                                  <div className="flex items-center gap-2.5">
+                                      <History className="size-4 shrink-0 text-muted-foreground" />
+                                      <span className="truncate">
+                                          Pick up where you left off
+                                      </span>
+                                  </div>
+                              ),
+                              value: "filter last visited",
+                          },
+                      ]
+                    : []),
+                ...availableHistory.slice(0, 5).map((term) => ({
+                    label: term,
+                    onSelect: () => {
+                        setSearchTerms((current) =>
+                            appendUniqueSearchTerm(current, term)
+                        );
+                        setQuery("");
+                        setIsComposerOpen(true);
+                    },
+                    render: () => (
+                        <div className="flex items-center gap-2.5">
+                            <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{term}</span>
+                        </div>
+                    ),
+                    value: `search history ${term}`,
+                })),
+                ...(availableHistory.length > 0
+                    ? [
+                          {
+                              label: "Clear history",
+                              onSelect: onClearSearchHistory,
+                              value: "clear search history",
+                          },
+                      ]
+                    : []),
+            ],
+            label: "Recent",
+        });
+    }
+
+    groups.push({
+        items: navigationItems,
+        label: "Customize display",
+    });
+
+    if (hasAnyRefinements) {
+        groups.push({
+            items: [
+                {
+                    description:
+                        "Reset search, filters, grouping, sort, and layout",
+                    label: "Reset filters",
+                    onSelect: clearLibraryPalette,
+                    value: "reset filters",
+                },
+            ],
+            label: "Quick actions",
+        });
+    }
+
+    return groups;
+}
+
+function buildAskCachePaletteGroups({
+    askCacheResponse,
+    backItem,
+    draft,
+    onAskCacheSubmit,
+}: {
+    askCacheResponse: AskCacheResponseState | null;
+    backItem: ComposerPaletteItem;
+    draft: string;
+    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
+}): ComposerPaletteGroup[] {
+    const items: ComposerPaletteItem[] = [
+        {
+            label: "Ask Cache response",
+            onSelect: () => undefined,
+            render: () => <AskCacheResponsePanel response={askCacheResponse} />,
+            value: "ask cache response",
+        },
+    ];
+
+    if (draft) {
+        items.unshift({
+            label: `Ask Cache "${draft}"`,
+            onSelect: () => onAskCacheSubmit(draft),
+            value: `ask cache ${draft}`,
+        });
+    }
+
+    return [
+        {
+            items: [backItem],
+            label: "Navigation",
+        },
+        {
+            items,
+            label: "Ask Cache",
+        },
+    ];
+}
+
+function defaultCollectionTriggerIcon(
+    selectedCount: number,
+    shouldShowSmartCollectionsIndicator: boolean
+) {
+    if (selectedCount === 0) {
+        return <SquircleDashed aria-hidden className="size-4.5" />;
+    }
+    if (shouldShowSmartCollectionsIndicator) {
+        return <MediaCardSmartCollectionsIndicator />;
+    }
+    return <Squircle aria-hidden className="size-4.5" />;
+}
+
+interface LibraryProps {
+    connectedIntegrationCount: number;
+    initialCollections: LibraryCollectionSummary[];
+    initialItems: LibraryItemWithCollections[];
+    lockedItemCount: number;
+    totalItemCount: number;
+}
+
+export function BrowserProvider({
+    children,
+    connectedIntegrationCount,
+    initialCollections,
+    initialItems,
+    lockedItemCount,
+    totalItemCount,
+}: React.PropsWithChildren<LibraryProps>) {
+    const [items, setItems] = React.useState(initialItems);
+
+    return (
+        <CollectionsProvider
+            initialCollections={initialCollections}
+            setItems={setItems}
+        >
+            <BrowserContent
+                connectedIntegrationCount={connectedIntegrationCount}
+                items={items}
+                lockedItemCount={lockedItemCount}
+                setItems={setItems}
+                totalItemCount={totalItemCount}
+            >
+                {children}
+            </BrowserContent>
+        </CollectionsProvider>
+    );
+}
+
+function MasonryItem({
+    data,
+    index,
+}: MasonryRenderComponentProps<LibraryItemWithCollections>) {
+    const children = React.use(BrowserMasonryChildrenContext);
+    if (!children) {
+        throw new Error(
+            "MasonryItem must be rendered inside <BrowserMasonry>."
+        );
+    }
+    return children(data, index);
+}
+
+function ComposerChip({
     label,
     onRemove,
 }: {
@@ -1837,6 +3690,23 @@ function CopyResponseButton({ value }: { value: string }) {
         </Button>
     );
 }
+
+type AskCacheResponseState =
+    | {
+          prompt: string;
+          status: "loading";
+      }
+    | {
+          markdown: string;
+          operationCount: number;
+          prompt: string;
+          status: "success";
+      }
+    | {
+          message: string;
+          prompt: string;
+          status: "error";
+      };
 
 function AskCacheResponsePanel({
     response,
@@ -1895,11 +3765,11 @@ function AskCacheResponsePanel({
     );
 }
 
-function PaletteAttachmentChip({
+function ComposerAttachmentChip({
     attachment,
     onRemove,
 }: {
-    attachment: LibraryCommandAttachment;
+    attachment: ComposerAttachment;
     onRemove: (id: string) => void;
 }) {
     const label = getAttachmentLabel(attachment);
@@ -1931,8 +3801,9 @@ function PaletteAttachmentChip({
                             <div className="flex max-h-80 w-72 items-center justify-center overflow-clip rounded-md border">
                                 <img
                                     alt=""
-                                    className="max-h-full max-w-full object-contain"
+                                    className="drag-none max-h-full max-w-full object-contain"
                                     decoding="async"
+                                    draggable="false"
                                     height={320}
                                     loading="lazy"
                                     src={attachment.url}
@@ -1957,75 +3828,7 @@ function PaletteAttachmentChip({
     );
 }
 
-interface BrowserContextValue {
-    clearLibraryPalette: () => void;
-    collapsedSectionKeys: Set<string>;
-    collections: LibraryCollectionSummary[];
-    columnCount?: number;
-    enableSectionCollapse: boolean;
-    favoriteItemIdSet: ReadonlySet<string>;
-    hoveredItemIdRef: React.RefObject<string | null>;
-    hoverPinnedItemIdRef: React.RefObject<string | null>;
-    onCollapseAllSections?: () => void;
-    onCopyLink: (item: LibraryItemWithCollections) => void;
-    onCreateCollectionFromResults?: () => void;
-    onDelete: (item: LibraryItemWithCollections) => void;
-    onExpandAllSections?: () => void;
-    onExportSectionResults?: (
-        sectionTitle: string,
-        items: LibraryItemWithCollections[]
-    ) => void;
-    onFindSimilar: (item: LibraryItemWithCollections) => void;
-    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
-    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
-    onOpenNote: (item: LibraryItemWithCollections) => void;
-    onToggleSection: (key: string) => void;
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<LibraryItemCollectionsUpdateResult>;
-    openPickerItemId: string | null;
-    pendingDeleteItemId: string | null;
-    setOpenPickerItemId: (id: string | null) => void;
-    shouldShowEmptyLibraryPeek: boolean;
-    shouldShowNoFilteredResults: boolean;
-    shouldShowUnreachableProbePending: boolean;
-}
-
-const BrowserContext = React.createContext<BrowserContextValue | null>(null);
-
-function useBrowserContext(): BrowserContextValue {
-    const context = React.use(BrowserContext);
-    if (!context) {
-        throw new Error("Browser components must be used inside BrowserRoot.");
-    }
-    return context;
-}
-
-interface BrowserGroupContextValue {
-    accentKey: string;
-    collapsed: boolean;
-    isMainResults: boolean;
-    items: LibraryItemWithCollections[];
-    key: string;
-    onToggle: () => void;
-    title: string;
-}
-
-const BrowserGroupContext =
-    React.createContext<BrowserGroupContextValue | null>(null);
-
-function useBrowserGroupContext(): BrowserGroupContextValue {
-    const context = React.use(BrowserGroupContext);
-    if (!context) {
-        throw new Error(
-            "BrowserGroup components must be used inside <BrowserGroupProvider>."
-        );
-    }
-    return context;
-}
-
-const BrowserEmptyCell = ({
+const MediaCardEmptyCell = ({
     data,
     index,
 }: MasonryRenderComponentProps<
@@ -2074,7 +3877,7 @@ function BrowserEmpty() {
                 columnGutter={16}
                 items={[...EMPTY_LIBRARY_PEEK_PLACEHOLDERS]}
                 maxColumnCount={7}
-                render={BrowserEmptyCell}
+                render={MediaCardEmptyCell}
                 rowGutter={16}
             />
         </>
@@ -2152,6 +3955,18 @@ function BrowserGroupProvider({
         >
             {children}
         </BrowserGroupContext>
+    );
+}
+
+function BrowserGroup({
+    className,
+    ...props
+}: React.ComponentProps<"section">) {
+    return (
+        <section
+            {...props}
+            className={cn("flex w-full flex-col gap-3", className)}
+        />
     );
 }
 
@@ -2478,26 +4293,6 @@ function BrowserGroupAIOverviewContent() {
     );
 }
 
-const getBrowserMasonryItemKey = (item: LibraryItemWithCollections) => item.id;
-
-const BrowserMasonryChildrenContext = React.createContext<
-    | ((data: LibraryItemWithCollections, index: number) => React.ReactNode)
-    | null
->(null);
-
-function MasonryItem({
-    data,
-    index,
-}: MasonryRenderComponentProps<LibraryItemWithCollections>) {
-    const children = React.use(BrowserMasonryChildrenContext);
-    if (!children) {
-        throw new Error(
-            "MasonryItem must be rendered inside <BrowserMasonry>."
-        );
-    }
-    return children(data, index);
-}
-
 interface BrowserMasonryProps {
     children: (
         data: LibraryItemWithCollections,
@@ -2524,7 +4319,7 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
         pendingDeleteItemId,
         setOpenPickerItemId,
     } = useBrowserContext();
-    const { state: sidebarState } = useSidebar();
+    const { state: sidebarState } = useSidebarContext();
 
     const isQuickLookDrawerOpen = useIsQuickLookOpen();
     const sidebarStateDebounced = useDebouncedValue(sidebarState, 150);
@@ -2535,7 +4330,7 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
 
     const rootKey = `${sidebarStateDebounced}-${quickLookDrawerOpenDebounced}-${items.length}`;
 
-    const value: MediaCardEnvironment = {
+    const value: MediaCardEnvironmentContext = {
         collections,
         favoriteItemIdSet,
         hoveredItemIdRef,
@@ -2578,19 +4373,7 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
     );
 }
 
-function BrowserGroup({
-    className,
-    ...props
-}: React.ComponentProps<"section">) {
-    return (
-        <section
-            {...props}
-            className={cn("flex w-full flex-col gap-3", className)}
-        />
-    );
-}
-
-function CategoryThumbnail({ urls }: { urls: string[] }) {
+function ComposerCategoryThumbnail({ urls }: { urls: string[] }) {
     const validUrls = filterValidImageUrls(urls);
     const urlsKey = validUrls.join("\0");
     const [errorCount, setErrorCount] = React.useState(0);
@@ -2616,7 +4399,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
     return (
         <img
             alt=""
-            className="absolute top-10 left-3 h-auto w-full rounded-sm object-cover transition-transform ease-out group-data-highlighted:-translate-y-1"
+            className="drag-none absolute top-10 left-3 h-auto w-full rounded-sm object-cover transition-transform ease-out group-data-highlighted:-translate-y-1"
             decoding="async"
             draggable="false"
             fetchPriority="high"
@@ -2629,1108 +4412,30 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
     );
 }
 
-function buildSearchPaletteGroups({
-    collections,
-    collectionPreviewThumbnailUrlsById,
-    clearLibraryPalette,
-    draft,
-    hasAnyRefinements,
-    lastVisitedFilterEnabled,
-    lastVisitedItemIds,
-    navigationItems,
-    onAskCacheSubmit,
-    onClearCollectionFilters,
-    onClearSearchHistory,
-    onToggleCollectionSelection,
-    searchHistory,
-    selectedCollectionIds,
-    searchTerms,
-    setIsCommandOpen,
-    setLastVisitedFilterEnabled,
-    setQuery,
-    setSearchTerms,
-}: {
-    collections: LibraryCollectionSummary[];
-    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
-    clearLibraryPalette: () => void;
-    draft: string;
-    hasAnyRefinements: boolean;
-    lastVisitedFilterEnabled: boolean;
-    lastVisitedItemIds: string[];
-    navigationItems: CommandPaletteItem[];
-    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
-    onClearCollectionFilters: () => void;
-    onClearSearchHistory: () => void;
-    onToggleCollectionSelection: (id: string) => void;
-    searchHistory: string[];
-    searchTerms: string[];
-    selectedCollectionIds: string[];
-    setIsCommandOpen: (value: boolean) => void;
-    setLastVisitedFilterEnabled: (value: boolean) => void;
-    setQuery: (value: string) => void;
-    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
-}): CommandPaletteGroup[] {
-    const groups: CommandPaletteGroup[] = [];
-    const draftAlreadyIncluded = searchTerms.some(
-        (term) => term.toLowerCase() === draft.toLowerCase()
-    );
-    const isDefaultState = draft.length === 0 && !hasAnyRefinements;
-    const showCollectionsGroup =
-        collections.length > 0 &&
-        (draft.length > 0 ||
-            selectedCollectionIds.length > 0 ||
-            isDefaultState);
-
-    const applyCollectionFilter = (fn: () => void) => () => {
-        fn();
-        setQuery("");
-        setIsCommandOpen(true);
-    };
-
-    if (draft) {
-        const shouldDefaultToAskCache = isMultiWordQuery(draft);
-        const addSearchItem: CommandPaletteItem = {
-            description: draftAlreadyIncluded
-                ? "Already included in the search"
-                : "Add this search term",
-            isActive: draftAlreadyIncluded,
-            label: `Search "${draft}"`,
-            onSelect: () => {
-                setSearchTerms((current) =>
-                    appendUniqueSearchTerm(current, draft)
-                );
-                setQuery("");
-                setIsCommandOpen(true);
-            },
-            shortcut: shouldDefaultToAskCache ? undefined : "Enter",
-            value: `search ${draft}`,
-        };
-        const askCacheItem: CommandPaletteItem = {
-            description: "AI Search",
-            label: `Ask Cache "${draft}"`,
-            onSelect: () => onAskCacheSubmit(draft),
-            shortcut: shouldDefaultToAskCache ? "Enter" : "Tab",
-            value: `ask cache ${draft}`,
-        };
-
-        groups.push({
-            items: shouldDefaultToAskCache
-                ? [askCacheItem, addSearchItem]
-                : [addSearchItem, askCacheItem],
-            label: "Search",
-        });
-    }
-
-    if (searchTerms.length > 0) {
-        groups.push({
-            items: [
-                ...searchTerms.map((term) => ({
-                    description: "Active stacked search term",
-                    isActive: true,
-                    label: `Search: ${truncateLabel(term, 28)}`,
-                    onSelect: () =>
-                        setSearchTerms((current) => removeValue(current, term)),
-                    value: `remove search ${term}`,
-                })),
-                {
-                    description: "Remove every search term",
-                    label: "Clear all searches",
-                    onSelect: () => {
-                        setSearchTerms([]);
-                        setIsCommandOpen(true);
-                    },
-                    value: "clear all searches",
-                },
-            ],
-            label: "Current search",
-        });
-    }
-
-    if (showCollectionsGroup) {
-        if (isDefaultState) {
-            const collectionItems: CommandPaletteItem[] = [];
-            for (const collection of collections) {
-                if (collectionItems.length >= 4) {
-                    break;
-                }
-                const thumbnails =
-                    collectionPreviewThumbnailUrlsById.get(collection.id) ?? [];
-                if (thumbnails.length <= 1) {
-                    continue;
-                }
-                collectionItems.push({
-                    isActive: selectedCollectionIds.includes(collection.id),
-                    label: collection.name,
-                    onSelect: applyCollectionFilter(() =>
-                        onToggleCollectionSelection(collection.id)
-                    ),
-                    render: () => (
-                        <div className="flex aspect-4/3 size-full flex-1 flex-col">
-                            {thumbnails.length > 0 && (
-                                <CategoryThumbnail urls={thumbnails} />
-                            )}
-                            <span className="truncate p-1 font-medium">
-                                {collection.name}
-                            </span>
-                        </div>
-                    ),
-                    value: `filter collection ${collection.id}`,
-                });
-            }
-
-            groups.push({
-                items: collectionItems,
-                label: "Collections",
-                layout: "horizontal",
-            });
-        } else {
-            groups.push({
-                items: buildCollectionPaletteItems({
-                    collections,
-                    onClearCollectionFilters,
-                    onToggleCollectionSelection,
-                    selectedCollectionIds,
-                    wrapOnSelect: applyCollectionFilter,
-                }),
-                label: "Collections",
-            });
-        }
-    }
-
-    const shouldShowLastVisited =
-        lastVisitedItemIds.length > 0 && !lastVisitedFilterEnabled;
-    const shouldShowSearchHistory = !draft && searchHistory.length > 0;
-    const availableHistory = shouldShowSearchHistory
-        ? searchHistory.filter(
-              (term) =>
-                  !searchTerms.some(
-                      (st) => st.toLowerCase() === term.toLowerCase()
-                  )
-          )
-        : [];
-
-    if (shouldShowLastVisited || availableHistory.length > 0) {
-        groups.push({
-            items: [
-                ...(shouldShowLastVisited
-                    ? [
-                          {
-                              label: "Pick up where you left off",
-                              onSelect: applyCollectionFilter(() =>
-                                  setLastVisitedFilterEnabled(true)
-                              ),
-                              render: () => (
-                                  <div className="flex items-center gap-2.5">
-                                      <History className="size-4 shrink-0 text-muted-foreground" />
-                                      <span className="truncate">
-                                          Pick up where you left off
-                                      </span>
-                                  </div>
-                              ),
-                              value: "filter last visited",
-                          },
-                      ]
-                    : []),
-                ...availableHistory.slice(0, 5).map((term) => ({
-                    label: term,
-                    onSelect: () => {
-                        setSearchTerms((current) =>
-                            appendUniqueSearchTerm(current, term)
-                        );
-                        setQuery("");
-                        setIsCommandOpen(true);
-                    },
-                    render: () => (
-                        <div className="flex items-center gap-2.5">
-                            <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
-                            <span className="truncate">{term}</span>
-                        </div>
-                    ),
-                    value: `search history ${term}`,
-                })),
-                ...(availableHistory.length > 0
-                    ? [
-                          {
-                              label: "Clear history",
-                              onSelect: onClearSearchHistory,
-                              value: "clear search history",
-                          },
-                      ]
-                    : []),
-            ],
-            label: "Recent",
-        });
-    }
-
-    groups.push({
-        items: navigationItems,
-        label: "Customize display",
-    });
-
-    if (hasAnyRefinements) {
-        groups.push({
-            items: [
-                {
-                    description:
-                        "Reset search, filters, grouping, sort, and layout",
-                    label: "Reset filters",
-                    onSelect: clearLibraryPalette,
-                    value: "reset filters",
-                },
-            ],
-            label: "Quick actions",
-        });
-    }
-
-    return groups;
-}
-
-function buildAskCachePaletteGroups({
-    askCacheResponse,
-    backItem,
-    draft,
-    onAskCacheSubmit,
-}: {
-    askCacheResponse: AskCacheResponseState | null;
-    backItem: CommandPaletteItem;
-    draft: string;
-    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
-}): CommandPaletteGroup[] {
-    const items: CommandPaletteItem[] = [
-        {
-            label: "Ask Cache response",
-            onSelect: () => undefined,
-            render: () => <AskCacheResponsePanel response={askCacheResponse} />,
-            value: "ask cache response",
-        },
-    ];
-
-    if (draft) {
-        items.unshift({
-            label: `Ask Cache "${draft}"`,
-            onSelect: () => onAskCacheSubmit(draft),
-            value: `ask cache ${draft}`,
-        });
-    }
-
-    return [
-        {
-            items: [backItem],
-            label: "Navigation",
-        },
-        {
-            items,
-            label: "Ask Cache",
-        },
-    ];
-}
-
-interface BuildPaletteGroupsInput {
-    askCacheResponse: AskCacheResponseState | null;
-    clearLibraryPalette: () => void;
-    collectionMembershipFilter: CollectionMembershipFilter;
-    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
-    collections: LibraryCollectionSummary[];
-    columnCountMode: ColumnCountMode;
-    domainFilters: string[];
-    domainOptions: {
-        itemCount: number;
-        label: string;
-        value: string;
-    }[];
-    duplicateItemCount: number;
-    duplicatesFilterEnabled: boolean;
-    groupBy: GroupByMode;
-    lastVisitedFilterEnabled: boolean;
-    lastVisitedItemIds: string[];
-    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
-    onClearCollectionFilters: () => void;
-    onClearSearchHistory: () => void;
-    onToggleCollectionSelection: (id: string) => void;
-    openPaletteSection: (
-        section: Exclude<PaletteSection, "search">,
-        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
-    ) => void;
-    paletteSection: PaletteSection;
-    query: string;
-    returnToSearchSection: () => void;
-    searchHistory: string[];
-    searchTerms: string[];
-    selectedCollectionIds: string[];
-    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
-    setColumnCountMode: (value: ColumnCountMode) => void;
-    setDomainFilters: (
-        value: string[] | ((value: string[]) => string[])
-    ) => void;
-    setDuplicatesFilterEnabled: (value: boolean) => void;
-    setGroupBy: (value: GroupByMode) => void;
-    setIsCommandOpen: (
-        value: boolean | ((previous: boolean) => boolean)
-    ) => void;
-    setLastVisitedFilterEnabled: (value: boolean) => void;
-    setQuery: (value: string) => void;
-    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
-    setSortMode: (value: SortMode) => void;
-    setSourceFilters: (
-        value:
-            | LibraryItemSource[]
-            | ((value: LibraryItemSource[]) => LibraryItemSource[])
-    ) => void;
-    setUnreachableFilterEnabled: (value: boolean) => void;
-    sortMode: SortMode;
-    sourceFilters: LibraryItemSource[];
-    unreachableFilterEnabled: boolean;
-}
-
-function buildDomainPaletteOptions(
-    items: LibraryItemWithCollections[]
-): { itemCount: number; label: string; value: string }[] {
-    const counts = new Map<string, number>();
-    for (const item of items) {
-        const domain = getLibraryItemDomain(item.url);
-        counts.set(domain, (counts.get(domain) ?? 0) + 1);
-    }
-
-    const dynamicDomains = Array.from(counts.entries())
-        .sort(
-            ([aDomain, aCount], [bDomain, bCount]) =>
-                bCount - aCount || NAME_COLLATOR.compare(aDomain, bDomain)
-        )
-        .map(([domain, count]) => ({
-            itemCount: count,
-            label: `${domain} (${count})`,
-            value: domain,
-        }));
-
-    return [
-        {
-            itemCount: items.length,
-            label: "All domains",
-            value: ALL_DOMAIN_FILTER,
-        },
-        ...dynamicDomains,
-    ];
-}
-
-function buildPaletteGroups({
-    askCacheResponse,
-    clearLibraryPalette,
-    columnCountMode,
-    collectionMembershipFilter,
-    collectionPreviewThumbnailUrlsById,
-    collections,
-    domainFilters,
-    domainOptions,
-    duplicateItemCount,
-    duplicatesFilterEnabled,
-    groupBy,
-    lastVisitedFilterEnabled,
-    lastVisitedItemIds,
-    onClearCollectionFilters,
-    onClearSearchHistory,
-    onAskCacheSubmit,
-    onToggleCollectionSelection,
-    openPaletteSection,
-    query,
-    paletteSection,
-    returnToSearchSection,
-    searchHistory,
-    searchTerms,
-    selectedCollectionIds,
-    setCollectionMembershipFilter,
-    setColumnCountMode,
-    setIsCommandOpen,
-    setDomainFilters,
-    setDuplicatesFilterEnabled,
-    setGroupBy,
-    setLastVisitedFilterEnabled,
-    setQuery,
-    setSearchTerms,
-    setSortMode,
-    setSourceFilters,
-    setUnreachableFilterEnabled,
-    sortMode,
-    sourceFilters,
-    unreachableFilterEnabled,
-}: BuildPaletteGroupsInput): CommandPaletteGroup[] {
-    const draft = query.trim();
-    const groups: CommandPaletteGroup[] = [];
-
-    const applyAndReturn = (fn: () => void | Promise<void>) => async () => {
-        await fn();
-        returnToSearchSection();
-    };
-
-    const applyAndStay = (fn: () => void) => () => {
-        fn();
-        setQuery("");
-        setIsCommandOpen(true);
-    };
-
-    const navigationItems: CommandPaletteItem[] = [
-        {
-            description: "Source and domain filters",
-            label: "Add filters…",
-            onSelect: (event) => openPaletteSection("filter", event),
-            value: "navigate filters",
-        },
-        {
-            description: `Current: ${groupByLabel(groupBy)}`,
-            label: "Group items…",
-            onSelect: (event) => openPaletteSection("group", event),
-            value: "navigate grouping",
-        },
-        {
-            description: `Current: ${sortModeLabel(sortMode)}`,
-            label: "Sort items…",
-            onSelect: (event) => openPaletteSection("sort", event),
-            value: "navigate sorting",
-        },
-        {
-            description: `Current: ${columnCountLabel(columnCountMode)}`,
-            label: "Columns…",
-            onSelect: (event) => openPaletteSection("columns", event),
-            value: "navigate columns",
-        },
-    ];
-
-    const backItem: CommandPaletteItem = {
-        description: "Return to search and quick actions",
-        label: "Back",
-        onSelect: returnToSearchSection,
-        shortcut: "Esc",
-        value: "navigate back",
-    };
-
-    const hasAnyRefinements =
-        searchTerms.length > 0 ||
-        selectedCollectionIds.length > 0 ||
-        sourceFilters.length > 0 ||
-        domainFilters.length > 0 ||
-        collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
-        groupBy !== "none" ||
-        sortMode !== DEFAULT_SORT_MODE ||
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
-        duplicatesFilterEnabled ||
-        unreachableFilterEnabled ||
-        lastVisitedFilterEnabled;
-
-    if (paletteSection === "search") {
-        return buildSearchPaletteGroups({
-            clearLibraryPalette,
-            collectionPreviewThumbnailUrlsById,
-            collections,
-            draft,
-            hasAnyRefinements,
-            lastVisitedFilterEnabled,
-            lastVisitedItemIds,
-            navigationItems,
-            onAskCacheSubmit,
-            onClearCollectionFilters,
-            onClearSearchHistory,
-            onToggleCollectionSelection,
-            searchHistory,
-            searchTerms,
-            selectedCollectionIds,
-            setIsCommandOpen,
-            setLastVisitedFilterEnabled,
-            setQuery,
-            setSearchTerms,
-        });
-    }
-
-    if (paletteSection === "ai-response") {
-        return buildAskCachePaletteGroups({
-            askCacheResponse,
-            backItem,
-            draft,
-            onAskCacheSubmit,
-        });
-    }
-
-    if (paletteSection === "filter") {
-        groups.push({
-            items: [backItem],
-            label: "Navigation",
-        });
-        groups.push({
-            items: [
-                {
-                    description:
-                        duplicateItemCount > 0
-                            ? `Show ${duplicateItemCount} bookmark${duplicateItemCount === 1 ? "" : "s"} that share a URL`
-                            : "No duplicate bookmarks found right now",
-                    isActive: duplicatesFilterEnabled,
-                    label: "Duplicates",
-                    onSelect: applyAndStay(() =>
-                        setDuplicatesFilterEnabled(!duplicatesFilterEnabled)
-                    ),
-                    value: "filter duplicates",
-                },
-                {
-                    description:
-                        "Check which bookmark links fail to load or time out",
-                    isActive: unreachableFilterEnabled,
-                    label: "Unreachable links",
-                    onSelect: applyAndStay(() =>
-                        setUnreachableFilterEnabled(!unreachableFilterEnabled)
-                    ),
-                    value: "filter unreachable",
-                },
-            ],
-            label: "Library quality",
-        });
-        groups.push({
-            items: [
-                {
-                    description: "Show every source",
-                    isActive: sourceFilters.length === 0,
-                    label: "Source: All sources",
-                    onSelect: applyAndStay(() => setSourceFilters([])),
-                    value: "filter source all",
-                },
-                ...PALETTE_SOURCE_FILTER_OPTIONS.map((option) => ({
-                    description: "Toggle this source in the filter stack",
-                    isActive: sourceFilters.includes(option.value),
-                    label: `Source: ${option.label}`,
-                    onSelect: applyAndStay(() =>
-                        setSourceFilters((current) =>
-                            toggleValue(current, option.value)
-                        )
-                    ),
-                    value: `filter source ${option.value}`,
-                })),
-            ],
-            label: "Conditions",
-        });
-        groups.push({
-            items: [
-                {
-                    description:
-                        "Show items whether or not they are in collections",
-                    isActive:
-                        collectionMembershipFilter ===
-                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
-                    label: "Collections: All items",
-                    onSelect: applyAndStay(() =>
-                        setCollectionMembershipFilter(
-                            DEFAULT_COLLECTION_MEMBERSHIP_FILTER
-                        )
-                    ),
-                    value: "filter collections all",
-                },
-                {
-                    description:
-                        "Show only items that belong to at least one collection",
-                    isActive: collectionMembershipFilter === "in-collections",
-                    label: "Collections: In collections",
-                    onSelect: applyAndStay(() =>
-                        setCollectionMembershipFilter("in-collections")
-                    ),
-                    value: "filter collections in",
-                },
-                {
-                    description:
-                        "Show only items that do not belong to any collection",
-                    isActive:
-                        collectionMembershipFilter === "not-in-collections",
-                    label: "Collections: Not in collections",
-                    onSelect: applyAndStay(() =>
-                        setCollectionMembershipFilter("not-in-collections")
-                    ),
-                    value: "filter collections not-in",
-                },
-            ],
-            label: "Collection state",
-        });
-        groups.push({
-            items: buildCollectionPaletteItems({
-                collections,
-                onClearCollectionFilters,
-                onToggleCollectionSelection,
-                selectedCollectionIds,
-                wrapOnSelect: applyAndStay,
-            }),
-            label: "Collections",
-        });
-        groups.push({
-            items: domainOptions.map((option) => ({
-                description:
-                    option.value === ALL_DOMAIN_FILTER
-                        ? "Show items from every domain"
-                        : "Toggle this domain in the filter stack",
-                isActive:
-                    option.value === ALL_DOMAIN_FILTER
-                        ? domainFilters.length === 0
-                        : domainFilters.includes(option.value),
-                label: `Domain: ${option.label}`,
-                onSelect: applyAndStay(() =>
-                    option.value === ALL_DOMAIN_FILTER
-                        ? setDomainFilters([])
-                        : setDomainFilters((current) =>
-                              toggleValue(current, option.value)
-                          )
-                ),
-                value: `filter domain ${option.value}`,
-            })),
-            label: "Domain",
-        });
-        return groups;
-    }
-
-    if (paletteSection === "group") {
-        return [
-            { items: [backItem], label: "Navigation" },
-            {
-                items: PALETTE_GROUP_OPTIONS.map((option) => ({
-                    description: "Organize the grid into sections",
-                    isActive: groupBy === option.value,
-                    label: option.label,
-                    onSelect: applyAndReturn(() => setGroupBy(option.value)),
-                    value: `group ${option.value}`,
-                })),
-                label: "Grouping",
-            },
-        ];
-    }
-
-    if (paletteSection === "sort") {
-        return [
-            { items: [backItem], label: "Navigation" },
-            {
-                items: PALETTE_SORT_OPTIONS.map((option) => ({
-                    description: "Change the ordering within the current view",
-                    isActive: sortMode === option.value,
-                    label: option.label,
-                    onSelect: applyAndReturn(() => setSortMode(option.value)),
-                    value: `sort ${option.value}`,
-                })),
-                label: "Sorting",
-            },
-        ];
-    }
-
-    if (paletteSection === "columns") {
-        return [
-            { items: [backItem], label: "Navigation" },
-            {
-                items: PALETTE_COLUMN_OPTIONS.map((option) => ({
-                    description:
-                        option.value === "auto"
-                            ? "Choose the best column count for the available width"
-                            : "Force a specific number of columns",
-                    isActive: columnCountMode === option.value,
-                    label: option.label,
-                    onSelect: applyAndReturn(() =>
-                        setColumnCountMode(option.value)
-                    ),
-                    value: `columns ${option.value}`,
-                })),
-                label: "Columns",
-            },
-        ];
-    }
-
-    return [{ items: [backItem], label: "Navigation" }];
-}
-
-function filterCommandItems(
-    items: LibraryItemWithCollections[],
-    input: {
-        collectionMembershipFilter: CollectionMembershipFilter;
-        domainFilters: string[];
-        duplicateItemIds: ReadonlySet<string>;
-        duplicatesFilterEnabled: boolean;
-        lastVisitedItemIds: string[];
-        searchTerms: string[];
-        selectedCollectionIds: string[];
-        sourceFilters: LibraryItemSource[];
-        unreachableFilterEnabled: boolean;
-        unreachableItemIds: ReadonlySet<string>;
-    }
-): LibraryItemWithCollections[] {
-    if (!browserHasActiveFilters(input)) {
-        return items;
-    }
-
-    let list = [...items];
-    const normalizedSearchTerms = input.searchTerms.map((term) =>
-        term.trim().toLowerCase()
-    );
-
-    if (input.lastVisitedItemIds.length > 0) {
-        const lastVisitedIdSet = new Set(input.lastVisitedItemIds);
-        list = list.filter((item) => lastVisitedIdSet.has(item.id));
-    }
-
-    if (input.duplicatesFilterEnabled) {
-        list = list.filter((item) => input.duplicateItemIds.has(item.id));
-    }
-
-    if (input.unreachableFilterEnabled) {
-        list = list.filter((item) => input.unreachableItemIds.has(item.id));
-    }
-
-    if (input.selectedCollectionIds.length > 0) {
-        const selectedCollectionIdSet = new Set(input.selectedCollectionIds);
-        list = list.filter((item) =>
-            item.collections.some((collection) =>
-                selectedCollectionIdSet.has(collection.id)
-            )
-        );
-    }
-
-    if (input.collectionMembershipFilter === "in-collections") {
-        list = list.filter((item) => item.collections.length > 0);
-    }
-
-    if (input.collectionMembershipFilter === "not-in-collections") {
-        list = list.filter((item) => item.collections.length === 0);
-    }
-
-    if (normalizedSearchTerms.length > 0) {
-        list = list.filter((item) => {
-            const cap = item.caption?.toLowerCase() ?? "";
-            const noteText = item.noteContentText?.toLowerCase() ?? "";
-            const url = item.url.toLowerCase();
-            return normalizedSearchTerms.some(
-                (term) =>
-                    cap.includes(term) ||
-                    noteText.includes(term) ||
-                    url.includes(term)
-            );
-        });
-    }
-
-    if (input.sourceFilters.length > 0) {
-        const sourceFilterSet = new Set(input.sourceFilters);
-        list = list.filter((item) => sourceFilterSet.has(item.source));
-    }
-
-    if (input.domainFilters.length > 0) {
-        const domainFilterSet = new Set(input.domainFilters);
-        list = list.filter((item) =>
-            domainFilterSet.has(getLibraryItemDomain(item.url))
-        );
-    }
-
-    return list;
-}
-
-function sortCommandItems(
-    filteredItems: LibraryItemWithCollections[],
-    sortMode: SortMode
-): LibraryItemWithCollections[] {
-    const itemSortMode =
-        sortMode === "count-desc" ? DEFAULT_SORT_MODE : sortMode;
-    return filteredItems.toSorted((a, b) => compareItems(a, b, itemSortMode));
-}
-
-function buildBrowserGroups(
-    sortedItems: LibraryItemWithCollections[],
-    groupBy: EffectiveGroupByMode,
-    sortMode: SortMode,
-    collections?: LibraryCollectionSummary[]
-): BrowserGroup[] {
-    if (groupBy === "none") {
-        return [
-            {
-                items: sortedItems,
-                key: "all",
-                title: null,
-            },
-        ];
-    }
-
-    const collectionNames = new Map(collections?.map((c) => [c.id, c.name]));
-
-    const buckets = new Map<string, LibraryItemWithCollections[]>();
-    for (const item of sortedItems) {
-        if (groupBy === "collection") {
-            if (item.collections.length === 0) {
-                const bucket = buckets.get("__uncategorized__") ?? [];
-                bucket.push(item);
-                buckets.set("__uncategorized__", bucket);
-            } else {
-                for (const collection of item.collections) {
-                    const bucket = buckets.get(collection.id) ?? [];
-                    bucket.push(item);
-                    buckets.set(collection.id, bucket);
-                }
-            }
-            continue;
-        }
-
-        const key = getItemGroupKey(item, groupBy);
-        const bucket = buckets.get(key) ?? [];
-        bucket.push(item);
-        buckets.set(key, bucket);
-    }
-
-    return Array.from(buckets.entries())
-        .sort(([a, aItems], [b, bItems]) => {
-            if (sortMode === "count-desc") {
-                return (
-                    bItems.length - aItems.length ||
-                    compareSectionKeys(a, b, groupBy, sortMode, collectionNames)
-                );
-            }
-
-            return compareSectionKeys(a, b, groupBy, sortMode, collectionNames);
-        })
-        .map(([key, sectionItems]) => ({
-            items: sectionItems,
-            key,
-            title: formatGroupHeading(groupBy, key, collectionNames),
-        }));
-}
-
-async function saveLibraryNoteDraft({
-    activeNoteId,
-    draft,
-}: {
-    activeNoteId: string | null;
-    draft: {
-        contentHtml: string;
-        contentState: unknown | null;
-    };
-}): Promise<NoteMutationResult> {
-    try {
-        return activeNoteId
-            ? await updateNote({
-                  contentHtml: draft.contentHtml,
-                  contentState: draft.contentState ?? undefined,
-                  itemId: activeNoteId,
-              })
-            : await createNote({
-                  contentHtml: draft.contentHtml,
-                  contentState: draft.contentState ?? undefined,
-              });
-    } catch {
-        return {
-            message: activeNoteId
-                ? "We couldn't save this note right now."
-                : "We couldn't create this note right now.",
-            status: "ERROR",
-        };
-    }
-}
-
-async function createLibraryBookmarkFromPastedUrl({
-    url,
-}: {
-    url: string;
-}): Promise<CreateChromeBookmarkFromUrlResult> {
-    try {
-        return await createChromeBookmarkFromUrl({
-            url,
-        });
-    } catch {
-        return {
-            message: "We couldn't save this URL right now.",
-            status: "ERROR",
-        };
-    }
-}
-
-function browserHasActiveFilters(input: {
-    collectionMembershipFilter: CollectionMembershipFilter;
-    domainFilters: string[];
-    duplicatesFilterEnabled: boolean;
-    lastVisitedItemIds: string[];
-    searchTerms: string[];
-    selectedCollectionIds: string[];
-    sourceFilters: LibraryItemSource[];
-    unreachableFilterEnabled: boolean;
-}): boolean {
+function MediaCardSmartCollectionsIndicator() {
     return (
-        input.searchTerms.length > 0 ||
-        input.selectedCollectionIds.length > 0 ||
-        input.sourceFilters.length > 0 ||
-        input.domainFilters.length > 0 ||
-        input.collectionMembershipFilter !==
-            DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
-        input.lastVisitedItemIds.length > 0 ||
-        input.duplicatesFilterEnabled ||
-        input.unreachableFilterEnabled
+        <svg
+            aria-hidden="true"
+            className="size-4.5"
+            fill="none"
+            focusable="false"
+            role="img"
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+            />
+            <path
+                className="motion-safe:animate-smart-collections-indicator"
+                d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"
+                pathLength={1}
+            />
+        </svg>
     );
-}
-
-function useSectionCollapseState({
-    groupBy,
-    hasActiveFilters,
-    groups,
-    shouldShowEmptyLibraryPeek,
-    shouldShowNoFilteredResults,
-}: {
-    groupBy: EffectiveGroupByMode;
-    hasActiveFilters: boolean;
-    groups: BrowserGroup[];
-    shouldShowEmptyLibraryPeek: boolean;
-    shouldShowNoFilteredResults: boolean;
-}) {
-    const [collapsedSectionKeys, setCollapsedSectionKeys] = React.useState<
-        string[]
-    >([]);
-
-    const enableSectionCollapse =
-        !(shouldShowEmptyLibraryPeek || shouldShowNoFilteredResults) &&
-        (hasActiveFilters || groupBy !== "none");
-
-    const sectionKeySignature = groups.map((section) => section.key).join("\0");
-    const [prevSectionKeySignature, setPrevSectionKeySignature] =
-        React.useState(sectionKeySignature);
-
-    if (!Object.is(sectionKeySignature, prevSectionKeySignature)) {
-        setPrevSectionKeySignature(sectionKeySignature);
-        const validKeys = new Set(groups.map((section) => section.key));
-        setCollapsedSectionKeys((current) => {
-            const next = current.filter((key) => validKeys.has(key));
-            return next.length === current.length ? current : next;
-        });
-    }
-
-    const [prevEnableSectionCollapse, setPrevEnableSectionCollapse] =
-        React.useState(enableSectionCollapse);
-
-    if (!Object.is(prevEnableSectionCollapse, enableSectionCollapse)) {
-        setPrevEnableSectionCollapse(enableSectionCollapse);
-        if (!enableSectionCollapse) {
-            setCollapsedSectionKeys((current) =>
-                current.length === 0 ? current : []
-            );
-        }
-    }
-
-    const toggleSection = useStableCallback((key: string) => {
-        setCollapsedSectionKeys((current) =>
-            current.includes(key)
-                ? current.filter((entry) => entry !== key)
-                : [...current, key]
-        );
-    });
-
-    const collapseAllSections = useStableCallback(() => {
-        setCollapsedSectionKeys(groups.map((section) => section.key));
-    });
-
-    const expandAllSections = useStableCallback(() => {
-        setCollapsedSectionKeys([]);
-    });
-
-    return {
-        collapseAllSections,
-        collapsedSectionKeys,
-        enableSectionCollapse,
-        expandAllSections,
-        toggleSection,
-    };
-}
-
-interface LibraryProps {
-    connectedIntegrationCount: number;
-    initialCollections: LibraryCollectionSummary[];
-    initialItems: LibraryItemWithCollections[];
-    lockedItemCount: number;
-    totalItemCount: number;
-}
-
-function useLibraryItemActions(args: {
-    onDeleteSuccess?: (collectionSummaries: LibraryCollectionSummary[]) => void;
-    removeItems: (itemIds: string[]) => void;
-}) {
-    const [pendingDeleteItem, setPendingDeleteItem] =
-        React.useState<LibraryItemWithCollections | null>(null);
-    const [isDeletePending, startDeleteTransition] = React.useTransition();
-    const { copyToClipboard } = useCopyToClipboard();
-
-    const handleOpenInNewTab = useStableCallback(
-        (item: LibraryItemWithCollections) => {
-            openExternalUrl(normalizeURL(item.url));
-        }
-    );
-
-    const handleCopyLink = useStableCallback(
-        async (item: LibraryItemWithCollections) => {
-            await copyToClipboard(normalizeURL(item.url));
-        }
-    );
-
-    const handleRequestDelete = useStableCallback(
-        (item: LibraryItemWithCollections) => {
-            setPendingDeleteItem(item);
-        }
-    );
-
-    const handleDeleteDialogOpenChange = useStableCallback((open: boolean) => {
-        if (!(open || isDeletePending)) {
-            setPendingDeleteItem(null);
-        }
-    });
-
-    const handleConfirmDelete = useStableCallback(() => {
-        const targetItem = pendingDeleteItem;
-        if (!targetItem) {
-            return;
-        }
-
-        const targetItemId = targetItem.id;
-
-        startDeleteTransition(async () => {
-            let result: LibraryItemDeleteResult;
-
-            try {
-                result = await deleteLibraryItem(targetItemId);
-            } catch {
-                result = {
-                    message: "We couldn't delete this saved item right now.",
-                    status: "ERROR",
-                };
-            }
-
-            if (result.status === ACTION_STATUS.DELETED) {
-                args.removeItems([result.itemId]);
-                args.onDeleteSuccess?.(result.collectionSummaries);
-            }
-
-            if (pendingDeleteItem && pendingDeleteItem.id === targetItemId) {
-                setPendingDeleteItem(null);
-            }
-        });
-    });
-
-    return {
-        handleConfirmDelete,
-        handleCopyLink,
-        handleDeleteDialogOpenChange,
-        handleOpenInNewTab,
-        handleRequestDelete,
-        isDeletePending,
-        pendingDeleteItem,
-    };
-}
-
-function getLibraryItemDomain(url: string): string {
-    return parseDisplayUrl(url) || UNSPECIFIC_LIBRARY_DOMAIN;
-}
-
-function getLibraryItemPrimaryText(item: LibraryItemWithCollections): string {
-    if (item.kind === ITEM_KIND_NOTE) {
-        return item.noteContentText?.trim() || "Untitled note";
-    }
-    const caption = item.caption?.trim();
-    return caption && caption.length > 0 ? caption : item.url;
-}
-
-function getLibraryItemTitle(item: LibraryItemWithCollections): string {
-    if (item.kind === ITEM_KIND_NOTE) {
-        return "";
-    }
-    const caption = item.caption?.trim();
-    if (caption) {
-        return caption;
-    }
-    return item.url;
 }
 
 interface CollectionComboboxPickerProps
@@ -3749,69 +4454,6 @@ interface CollectionComboboxPickerProps
     }) => Promise<LibraryItemsCollectionsUpdateResult>;
     open?: boolean;
     showSmartCollectionsIndicator?: boolean;
-}
-
-function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
-    if (items.length === 0) {
-        return [];
-    }
-
-    const [firstItem, ...remainingItems] = items;
-    const sharedCollectionIds = new Set(
-        firstItem?.collections.map((collection) => collection.id)
-    );
-
-    for (const item of remainingItems) {
-        const itemCollectionIds = new Set(
-            item.collections.map((collection) => collection.id)
-        );
-        for (const collectionId of [...sharedCollectionIds]) {
-            if (!itemCollectionIds.has(collectionId)) {
-                sharedCollectionIds.delete(collectionId);
-            }
-        }
-    }
-
-    return Array.from(sharedCollectionIds);
-}
-
-function SmartCollectionsSquircleIndicator() {
-    return (
-        <svg
-            aria-hidden="true"
-            className="size-4.5"
-            fill="none"
-            focusable="false"
-            role="img"
-            viewBox="0 0 24 24"
-        >
-            <path
-                d={SQUIRCLE_PATH_D}
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-            />
-            <path
-                className="motion-safe:animate-smart-collections-indicator"
-                d={SQUIRCLE_PATH_D}
-                pathLength={1}
-            />
-        </svg>
-    );
-}
-
-function defaultCollectionTriggerIcon(
-    selectedCount: number,
-    shouldShowSmartCollectionsIndicator: boolean
-) {
-    if (selectedCount === 0) {
-        return <SquircleDashed aria-hidden className="size-4.5" />;
-    }
-    if (shouldShowSmartCollectionsIndicator) {
-        return <SmartCollectionsSquircleIndicator />;
-    }
-    return <Squircle aria-hidden className="size-4.5" />;
 }
 
 function CollectionComboboxPicker({
@@ -3940,39 +4582,6 @@ function CollectionComboboxPicker({
     );
 }
 
-interface MediaCardEnvironment {
-    collections: LibraryCollectionSummary[];
-    favoriteItemIdSet: ReadonlySet<string>;
-    hoveredItemIdRef: React.RefObject<string | null>;
-    hoverPinnedItemIdRef: React.RefObject<string | null>;
-    onCopyLink: (item: LibraryItemWithCollections) => void;
-    onDelete: (item: LibraryItemWithCollections) => void;
-    onFindSimilar: (item: LibraryItemWithCollections) => void;
-    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
-    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
-    onOpenNote: (item: LibraryItemWithCollections) => void;
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<LibraryItemCollectionsUpdateResult>;
-    openPickerItemId: string | null;
-    pendingDeleteItemId: string | null;
-    setOpenPickerItemId: (id: string | null) => void;
-}
-
-const MediaCardEnvironmentContext =
-    React.createContext<MediaCardEnvironment | null>(null);
-
-function useMediaCardEnvironment(): MediaCardEnvironment {
-    const environment = React.use(MediaCardEnvironmentContext);
-    if (!environment) {
-        throw new Error(
-            "MediaCard components must be used inside <MediaCardEnvironmentContext>."
-        );
-    }
-    return environment;
-}
-
 function MediaPreview({
     src,
     videoSrc,
@@ -3993,11 +4602,18 @@ function MediaPreview({
         readCachedDimensions(src)
     );
     const [prevSrc, setPrevSrc] = React.useState(src);
+    const [prevVideoSrc, setPrevVideoSrc] = React.useState(videoSrc);
 
     if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setHasImageFailed(false);
         setDimensions(readCachedDimensions(src));
+    }
+
+    if (!Object.is(videoSrc, prevVideoSrc)) {
+        setPrevVideoSrc(videoSrc);
+        setHasVideoStarted(false);
+        setHasVideoFailed(false);
     }
 
     const canRenderImage = Boolean(src) && !hasImageFailed;
@@ -4176,7 +4792,7 @@ function MediaPreview({
             {canRenderImage ? (
                 <img
                     alt=""
-                    className="size-full object-cover"
+                    className="drag-none size-full object-cover"
                     decoding="async"
                     draggable="false"
                     fetchPriority="auto"
@@ -4198,7 +4814,7 @@ function MediaPreview({
             {shouldLoadVideo ? (
                 <>
                     <video
-                        className="squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain transition-opacity ease-out"
+                        className="squircle drag-none pointer-events-none absolute inset-0 size-full rounded-xl object-contain transition-opacity ease-out"
                         crossOrigin="use-credentials"
                         draggable="false"
                         loop
@@ -4252,167 +4868,6 @@ function MediaPreview({
     );
 }
 
-interface MediaCardData {
-    displayTitle: string;
-    isNote: boolean;
-    item: LibraryItemWithCollections;
-    previewImageUrl: string | null;
-}
-
-interface MediaCardInteractionState {
-    isDownloading: boolean;
-    isZoomed: boolean;
-    onDownload: () => void;
-    onZoomChange: (nextZoomed: boolean) => void;
-    onZoomIn: () => void;
-}
-
-interface MediaCardSurfaceState {
-    isMenuOpen: boolean;
-    isOverlayOpen: boolean;
-    onMenuOpenChange: (open: boolean) => void;
-}
-
-type MediaCardActionEntry = () => React.ReactElement | null;
-
-interface MediaCardActionPlugin {
-    contextMenu: MediaCardActionEntry;
-    id: string;
-    isAvailable: (data: MediaCardData) => boolean;
-    menu: MediaCardActionEntry;
-    separatorBefore: boolean;
-}
-
-type MediaDownloadFileExtension = Exclude<keyof typeof MIME_TYPES, "binary">;
-
-const MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE: Record<
-    string,
-    MediaDownloadFileExtension
-> = {
-    [MIME_TYPES.avif]: "avif",
-    [MIME_TYPES.bmp]: "bmp",
-    [MIME_TYPES.gif]: "gif",
-    [MIME_TYPES.ico]: "ico",
-    [MIME_TYPES.jfif]: "jfif",
-    [MIME_TYPES.jpg]: "jpg",
-    [MIME_TYPES.mov]: "mov",
-    [MIME_TYPES.mp4]: "mp4",
-    [MIME_TYPES.png]: "png",
-    [MIME_TYPES.svg]: "svg",
-    [MIME_TYPES.webp]: "webp",
-    [MIME_TYPES.webm]: "webm",
-} as const;
-
-function getMediaDownloadFileExtension(
-    url: string,
-    contentType: string | null
-): MediaDownloadFileExtension | null {
-    const normalizedContentType = contentType
-        ?.split(";", 1)[0]
-        ?.trim()
-        .toLowerCase();
-    const contentTypeExtension =
-        normalizedContentType &&
-        MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE[normalizedContentType];
-    if (contentTypeExtension) {
-        return contentTypeExtension;
-    }
-
-    let pathname: string;
-    try {
-        pathname = new URL(url).pathname;
-    } catch {
-        return null;
-    }
-
-    let urlExtension = pathname
-        .slice(pathname.lastIndexOf(".") + 1)
-        .toLowerCase();
-    if (urlExtension === "jpeg") {
-        urlExtension = "jpg";
-    }
-    for (const extension of Object.values(
-        MEDIA_DOWNLOAD_FILE_EXTENSION_BY_MIME_TYPE
-    )) {
-        if (extension === urlExtension) {
-            return extension;
-        }
-    }
-
-    return null;
-}
-
-function formatWaybackDate(daysOffset: number): string {
-    const date = new Date();
-    date.setDate(date.getDate() + daysOffset);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    const h = String(date.getHours()).padStart(2, "0");
-    const min = String(date.getMinutes()).padStart(2, "0");
-    const s = String(date.getSeconds()).padStart(2, "0");
-    return `${y}${m}${d}${h}${min}${s}`;
-}
-
-function itemDateLabel(dateValue: Date | string | null | undefined): string {
-    const date = parseDate(dateValue);
-    if (!date) {
-        return "";
-    }
-    return date.toLocaleDateString(undefined, {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-    });
-}
-
-async function saveLibraryItemMedia(
-    item: LibraryItemWithCollections
-): Promise<void> {
-    if (!COBALT_SOURCES.has(item.source)) {
-        throw new Error("Media downloads are not available for this source.");
-    }
-
-    const result = await downloadMedia(item.url);
-    if (result.status !== ACTION_STATUS.SUCCESS) {
-        throw new Error(result.message);
-    }
-
-    const response = await fetch(result.downloadUrl, {
-        signal: AbortSignal.timeout(MEDIA_DOWNLOAD_TIMEOUT_MS),
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch media download (${response.status})`);
-    }
-
-    const blob = await response.blob();
-    const extension = getMediaDownloadFileExtension(
-        response.url || result.downloadUrl,
-        response.headers.get("content-type") || blob.type
-    );
-    if (!extension) {
-        throw new Error("Could not determine the downloaded media type.");
-    }
-
-    await saveFile(blob, {
-        description: "Media file",
-        extension,
-        name: slugify(getLibraryItemTitle(item)) || "cache-media",
-    });
-}
-
-const MediaCardDataContext = React.createContext<MediaCardData | null>(null);
-
-function useMediaCardData(): MediaCardData {
-    const data = React.use(MediaCardDataContext);
-    if (!data) {
-        throw new Error(
-            "Media card components must be used inside <MediaCardDataProvider>."
-        );
-    }
-    return data;
-}
-
 function MediaCardDataProvider({
     children,
     item,
@@ -4433,21 +4888,8 @@ function MediaCardDataProvider({
     );
 }
 
-const MediaCardInteractionContext =
-    React.createContext<MediaCardInteractionState | null>(null);
-
-function useMediaCardInteraction(): MediaCardInteractionState {
-    const interaction = React.use(MediaCardInteractionContext);
-    if (!interaction) {
-        throw new Error(
-            "Media card components must be used inside <MediaCardInteractionProvider>."
-        );
-    }
-    return interaction;
-}
-
 function MediaCardInteractionProvider({ children }: React.PropsWithChildren) {
-    const { item } = useMediaCardData();
+    const { item } = useMediaCardDataContext();
     const [isDownloading, startDownloadTransition] = React.useTransition();
     const [hasDownloadError, setHasDownloadError] = React.useState(false);
     const [isZoomed, setIsZoomed] = React.useState(false);
@@ -4504,20 +4946,7 @@ function MediaCardInteractionProvider({ children }: React.PropsWithChildren) {
     );
 }
 
-const MediaCardSurfaceContext =
-    React.createContext<MediaCardSurfaceState | null>(null);
-
-function useMediaCardSurface(): MediaCardSurfaceState {
-    const context = React.use(MediaCardSurfaceContext);
-    if (!context) {
-        throw new Error(
-            "Media card surfaces must be used inside <MediaCardContextMenuSurface>."
-        );
-    }
-    return context;
-}
-
-function PreviewColorBadge({ value }: { value: string }) {
+function MediaCardColorsBadge({ value }: { value: string }) {
     const { copyToClipboard, isCopied } = useCopyToClipboard();
 
     const handleCopy = useStableCallback(() => copyToClipboard(value));
@@ -4541,7 +4970,7 @@ function PreviewColorBadge({ value }: { value: string }) {
     );
 }
 
-function PreviewColorPalette({ src }: { src: string }) {
+function MediaCardColorsPalette({ src }: { src: string }) {
     const { data } = useSWR(src, getImageColors, {
         keepPreviousData: true,
     });
@@ -4553,14 +4982,14 @@ function PreviewColorPalette({ src }: { src: string }) {
     return (
         <AvatarGroup className="justify-end -space-x-1">
             {data.map(({ hex, name }) => (
-                <PreviewColorBadge key={name} value={hex} />
+                <MediaCardColorsBadge key={name} value={hex} />
             ))}
         </AvatarGroup>
     );
 }
 
 function MediaCardMenuDetails() {
-    const { isNote, item, previewImageUrl } = useMediaCardData();
+    const { isNote, item, previewImageUrl } = useMediaCardDataContext();
 
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
     const createdLabel = itemDateLabel(item.createdAt);
@@ -4601,7 +5030,7 @@ function MediaCardMenuDetails() {
                 {previewImageUrl ? (
                     <div className="flex items-center justify-between gap-3 py-0.5 pb-3">
                         <span>Palette</span>
-                        <PreviewColorPalette src={previewImageUrl} />
+                        <MediaCardColorsPalette src={previewImageUrl} />
                     </div>
                 ) : null}
             </CollapsiblePanel>
@@ -4609,521 +5038,8 @@ function MediaCardMenuDetails() {
     );
 }
 
-function useMediaCardFavoriteAction() {
-    const { item } = useMediaCardData();
-    const { favoriteItemIdSet, onItemFavoriteToggle } =
-        useMediaCardEnvironment();
-    const isFavorite = favoriteItemIdSet.has(item.id);
-    const handleToggle = useStableCallback(() => onItemFavoriteToggle(item));
-
-    return { handleToggle, isFavorite };
-}
-
-function MediaCardMenuFavoriteAction() {
-    const { handleToggle, isFavorite } = useMediaCardFavoriteAction();
-
-    return (
-        <MenuItem onClick={handleToggle}>
-            <Star
-                className={cn(
-                    "size-4.5 text-muted-foreground",
-                    isFavorite && "fill-current"
-                )}
-            />
-            {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            <Kbd className="ml-auto">
-                <AltKbd />F
-            </Kbd>
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuFavoriteAction() {
-    const { handleToggle, isFavorite } = useMediaCardFavoriteAction();
-
-    return (
-        <ContextMenuItem onClick={handleToggle}>
-            <Star
-                className={cn(
-                    "size-4.5 text-muted-foreground",
-                    isFavorite && "fill-current"
-                )}
-            />
-            {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            <Kbd className="ml-auto">
-                <AltKbd />F
-            </Kbd>
-        </ContextMenuItem>
-    );
-}
-
-function useMediaCardNoteAction() {
-    const { item } = useMediaCardData();
-    const { onOpenNote } = useMediaCardEnvironment();
-
-    return useStableCallback(() => onOpenNote(item));
-}
-
-function MediaCardMenuNoteAction() {
-    const handleOpenNote = useMediaCardNoteAction();
-
-    return (
-        <MenuItem onClick={handleOpenNote}>
-            <FilePenLineIcon className="size-4.5 text-muted-foreground" />
-            Edit note
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuNoteAction() {
-    const handleOpenNote = useMediaCardNoteAction();
-
-    return (
-        <ContextMenuItem onClick={handleOpenNote}>
-            <FilePenLineIcon className="size-4.5 text-muted-foreground" />
-            Edit note
-        </ContextMenuItem>
-    );
-}
-
-function MediaCardMenuQuickLookAction() {
-    const { displayTitle, item } = useMediaCardData();
-
-    return (
-        <QuickLookDrawer
-            description={getLibraryItemDomain(item.url)}
-            key={item.url}
-            title={displayTitle}
-            url={item.url}
-        >
-            <QuickLookDrawerTrigger nativeButton={false} render={<MenuItem />}>
-                <EyeIcon className="size-4.5 text-muted-foreground" />
-                Quick Look
-                <Kbd className="ml-auto">
-                    <AltKbd />E
-                </Kbd>
-            </QuickLookDrawerTrigger>
-        </QuickLookDrawer>
-    );
-}
-
-function MediaCardContextMenuQuickLookAction() {
-    const { displayTitle, item } = useMediaCardData();
-
-    return (
-        <QuickLookDrawer
-            description={getLibraryItemDomain(item.url)}
-            key={item.url}
-            title={displayTitle}
-            url={item.url}
-        >
-            <QuickLookDrawerTrigger
-                nativeButton={false}
-                render={<ContextMenuItem />}
-            >
-                <EyeIcon className="size-4.5 text-muted-foreground" />
-                Quick Look
-                <Kbd className="ml-auto">
-                    <AltKbd />E
-                </Kbd>
-            </QuickLookDrawerTrigger>
-        </QuickLookDrawer>
-    );
-}
-
-function MediaCardMenuZoomAction() {
-    const { onZoomIn } = useMediaCardInteraction();
-
-    return (
-        <MenuItem onClick={onZoomIn}>
-            <ZoomIn className="size-4.5 text-muted-foreground" />
-            Zoom in
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuZoomAction() {
-    const { onZoomIn } = useMediaCardInteraction();
-
-    return (
-        <ContextMenuItem onClick={onZoomIn}>
-            <ZoomIn className="size-4.5 text-muted-foreground" />
-            Zoom in
-        </ContextMenuItem>
-    );
-}
-
-function useMediaCardLinkActions() {
-    const { item } = useMediaCardData();
-    const { onCopyLink, onOpenInNewTab } = useMediaCardEnvironment();
-    const SourceIcon = getSourceIcon(item.source);
-
-    const handleOpenInNewTab = useStableCallback(() => onOpenInNewTab(item));
-    const handleCopyLink = useStableCallback(() => onCopyLink(item));
-
-    return { handleCopyLink, handleOpenInNewTab, SourceIcon };
-}
-
-function MediaCardMenuOpenLinkAction() {
-    const { SourceIcon, handleOpenInNewTab } = useMediaCardLinkActions();
-
-    return (
-        <MenuItem className="cursor-alias" onClick={handleOpenInNewTab}>
-            {SourceIcon ? (
-                <SourceIcon className="size-4 text-muted-foreground" />
-            ) : (
-                <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
-            )}
-            Open in New Tab
-            <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuOpenLinkAction() {
-    const { SourceIcon, handleOpenInNewTab } = useMediaCardLinkActions();
-
-    return (
-        <ContextMenuItem className="cursor-alias" onClick={handleOpenInNewTab}>
-            {SourceIcon ? (
-                <SourceIcon className="size-4 text-muted-foreground" />
-            ) : (
-                <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
-            )}
-            Open in New Tab
-            <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
-        </ContextMenuItem>
-    );
-}
-
-function MediaCardMenuCopyLinkAction() {
-    const { handleCopyLink } = useMediaCardLinkActions();
-
-    return (
-        <MenuItem onClick={handleCopyLink}>
-            <LinkIcon className="size-4.5 text-muted-foreground" />
-            Copy link URL
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuCopyLinkAction() {
-    const { handleCopyLink } = useMediaCardLinkActions();
-
-    return (
-        <ContextMenuItem onClick={handleCopyLink}>
-            <LinkIcon className="size-4.5 text-muted-foreground" />
-            Copy link URL
-        </ContextMenuItem>
-    );
-}
-
-function MediaCardMenuDownloadAction() {
-    const { isDownloading, onDownload } = useMediaCardInteraction();
-
-    return (
-        <MenuItem disabled={isDownloading} onClick={onDownload}>
-            <DownloadIcon className="size-4.5 text-muted-foreground" />
-            {isDownloading ? "Downloading..." : "Download"}
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuDownloadAction() {
-    const { isDownloading, onDownload } = useMediaCardInteraction();
-
-    return (
-        <ContextMenuItem disabled={isDownloading} onClick={onDownload}>
-            <DownloadIcon className="size-4.5 text-muted-foreground" />
-            {isDownloading ? "Downloading..." : "Download"}
-        </ContextMenuItem>
-    );
-}
-
-function useMediaCardFindSimilarAction() {
-    const { item } = useMediaCardData();
-    const { onFindSimilar } = useMediaCardEnvironment();
-
-    return useStableCallback(() => onFindSimilar(item));
-}
-
-function MediaCardMenuFindSimilarAction() {
-    const handleFindSimilar = useMediaCardFindSimilarAction();
-
-    return (
-        <MenuItem onClick={handleFindSimilar}>
-            <SearchIcon className="size-4.5 text-muted-foreground" />
-            Find similar
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuFindSimilarAction() {
-    const handleFindSimilar = useMediaCardFindSimilarAction();
-
-    return (
-        <ContextMenuItem onClick={handleFindSimilar}>
-            <SearchIcon className="size-4.5 text-muted-foreground" />
-            Find similar
-        </ContextMenuItem>
-    );
-}
-
-function useMediaCardWaybackActions() {
-    const { item } = useMediaCardData();
-
-    const handleWayback30 = useStableCallback(() =>
-        openExternalUrl(
-            "https://web.archive.org/web/" +
-                formatWaybackDate(-30) +
-                "/" +
-                item.url
-        )
-    );
-
-    const handleWayback90 = useStableCallback(() =>
-        openExternalUrl(
-            "https://web.archive.org/web/" +
-                formatWaybackDate(-90) +
-                "/" +
-                item.url
-        )
-    );
-
-    const handleWayback180 = useStableCallback(() =>
-        openExternalUrl(
-            "https://web.archive.org/web/" +
-                formatWaybackDate(-180) +
-                "/" +
-                item.url
-        )
-    );
-
-    const handleWayback365 = useStableCallback(() =>
-        openExternalUrl(
-            "https://web.archive.org/web/" +
-                formatWaybackDate(-365) +
-                "/" +
-                item.url
-        )
-    );
-
-    const handleWaybackAll = useStableCallback(() =>
-        openExternalUrl(`https://web.archive.org/web/*/${item.url}`)
-    );
-
-    return {
-        handleWayback30,
-        handleWayback90,
-        handleWayback180,
-        handleWayback365,
-        handleWaybackAll,
-    };
-}
-
-function MediaCardMenuWaybackAction() {
-    const {
-        handleWayback180,
-        handleWayback30,
-        handleWayback365,
-        handleWayback90,
-        handleWaybackAll,
-    } = useMediaCardWaybackActions();
-
-    return (
-        <MenuSub>
-            <MenuSubTrigger>
-                <History className="size-4.5 text-muted-foreground" />
-                Previous versions
-            </MenuSubTrigger>
-            <MenuSubPopup>
-                <MenuGroup>
-                    <MenuGroupLabel>Wayback Machine</MenuGroupLabel>
-                    <MenuItem onClick={handleWayback30}>
-                        <History className="size-4 text-muted-foreground" /> 1
-                        month ago
-                    </MenuItem>
-                    <MenuItem onClick={handleWayback90}>
-                        <History className="size-4 text-muted-foreground" /> 3
-                        months ago
-                    </MenuItem>
-                    <MenuItem onClick={handleWayback180}>
-                        <History className="size-4 text-muted-foreground" /> 6
-                        months ago
-                    </MenuItem>
-                    <MenuItem onClick={handleWayback365}>
-                        <History className="size-4 text-muted-foreground" /> 1
-                        year ago
-                    </MenuItem>
-                    <MenuItem onClick={handleWaybackAll}>
-                        <History className="size-4 text-muted-foreground" />
-                        View all snapshots
-                    </MenuItem>
-                </MenuGroup>
-            </MenuSubPopup>
-        </MenuSub>
-    );
-}
-
-function MediaCardContextMenuWaybackAction() {
-    const {
-        handleWayback180,
-        handleWayback30,
-        handleWayback365,
-        handleWayback90,
-        handleWaybackAll,
-    } = useMediaCardWaybackActions();
-
-    return (
-        <ContextMenuSub>
-            <ContextMenuSubTrigger>
-                <History className="size-4.5 text-muted-foreground" />
-                Previous versions
-            </ContextMenuSubTrigger>
-            <ContextMenuSubPopup>
-                <ContextMenuGroup>
-                    <ContextMenuGroupLabel>
-                        Wayback Machine
-                    </ContextMenuGroupLabel>
-                    <ContextMenuItem onClick={handleWayback30}>
-                        <History className="size-4 text-muted-foreground" /> 1
-                        month ago
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={handleWayback90}>
-                        <History className="size-4 text-muted-foreground" /> 3
-                        months ago
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={handleWayback180}>
-                        <History className="size-4 text-muted-foreground" /> 6
-                        months ago
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={handleWayback365}>
-                        <History className="size-4 text-muted-foreground" /> 1
-                        year ago
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={handleWaybackAll}>
-                        <History className="size-4 text-muted-foreground" />
-                        View all snapshots
-                    </ContextMenuItem>
-                </ContextMenuGroup>
-            </ContextMenuSubPopup>
-        </ContextMenuSub>
-    );
-}
-
-function useMediaCardDeleteAction() {
-    const { item } = useMediaCardData();
-    const { onDelete, pendingDeleteItemId } = useMediaCardEnvironment();
-    const isDeletePending = pendingDeleteItemId === item.id;
-    const handleDelete = useStableCallback(() => onDelete(item));
-
-    return { handleDelete, isDeletePending };
-}
-
-function MediaCardMenuDeleteAction() {
-    const { handleDelete, isDeletePending } = useMediaCardDeleteAction();
-
-    return (
-        <MenuItem disabled={isDeletePending} onClick={handleDelete}>
-            {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
-            <Kbd className="ml-auto">
-                <CmdKbd />⌫
-            </Kbd>
-        </MenuItem>
-    );
-}
-
-function MediaCardContextMenuDeleteAction() {
-    const { handleDelete, isDeletePending } = useMediaCardDeleteAction();
-
-    return (
-        <ContextMenuItem disabled={isDeletePending} onClick={handleDelete}>
-            {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
-            <Kbd className="ml-auto">
-                <CmdKbd />⌫
-            </Kbd>
-        </ContextMenuItem>
-    );
-}
-
-const MEDIA_CARD_ACTION_PLUGINS = [
-    {
-        contextMenu: MediaCardContextMenuFavoriteAction,
-        id: "favorite",
-        isAvailable: () => true,
-        menu: MediaCardMenuFavoriteAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuNoteAction,
-        id: "edit-note",
-        isAvailable: ({ isNote }) => isNote,
-        menu: MediaCardMenuNoteAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuQuickLookAction,
-        id: "quick-look",
-        isAvailable: ({ item }) =>
-            item.kind !== ITEM_KIND_NOTE &&
-            toValidUrl(normalizeURL(item.url)) !== FALLBACK_URL,
-        menu: MediaCardMenuQuickLookAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuZoomAction,
-        id: "zoom",
-        isAvailable: ({ previewImageUrl }) => previewImageUrl !== null,
-        menu: MediaCardMenuZoomAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuOpenLinkAction,
-        id: "open-link",
-        isAvailable: ({ isNote }) => !isNote,
-        menu: MediaCardMenuOpenLinkAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuCopyLinkAction,
-        id: "copy-link",
-        isAvailable: ({ isNote }) => !isNote,
-        menu: MediaCardMenuCopyLinkAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuDownloadAction,
-        id: "download",
-        isAvailable: ({ isNote, item }) =>
-            !isNote && COBALT_SOURCES.has(item.source),
-        menu: MediaCardMenuDownloadAction,
-        separatorBefore: true,
-    },
-    {
-        contextMenu: MediaCardContextMenuFindSimilarAction,
-        id: "find-similar",
-        isAvailable: () => true,
-        menu: MediaCardMenuFindSimilarAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuWaybackAction,
-        id: "wayback",
-        isAvailable: ({ isNote }) => !isNote,
-        menu: MediaCardMenuWaybackAction,
-        separatorBefore: false,
-    },
-    {
-        contextMenu: MediaCardContextMenuDeleteAction,
-        id: "delete",
-        isAvailable: () => true,
-        menu: MediaCardMenuDeleteAction,
-        separatorBefore: true,
-    },
-] satisfies readonly MediaCardActionPlugin[];
-
 function MediaCardMenuActionList() {
-    const data = useMediaCardData();
+    const data = useMediaCardDataContext();
     const visiblePlugins = MEDIA_CARD_ACTION_PLUGINS.filter((plugin) =>
         plugin.isAvailable(data)
     );
@@ -5144,7 +5060,7 @@ function MediaCardMenuActionList() {
 }
 
 function MediaCardContextMenuActionList() {
-    const data = useMediaCardData();
+    const data = useMediaCardDataContext();
     const visiblePlugins = MEDIA_CARD_ACTION_PLUGINS.filter((plugin) =>
         plugin.isAvailable(data)
     );
@@ -5167,14 +5083,14 @@ function MediaCardContextMenuActionList() {
 }
 
 function MediaCardMenuCommentTextarea() {
-    const { isNote, item } = useMediaCardData();
-    const { isOverlayOpen } = useMediaCardSurface();
+    const { isNote, item } = useMediaCardDataContext();
+    const { isOverlayOpen } = useMediaCardSurfaceContext();
 
     if (isNote) {
         return null;
     }
 
-    return <CommentTextarea item={item} open={isOverlayOpen} />;
+    return <CommentTextarea isOpen={isOverlayOpen} item={item} />;
 }
 
 function MediaCardMenuContent() {
@@ -5200,8 +5116,8 @@ function MediaCardContextMenuContent() {
 }
 
 function MediaCardMenuSurface() {
-    const { displayTitle } = useMediaCardData();
-    const { isMenuOpen, onMenuOpenChange } = useMediaCardSurface();
+    const { displayTitle } = useMediaCardDataContext();
+    const { isMenuOpen, onMenuOpenChange } = useMediaCardSurfaceContext();
 
     return (
         <Menu modal={false} onOpenChange={onMenuOpenChange} open={isMenuOpen}>
@@ -5226,9 +5142,9 @@ function MediaCardMenuSurface() {
 }
 
 function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
-    const { item } = useMediaCardData();
+    const { item } = useMediaCardDataContext();
     const { hoveredItemIdRef, hoverPinnedItemIdRef, openPickerItemId } =
-        useMediaCardEnvironment();
+        useMediaCardEnvironmentContext();
 
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
     const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
@@ -5308,8 +5224,8 @@ function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
 }
 
 function MediaCardPreview(props: React.ComponentProps<"div">) {
-    const { isNote, item, previewImageUrl } = useMediaCardData();
-    const { isZoomed, onZoomChange } = useMediaCardInteraction();
+    const { isNote, item, previewImageUrl } = useMediaCardDataContext();
+    const { isZoomed, onZoomChange } = useMediaCardInteractionContext();
     const { isLastVisited } = useLastVisited();
     const hasNoteContent = (item.noteContentText ?? "").trim().length > 0;
     const previewVideoUrl = itemPreviewVideoUrl(item);
@@ -5374,8 +5290,8 @@ function MediaCardPreview(props: React.ComponentProps<"div">) {
 }
 
 function MediaCardOpenTarget() {
-    const { isNote, item } = useMediaCardData();
-    const { onOpenInNewTab, onOpenNote } = useMediaCardEnvironment();
+    const { isNote, item } = useMediaCardDataContext();
+    const { onOpenInNewTab, onOpenNote } = useMediaCardEnvironmentContext();
     const { markVisited } = useLastVisited();
 
     const handleOpen = useStableCallback(() => {
@@ -5411,13 +5327,13 @@ function MediaCardOpenTarget() {
 }
 
 function MediaCardActions() {
-    const { item } = useMediaCardData();
+    const { item } = useMediaCardDataContext();
     const {
         collections,
         onUpdateItemCollections,
         openPickerItemId,
         setOpenPickerItemId,
-    } = useMediaCardEnvironment();
+    } = useMediaCardEnvironmentContext();
     const isPickerOpen = openPickerItemId === item.id;
 
     const handlePickerOpenChange = useStableCallback((nextOpen: boolean) => {
@@ -5442,53 +5358,7 @@ function MediaCardActions() {
     );
 }
 
-interface LockedLibraryPreviewPlaceholder {
-    aspect: string;
-    id: string;
-    kind: "bookmark" | "note";
-}
-
-const LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS = [
-    {
-        aspect: "aspect-[4/5]",
-        id: "locked-library-preview-1",
-        kind: "bookmark",
-    },
-    { aspect: "aspect-[3/4]", id: "locked-library-preview-2", kind: "note" },
-    {
-        aspect: "aspect-square",
-        id: "locked-library-preview-3",
-        kind: "bookmark",
-    },
-    {
-        aspect: "aspect-[5/6]",
-        id: "locked-library-preview-4",
-        kind: "bookmark",
-    },
-    { aspect: "aspect-[4/5]", id: "locked-library-preview-5", kind: "note" },
-    {
-        aspect: "aspect-[3/4]",
-        id: "locked-library-preview-6",
-        kind: "bookmark",
-    },
-    {
-        aspect: "aspect-square",
-        id: "locked-library-preview-7",
-        kind: "bookmark",
-    },
-    { aspect: "aspect-[5/6]", id: "locked-library-preview-8", kind: "note" },
-    {
-        aspect: "aspect-[4/5]",
-        id: "locked-library-preview-9",
-        kind: "bookmark",
-    },
-] satisfies LockedLibraryPreviewPlaceholder[];
-
-function LockedPreviewCard({
-    data,
-}: {
-    data: LockedLibraryPreviewPlaceholder;
-}) {
+function MediaCardLocked({ data }: { data: LockedLibraryPreviewPlaceholder }) {
     return (
         <div className="relative flex flex-col overflow-clip rounded-xl ring-1 ring-border/30">
             {data.kind === "note" ? (
@@ -5522,18 +5392,6 @@ function LockedPreviewCard({
             )}
         </div>
     );
-}
-
-interface NoteDrawerProps {
-    activeNote: LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null;
-    handlePasteUrlIntoLibrary: (url: string) => Promise<void>;
-    handleSaveNote: (
-        draft: NoteDraft,
-        noteId: string | null
-    ) => Promise<LibraryItemWithCollections | null>;
-    isSavingNote: boolean;
-    isSavingPastedUrl: boolean;
-    onNoteDrawerClose: () => void;
 }
 
 interface NoteDrawerContentProps {
@@ -5579,6 +5437,18 @@ function NoteDrawerContent({
     );
 }
 
+interface NoteDrawerProps {
+    activeNote: LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null;
+    handlePasteUrlIntoLibrary: (url: string) => Promise<void>;
+    handleSaveNote: (
+        draft: NoteDraft,
+        noteId: string | null
+    ) => Promise<LibraryItemWithCollections | null>;
+    isSavingNote: boolean;
+    isSavingPastedUrl: boolean;
+    onNoteDrawerClose: () => void;
+}
+
 function NoteDrawer({
     activeNote,
     handlePasteUrlIntoLibrary,
@@ -5587,9 +5457,10 @@ function NoteDrawer({
     isSavingPastedUrl,
     onNoteDrawerClose,
 }: NoteDrawerProps) {
+    const contentEditableRef = React.useRef<HTMLDivElement | null>(null);
+
     const isNoteDrawerOpen = activeNote !== null;
     const note = activeNote === NOTE_DRAWER_NEW ? null : activeNote;
-    const contentEditableRef = React.useRef<HTMLDivElement | null>(null);
 
     const handleOpenChange = useStableCallback((open: boolean) => {
         if (!open) {
@@ -5613,37 +5484,6 @@ function NoteDrawer({
             />
         </NoteRoot>
     );
-}
-
-interface BrowserSimilarFilterState {
-    collectionMembershipFilter: CollectionMembershipFilter;
-    domainFilters: string[];
-    searchTerms: string[];
-    selectedCollectionIds: string[];
-    sourceFilters: LibraryItemSource[];
-}
-
-interface BrowserSimilarFilterOptions {
-    domain: string;
-    source: LibraryItemSource;
-}
-
-function buildSimilarBrowserFilterState(
-    state: BrowserSimilarFilterState,
-    options: BrowserSimilarFilterOptions
-): BrowserSimilarFilterState {
-    const shouldUseDomainFilter =
-        DOMAIN_RELATED_SOURCES.has(options.source) &&
-        options.domain !== UNSPECIFIC_LIBRARY_DOMAIN;
-
-    return {
-        ...state,
-        collectionMembershipFilter: DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
-        domainFilters: shouldUseDomainFilter ? [options.domain] : [],
-        searchTerms: [],
-        selectedCollectionIds: [],
-        sourceFilters: shouldUseDomainFilter ? [] : [options.source],
-    };
 }
 
 interface DeleteItemDialogProps {
@@ -5754,7 +5594,7 @@ function RemoveDuplicatesDialog({
     );
 }
 
-interface CreateResultsCollectionDialogProps {
+interface CreateFromResultsCollectionDialogProps {
     collections: LibraryCollectionSummary[];
     createResultsDescriptionDraft: string;
     createResultsDescriptionId: string;
@@ -5781,7 +5621,7 @@ interface CreateResultsCollectionDialogProps {
     visibleResultItems: LibraryItemWithCollections[];
 }
 
-function CreateResultsCollectionDialog({
+function CreateFromResultsCollectionDialog({
     collections,
     createResultsDescriptionDraft,
     createResultsDescriptionId,
@@ -5799,9 +5639,9 @@ function CreateResultsCollectionDialog({
     open,
     resultItemCount,
     visibleResultItems,
-}: CreateResultsCollectionDialogProps) {
+}: CreateFromResultsCollectionDialogProps) {
     const handleResultsFormSubmit = useStableCallback(
-        (event: React.FormEvent<HTMLFormElement>) => {
+        (event: React.ChangeEvent<HTMLFormElement>) => {
             event.preventDefault();
             onCreateCollectionFromResultsSubmit();
         }
@@ -5929,134 +5769,6 @@ function CreateResultsCollectionDialog({
     );
 }
 
-/**
- * Card action shortcuts that target the hovered grid card (via
- * `hoveredItemIdRef`), matching the collections-list hover-hotkey pattern
- * and the `S` collection-picker shortcut. Registered once at the browser
- * root so every card does not mount its own `useHotkeys` listeners.
- */
-function useCardHoverHotkeys({
-    hoveredItemIdRef,
-    itemsRef,
-    onDelete,
-    onItemFavoriteToggle,
-    pendingDeleteItemIdRef,
-}: {
-    hoveredItemIdRef: React.RefObject<string | null>;
-    itemsRef: React.RefObject<LibraryItemWithCollections[]>;
-    onDelete: (item: LibraryItemWithCollections) => void;
-    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
-    pendingDeleteItemIdRef: React.RefObject<string | null>;
-}) {
-    const quickLookTriggerId = React.useId();
-
-    const resolveHoveredItem = useStableCallback(() => {
-        // Collection rows claim the surface while hovered so pinned card
-        // menus do not steal Alt+E / Alt+F / ⌘⌫ from collection shortcuts.
-        if (isCollectionHoverHotkeySurface()) {
-            return null;
-        }
-        const id = hoveredItemIdRef.current;
-        if (!id || pendingDeleteItemIdRef.current === id) {
-            return null;
-        }
-        return itemsRef.current.find((item) => item.id === id) ?? null;
-    });
-
-    useHotkeys(
-        "alt+f",
-        (event: KeyboardEvent) => {
-            const item = resolveHoveredItem();
-            if (!item) {
-                return;
-            }
-            event.preventDefault();
-            onItemFavoriteToggle(item);
-        },
-        {
-            description: "Toggle favorite on hovered item",
-            enableOnContentEditable: false,
-            enableOnFormTags: false,
-        },
-        [onItemFavoriteToggle, resolveHoveredItem]
-    );
-
-    useHotkeys(
-        "alt+e",
-        (event: KeyboardEvent) => {
-            const item = resolveHoveredItem();
-            if (!item || item.kind === ITEM_KIND_NOTE) {
-                return;
-            }
-            const href = normalizeURL(item.url);
-            if (toValidUrl(href) === FALLBACK_URL) {
-                return;
-            }
-            event.preventDefault();
-            openQuickLook(
-                {
-                    description: getLibraryItemDomain(item.url),
-                    title: getLibraryItemTitle(item),
-                    url: item.url,
-                },
-                quickLookTriggerId
-            );
-        },
-        {
-            description: "Quick look on hovered item",
-            enableOnContentEditable: false,
-            enableOnFormTags: false,
-        },
-        [quickLookTriggerId, resolveHoveredItem]
-    );
-
-    useHotkeys(
-        "mod+backspace",
-        (event: KeyboardEvent) => {
-            const item = resolveHoveredItem();
-            if (!item) {
-                return;
-            }
-            event.preventDefault();
-            onDelete(item);
-        },
-        {
-            description: "Delete hovered item",
-            enableOnContentEditable: false,
-            enableOnFormTags: false,
-        },
-        [onDelete, resolveHoveredItem]
-    );
-}
-
-export function BrowserRoot({
-    children,
-    connectedIntegrationCount,
-    initialCollections,
-    initialItems,
-    lockedItemCount,
-    totalItemCount,
-}: React.PropsWithChildren<LibraryProps>) {
-    const [items, setItems] = React.useState(initialItems);
-
-    return (
-        <CollectionsProvider
-            initialCollections={initialCollections}
-            setItems={setItems}
-        >
-            <BrowserContent
-                connectedIntegrationCount={connectedIntegrationCount}
-                items={items}
-                lockedItemCount={lockedItemCount}
-                setItems={setItems}
-                totalItemCount={totalItemCount}
-            >
-                {children}
-            </BrowserContent>
-        </CollectionsProvider>
-    );
-}
-
 function BrowserContent({
     children,
     connectedIntegrationCount,
@@ -6076,6 +5788,7 @@ function BrowserContent({
     const isExtensionInstalled = useIsExtensionInstalled();
     const paletteCaretTimeout = useTimeout();
     const paletteFocusOutTimeout = useTimeout();
+    const unreachableProbeTimeout = useTimeout();
 
     const {
         collectionSummaries: collections,
@@ -6091,27 +5804,15 @@ function BrowserContent({
     const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
         buildCollectionItemIndexes(items);
 
-    const favoriteItems = items
-        .filter(
-            (
-                item
-            ): item is LibraryItemWithCollections & { favoritedAt: Date } =>
-                item.favoritedAt !== null
-        )
-        .toSorted(
-            (left, right) =>
-                right.favoritedAt.getTime() - left.favoritedAt.getTime()
-        );
-    const favoriteItemIdSet = new Set(favoriteItems.map((item) => item.id));
-    const allCollectionsRef = React.useRef(allCollections);
-    allCollectionsRef.current = allCollections;
+    const { favoriteItemIdSet, favoriteItems } =
+        buildFavoriteItemIndexes(items);
 
-    const collectionUpdateRequestTokenByItemIdRef = useRefWithInit(
+    const collectionUpdateRequestTokenByItemId = useRefWithInit(
         () => new Map<string, symbol>()
-    );
-    const itemFavoriteToggleRequestTokenByItemIdRef = useRefWithInit(
+    ).current;
+    const itemFavoriteToggleRequestTokenByItemId = useRefWithInit(
         () => new Map<string, symbol>()
-    );
+    ).current;
 
     const handleUpdateItemCollections = useStableCallback(
         async (
@@ -6119,14 +5820,11 @@ function BrowserContent({
             collectionIds: string[]
         ): Promise<LibraryItemCollectionsUpdateResult> => {
             const requestToken = Symbol(itemId);
-            collectionUpdateRequestTokenByItemIdRef.current.set(
-                itemId,
-                requestToken
-            );
+            collectionUpdateRequestTokenByItemId.set(itemId, requestToken);
 
             const existingItem = items.find((item) => item.id === itemId);
             if (!existingItem) {
-                collectionUpdateRequestTokenByItemIdRef.current.delete(itemId);
+                collectionUpdateRequestTokenByItemId.delete(itemId);
                 return {
                     message: "We couldn't update collections for this item.",
                     status: "ERROR",
@@ -6162,7 +5860,7 @@ function BrowserContent({
             }
 
             if (
-                collectionUpdateRequestTokenByItemIdRef.current.get(itemId) !==
+                collectionUpdateRequestTokenByItemId.get(itemId) !==
                 requestToken
             ) {
                 return result;
@@ -6181,13 +5879,13 @@ function BrowserContent({
                     updateById(current, itemId, (item) => ({
                         ...item,
                         collections: reconcileCollectionTags(
-                            allCollectionsRef.current,
+                            allCollections,
                             previousCollections
                         ),
                     }))
                 );
             }
-            collectionUpdateRequestTokenByItemIdRef.current.delete(itemId);
+            collectionUpdateRequestTokenByItemId.delete(itemId);
             return result;
         }
     );
@@ -6213,10 +5911,7 @@ function BrowserContent({
             );
             const requestToken = Symbol("bulk-collection-update");
             for (const { itemId } of previousItemCollections) {
-                collectionUpdateRequestTokenByItemIdRef.current.set(
-                    itemId,
-                    requestToken
-                );
+                collectionUpdateRequestTokenByItemId.set(itemId, requestToken);
             }
             const optimisticItemCollections = previousItemCollections.map(
                 ({ collections: itemCollections, itemId }) => {
@@ -6261,9 +5956,8 @@ function BrowserContent({
 
             const currentItemIds = [...requestedItemIds].filter(
                 (itemId) =>
-                    collectionUpdateRequestTokenByItemIdRef.current.get(
-                        itemId
-                    ) === requestToken
+                    collectionUpdateRequestTokenByItemId.get(itemId) ===
+                    requestToken
             );
             if (currentItemIds.length === 0) {
                 return result;
@@ -6296,7 +5990,7 @@ function BrowserContent({
                                     itemId,
                                 }) => ({
                                     collections: reconcileCollectionTags(
-                                        allCollectionsRef.current,
+                                        allCollections,
                                         previousCollections
                                     ),
                                     itemId,
@@ -6307,7 +6001,7 @@ function BrowserContent({
             }
 
             for (const itemId of currentItemIds) {
-                collectionUpdateRequestTokenByItemIdRef.current.delete(itemId);
+                collectionUpdateRequestTokenByItemId.delete(itemId);
             }
 
             return result;
@@ -6319,16 +6013,11 @@ function BrowserContent({
             item: LibraryItemWithCollections
         ): Promise<LibraryItemFavoriteToggleResult> => {
             const requestToken = Symbol(item.id);
-            itemFavoriteToggleRequestTokenByItemIdRef.current.set(
-                item.id,
-                requestToken
-            );
+            itemFavoriteToggleRequestTokenByItemId.set(item.id, requestToken);
 
             const currentItem = items.find((entry) => entry.id === item.id);
             if (!currentItem) {
-                itemFavoriteToggleRequestTokenByItemIdRef.current.delete(
-                    item.id
-                );
+                itemFavoriteToggleRequestTokenByItemId.delete(item.id);
                 return {
                     message: "We couldn't update this favorite right now.",
                     status: "ERROR",
@@ -6358,9 +6047,8 @@ function BrowserContent({
             }
 
             if (
-                itemFavoriteToggleRequestTokenByItemIdRef.current.get(
-                    item.id
-                ) !== requestToken
+                itemFavoriteToggleRequestTokenByItemId.get(item.id) !==
+                requestToken
             ) {
                 return result;
             }
@@ -6378,7 +6066,7 @@ function BrowserContent({
                 );
             }
 
-            itemFavoriteToggleRequestTokenByItemIdRef.current.delete(item.id);
+            itemFavoriteToggleRequestTokenByItemId.delete(item.id);
             return result;
         }
     );
@@ -6452,8 +6140,8 @@ function BrowserContent({
     const itemsRef = React.useRef(items);
     const [paletteSection, setPaletteSection] =
         React.useState<PaletteSection>("search");
-    const [commandAttachments, setCommandAttachments] = React.useState<
-        LibraryCommandAttachment[]
+    const [composerAttachments, setComposerAttachments] = React.useState<
+        ComposerAttachment[]
     >([]);
     const [askCacheResponse, setAskCacheResponse] =
         React.useState<AskCacheResponseState | null>(null);
@@ -6477,17 +6165,17 @@ function BrowserContent({
         string | null
     >(null);
 
-    const [isCommandOpen, setIsCommandOpen] = React.useState(false);
+    const [isComposerOpen, setIsComposerOpen] = React.useState(false);
 
-    const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
+    const composerContainerRef = React.useRef<HTMLDivElement>(null);
     const inputRef = React.useRef<HTMLInputElement>(null);
-    const commandAttachmentsRef = React.useRef<LibraryCommandAttachment[]>([]);
+    const composerAttachmentsRef = React.useRef<ComposerAttachment[]>([]);
     const askCacheRequestVersionRef = React.useRef(0);
 
     const createResultsNameInputId = React.useId();
     const createResultsDescriptionId = React.useId();
     /** Skips one combobox-driven close right after entering a drill-down section. */
-    const suppressNextCommandCloseRef = React.useRef(false);
+    const suppressNextComposerCloseRef = React.useRef(false);
     const {
         handleConfirmDelete,
         handleCopyLink,
@@ -6509,7 +6197,7 @@ function BrowserContent({
 
     React.useEffect(() => {
         itemsRef.current = items;
-        commandAttachmentsRef.current = commandAttachments;
+        composerAttachmentsRef.current = composerAttachments;
         pendingDeleteItemIdRef.current = pendingDeleteItem?.id ?? null;
     });
 
@@ -6535,8 +6223,8 @@ function BrowserContent({
         prevSearchTermsRef.current = searchTerms;
     }, [searchTerms, recordSearchTerm]);
 
-    const clearCommandAttachments = useStableCallback(() => {
-        setCommandAttachments((current) => {
+    const clearComposerAttachments = useStableCallback(() => {
+        setComposerAttachments((current) => {
             for (const attachment of current) {
                 revokeFileAttachmentObjectUrl(attachment.url);
             }
@@ -6549,7 +6237,7 @@ function BrowserContent({
         setSearchTerms([]);
         setSourceFilters([]);
         setDomainFilters([]);
-        clearCommandAttachments();
+        clearComposerAttachments();
         setCollectionMembershipFilter(DEFAULT_COLLECTION_MEMBERSHIP_FILTER);
         onClearCollectionFilters();
         setGroupBy("none");
@@ -6559,7 +6247,7 @@ function BrowserContent({
         setDuplicatesFilterEnabled(false);
         setUnreachableFilterEnabled(false);
         setPaletteSection("search");
-        setIsCommandOpen(false);
+        setIsComposerOpen(false);
     });
 
     const duplicateItemIds = collectDuplicateBookmarkItemIds(items);
@@ -6589,9 +6277,18 @@ function BrowserContent({
         const version = unreachableProbeVersionRef.current + 1;
         unreachableProbeVersionRef.current = version;
 
+        // Track pending sleeps so cleanup can settle them: a cleared timeout
+        // never fires its callback, which would otherwise leave `run()` awaiting
+        // a promise that never settles and keep the loop closure alive.
+        const pendingSleepResolvers = new Set<() => void>();
+
         const sleep = (ms: number) =>
             new Promise<void>((resolve) => {
-                window.setTimeout(resolve, ms);
+                pendingSleepResolvers.add(resolve);
+                unreachableProbeTimeout.start(ms, () => {
+                    pendingSleepResolvers.delete(resolve);
+                    resolve();
+                });
             });
 
         // Local set so the async loop does not re-probe the same batch while
@@ -6733,8 +6430,12 @@ function BrowserContent({
             // Stop the async loop on unmount or before the next effect run so
             // it cannot keep probing or calling setItems after teardown.
             unreachableProbeVersionRef.current += 1;
+            unreachableProbeTimeout.clear();
+            for (const resolve of pendingSleepResolvers) {
+                resolve();
+            }
         };
-    }, [setItems, unreachableFilterEnabled]);
+    }, [setItems, unreachableFilterEnabled, unreachableProbeTimeout]);
 
     const domainOptions = buildDomainPaletteOptions(items);
 
@@ -6772,7 +6473,7 @@ function BrowserContent({
                         domain: option.value,
                         itemCount: option.itemCount,
                     })),
-                filteredItemCount: filterCommandItems(items, {
+                filteredItemCount: filterComposerItems(items, {
                     collectionMembershipFilter,
                     domainFilters,
                     duplicateItemIds,
@@ -6842,7 +6543,7 @@ function BrowserContent({
                 applyAskCachePatch(operation);
             }
             setPaletteSection("ai-response");
-            setIsCommandOpen(true);
+            setIsComposerOpen(true);
             setAskCacheResponse({
                 markdown: result.markdown,
                 operationCount: result.operations.length,
@@ -6864,7 +6565,7 @@ function BrowserContent({
             setAskCacheResponse({ prompt, status: "loading" });
             setPaletteSection("ai-response");
             setQuery("");
-            setIsCommandOpen(true);
+            setIsComposerOpen(true);
 
             try {
                 const result = await askCache(buildAskCacheRequest(prompt));
@@ -6883,7 +6584,7 @@ function BrowserContent({
                     status: "error",
                 });
                 setPaletteSection("ai-response");
-                setIsCommandOpen(true);
+                setIsComposerOpen(true);
             }
         }
     );
@@ -6891,7 +6592,7 @@ function BrowserContent({
     const returnToSearchSection = useStableCallback(() => {
         setPaletteSection("search");
         setQuery("");
-        setIsCommandOpen(true);
+        setIsComposerOpen(true);
     });
 
     const openPaletteSection = useStableCallback(
@@ -6900,7 +6601,7 @@ function BrowserContent({
             event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
         ) => {
             event.preventDefault();
-            suppressNextCommandCloseRef.current = true;
+            suppressNextComposerCloseRef.current = true;
             setPaletteSection(section);
             setQuery("");
         }
@@ -6936,7 +6637,7 @@ function BrowserContent({
         setDomainFilters,
         setDuplicatesFilterEnabled,
         setGroupBy,
-        setIsCommandOpen,
+        setIsComposerOpen,
         setLastVisitedFilterEnabled,
         setQuery,
         setSearchTerms,
@@ -6952,14 +6653,9 @@ function BrowserContent({
         ? lastVisitedItemIds
         : [];
 
-    const paletteGroupValueSet = new Set<string>();
-    for (const group of paletteGroups) {
-        for (const item of group.items) {
-            paletteGroupValueSet.add(item.value);
-        }
-    }
+    const paletteGroupValueSet = buildPaletteGroupValueSet(paletteGroups);
 
-    const filteredItems = filterCommandItems(items, {
+    const filteredItems = filterComposerItems(items, {
         collectionMembershipFilter,
         domainFilters,
         duplicateItemIds,
@@ -6972,10 +6668,11 @@ function BrowserContent({
         unreachableItemIds,
     });
 
-    const filteredItemIdSet = new Set(filteredItems.map((item) => item.id));
-    const removableDuplicateIds = duplicatesFilterEnabled
-        ? collectVisibleDuplicateExcessItemIds(items, filteredItemIdSet)
-        : [];
+    const removableDuplicateIds = buildRemovableDuplicateItemIds({
+        allItems: items,
+        duplicatesFilterEnabled,
+        filteredItems,
+    });
 
     const handleRequestRemoveDuplicates = useStableCallback(() => {
         if (removableDuplicateIds.length === 0) {
@@ -7069,7 +6766,7 @@ function BrowserContent({
         });
     });
 
-    const sortedItems = sortCommandItems(filteredItems, sortMode);
+    const sortedItems = sortComposerItems(filteredItems, sortMode);
 
     const effectiveGroupBy: EffectiveGroupByMode = duplicatesFilterEnabled
         ? "canonical-url"
@@ -7141,6 +6838,7 @@ function BrowserContent({
                 ? `${items.length} item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
                 : `${filteredItems.length} result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
     }
+
     if (
         unreachableFilterEnabled &&
         (unreachableProbe.total > 0 || unreachableProbe.probeFailed)
@@ -7172,7 +6870,7 @@ function BrowserContent({
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !shouldShowEmptyLibraryPeek;
 
-    const suggestions = buildCommandSuggestions({
+    const suggestions = buildComposerSuggestions({
         clearLibraryPalette,
         collectionMembershipFilter,
         collections,
@@ -7190,7 +6888,7 @@ function BrowserContent({
         setCollectionMembershipFilter,
         setDomainFilters,
         setGroupBy,
-        setIsCommandOpen,
+        setIsComposerOpen,
         setQuery,
         setSearchTerms,
         setSortMode,
@@ -7202,16 +6900,19 @@ function BrowserContent({
 
     const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(true);
 
-    const [prevSuggestionCount, setPrevSuggestionCount] = React.useState(0);
-    if (!Object.is(prevSuggestionCount, suggestions.length)) {
-        if (suggestions.length > 0 && prevSuggestionCount === 0) {
+    // Reopen the dismissed suggestions bar whenever a query transition goes
+    // 0 -> N suggestions, so a dismissal only lasts while the current query
+    // still yields suggestions.
+    const prevSuggestionCountRef = React.useRef(0);
+    React.useEffect(() => {
+        if (prevSuggestionCountRef.current === 0 && suggestions.length > 0) {
             setIsSuggestionsOpen(true);
         }
-        setPrevSuggestionCount(suggestions.length);
-    }
+        prevSuggestionCountRef.current = suggestions.length;
+    }, [suggestions.length]);
 
     const focusPaletteInput = useStableCallback((select = false) => {
-        setIsCommandOpen(true);
+        setIsComposerOpen(true);
         queueMicrotask(() => {
             inputRef.current?.focus();
             if (select) {
@@ -7230,7 +6931,7 @@ function BrowserContent({
         paletteCaretTimeout.start(0, placeCaret);
     });
 
-    const handleCommandOpenChange = useStableCallback(
+    const handleComposerOpenChange = useStableCallback(
         (
             nextOpen: boolean,
             eventDetails: AutocompleteRootChangeEventDetails
@@ -7247,25 +6948,21 @@ function BrowserContent({
                     return;
                 }
 
-                setIsCommandOpen(true);
+                setIsComposerOpen(true);
                 return;
             }
 
-            setIsCommandOpen(() => {
-                if (!nextOpen && suppressNextCommandCloseRef.current) {
-                    suppressNextCommandCloseRef.current = false;
+            setIsComposerOpen(() => {
+                if (!nextOpen && suppressNextComposerCloseRef.current) {
+                    suppressNextComposerCloseRef.current = false;
                     return true;
                 }
 
                 if (!nextOpen) {
-                    const shell = commandPanelContainerRef.current;
-                    const ownerWindow = shell?.ownerDocument.defaultView;
-                    const active = shell?.ownerDocument.activeElement;
+                    const shell = composerContainerRef.current;
                     const focusInsidePalette = Boolean(
                         shell &&
-                            ownerWindow &&
-                            active instanceof ownerWindow.Node &&
-                            shell.contains(active)
+                            contains(shell, activeElement(shell.ownerDocument))
                     );
                     const reason = eventDetails.reason;
 
@@ -7280,7 +6977,7 @@ function BrowserContent({
                 }
 
                 if (nextOpen) {
-                    suppressNextCommandCloseRef.current = false;
+                    suppressNextComposerCloseRef.current = false;
                 }
 
                 return nextOpen;
@@ -7289,14 +6986,17 @@ function BrowserContent({
     );
 
     const handleWindowKeyDown = useStableCallback((event: KeyboardEvent) => {
-        const target = event.target;
-        const ownerWindow = commandPanelContainerRef.current
-            ? getOwnerWindow(commandPanelContainerRef.current)
+        const target = getTarget(event);
+        const ownerWindow = composerContainerRef.current
+            ? getOwnerWindow(composerContainerRef.current)
             : getOwnerWindow();
         const isTextEntry = isTextEntryTarget(target);
         const isPaletteEventTarget =
-            target instanceof ownerWindow.Node &&
-            commandPanelContainerRef.current?.contains(target);
+            target instanceof ownerWindow.Element &&
+            Boolean(
+                composerContainerRef.current &&
+                    contains(composerContainerRef.current, target)
+            );
 
         if (isSearchHotkey(event)) {
             event.preventDefault();
@@ -7369,14 +7069,11 @@ function BrowserContent({
         placePaletteCaretAtEnd(event.key);
     });
 
-    useHotkeys(
-        "*",
-        handleWindowKeyDown,
-        { description: "Focus command menu" },
-        [focusPaletteInput]
-    );
+    useHotkeys("*", handleWindowKeyDown, { description: "Focus composer" }, [
+        focusPaletteInput,
+    ]);
 
-    const handleCommandInputChange = useStableCallback(
+    const handleComposerInputChange = useStableCallback(
         (next: string, eventDetails: AutocompleteRootChangeEventDetails) => {
             if (paletteGroupValueSet.has(next)) {
                 eventDetails.cancel();
@@ -7387,9 +7084,9 @@ function BrowserContent({
         }
     );
 
-    const removeCommandAttachment = useStableCallback((id: string) => {
-        setCommandAttachments((current) => {
-            const nextAttachments: LibraryCommandAttachment[] = [];
+    const removeComposerAttachment = useStableCallback((id: string) => {
+        setComposerAttachments((current) => {
+            const nextAttachments: ComposerAttachment[] = [];
             for (const attachment of current) {
                 if (attachment.id === id) {
                     revokeFileAttachmentObjectUrl(attachment.url);
@@ -7405,13 +7102,13 @@ function BrowserContent({
         collectionMembershipFilter,
         collections,
         columnCountMode,
-        commandAttachments,
+        composerAttachments,
         domainFilters,
         duplicatesFilterEnabled,
         groupBy,
         lastVisitedFilterEnabled,
         onRemoveCollectionFilter,
-        onRemoveCommandAttachment: removeCommandAttachment,
+        onRemoveComposerAttachment: removeComposerAttachment,
         searchTerms,
         selectedCollectionIds,
         setCollectionMembershipFilter,
@@ -7442,14 +7139,14 @@ function BrowserContent({
                 if (event.key === "Escape") {
                     if (query.trim() !== "") {
                         setQuery("");
-                        setIsCommandOpen(true);
+                        setIsComposerOpen(true);
                         return;
                     }
                     if (paletteSection !== "search") {
                         returnToSearchSection();
                         return;
                     }
-                    setIsCommandOpen(false);
+                    setIsComposerOpen(false);
                     event.currentTarget.blur();
                     return;
                 }
@@ -7469,8 +7166,8 @@ function BrowserContent({
                 return;
             }
 
-            if (event.key === "ArrowDown" && !isCommandOpen) {
-                setIsCommandOpen(true);
+            if (event.key === "ArrowDown" && !isComposerOpen) {
+                setIsComposerOpen(true);
             }
         }
     );
@@ -7479,7 +7176,7 @@ function BrowserContent({
         setActiveNote(NOTE_DRAWER_NEW);
     });
 
-    const handleOpenCommandFromOnboarding = useStableCallback(() => {
+    const handleOpenComposerFromOnboarding = useStableCallback(() => {
         setPaletteSection("search");
         focusPaletteInput(true);
     });
@@ -7624,7 +7321,7 @@ function BrowserContent({
 
             setQuery("");
             setPaletteSection("search");
-            setIsCommandOpen(false);
+            setIsComposerOpen(false);
             setSearchTerms(nextFilters.searchTerms);
             setSourceFilters(nextFilters.sourceFilters);
             setDomainFilters(nextFilters.domainFilters);
@@ -7709,7 +7406,7 @@ function BrowserContent({
     );
 
     useIsoLayoutEffect(() => {
-        const element = commandPanelContainerRef.current;
+        const element = composerContainerRef.current;
         if (!element) {
             return;
         }
@@ -7719,28 +7416,22 @@ function BrowserContent({
         }
 
         const handleFocusIn = (event: FocusEvent) => {
-            if (event.target instanceof ownerWindow.HTMLInputElement) {
-                setIsCommandOpen(true);
+            if (getTarget(event) instanceof ownerWindow.HTMLInputElement) {
+                setIsComposerOpen(true);
             }
         };
 
         const handleFocusOut = (event: FocusEvent) => {
             const { relatedTarget } = event;
             if (
-                relatedTarget instanceof ownerWindow.Node &&
-                element.contains(relatedTarget)
+                relatedTarget instanceof ownerWindow.Element &&
+                contains(element, relatedTarget)
             ) {
                 return;
             }
             const closeIfLeft = () => {
-                const active = element.ownerDocument.activeElement;
-                if (
-                    !(
-                        active instanceof ownerWindow.Node &&
-                        element.contains(active)
-                    )
-                ) {
-                    setIsCommandOpen(false);
+                if (!contains(element, activeElement(element.ownerDocument))) {
+                    setIsComposerOpen(false);
                 }
             };
             queueMicrotask(closeIfLeft);
@@ -7758,31 +7449,15 @@ function BrowserContent({
 
     React.useEffect(
         () => () => {
-            for (const attachment of commandAttachmentsRef.current) {
+            for (const attachment of composerAttachmentsRef.current) {
                 revokeFileAttachmentObjectUrl(attachment.url);
             }
         },
         []
     );
 
-    let placeholder = "Ask Cache anything";
-    if (paletteSection === "search" && hasActiveFilters) {
-        placeholder = "Ask Cache anything";
-    } else if (paletteSection === "filter") {
-        placeholder = "Filter the library";
-    } else if (paletteSection === "group") {
-        placeholder = "Group results";
-    } else if (paletteSection === "sort") {
-        placeholder = "Sort results";
-    } else if (paletteSection === "columns") {
-        placeholder = "Set the number of columns";
-    } else if (paletteSection === "ai-response") {
-        placeholder = "Ask Cache anything";
-    }
-
-    const sectionStyle: React.CSSProperties & Record<string, string> = {
-        "--library-section-sticky-top": "96px",
-    };
+    const placeholder =
+        PALETTE_PLACEHOLDER_BY_SECTION[paletteSection] ?? "Ask Cache anything";
 
     const handleOpenCreateResultsDialog = useStableCallback(() =>
         handleCreateResultsDialogOpenChange(true)
@@ -7801,7 +7476,7 @@ function BrowserContent({
         }
     );
 
-    const libraryItemsContextValue: LibraryItemsContextValue = {
+    const libraryItemsContextValue: LibraryItemsContext = {
         collectionPreviewThumbnailUrlsById,
         favoriteItemIdSet,
         favoriteItems,
@@ -7819,7 +7494,7 @@ function BrowserContent({
         pendingDeleteItemId: pendingDeleteItem?.id ?? null,
     };
 
-    const browserContextValue: BrowserContextValue = {
+    const browserContextValue: BrowserContext = {
         clearLibraryPalette,
         collapsedSectionKeys: collapsedSectionKeySet,
         collections,
@@ -7862,39 +7537,45 @@ function BrowserContent({
                 >
                     <div
                         className="z-0 flex min-w-0 flex-1 flex-col gap-4 p-8"
-                        style={sectionStyle}
+                        style={
+                            {
+                                "--library-section-sticky-top": "96px",
+                            } as React.CSSProperties
+                        }
                     >
                         <Composer>
                             <ComposerInput
-                                containerRef={commandPanelContainerRef}
+                                containerRef={composerContainerRef}
                                 groups={paletteGroups}
-                                isOpen={isCommandOpen}
+                                isOpen={isComposerOpen}
                                 onKeyDown={handlePaletteInputKeyDown}
-                                onOpenChange={handleCommandOpenChange}
-                                onValueChange={handleCommandInputChange}
+                                onOpenChange={handleComposerOpenChange}
+                                onValueChange={handleComposerInputChange}
                                 placeholder={placeholder}
                                 query={query}
                                 ref={inputRef}
                                 stackEntries={stackEntries}
                             />
                             <ComposerActionsList
-                                actions={{
-                                    canClear,
-                                    duplicatesFilterEnabled,
-                                    groupBy,
-                                    onClearPalette: clearLibraryPalette,
-                                    onCreateNote: handleCreateNote,
-                                    onRemoveDuplicates:
-                                        handleRequestRemoveDuplicates,
-                                    removableDuplicateCount:
-                                        removableDuplicateIds.length,
-                                    resultsSummary,
-                                    sectionsLength: groups.length,
-                                }}
-                                metrics={buildLibraryMetrics({
+                                canClear={canClear}
+                                duplicatesFilterEnabled={
+                                    duplicatesFilterEnabled
+                                }
+                                groupBy={groupBy}
+                                metrics={buildComposerMetrics({
                                     getSourceLabel: sourceLabel,
                                     items: filteredItems,
                                 })}
+                                onClearPalette={clearLibraryPalette}
+                                onCreateNote={handleCreateNote}
+                                onRemoveDuplicates={
+                                    handleRequestRemoveDuplicates
+                                }
+                                removableDuplicateCount={
+                                    removableDuplicateIds.length
+                                }
+                                resultsSummary={resultsSummary}
+                                sectionsLength={groups.length}
                             >
                                 <ComposerActionNew />
                                 <ComposerActionMetrics />
@@ -7904,16 +7585,16 @@ function BrowserContent({
                                     }
                                     onCreateCollection={requestCreate}
                                     onCreateNote={handleCreateNote}
-                                    onOpenCommand={
-                                        handleOpenCommandFromOnboarding
+                                    onOpenComposer={
+                                        handleOpenComposerFromOnboarding
                                     }
                                 />
                                 <ComposerActionRemoveDuplicates />
                             </ComposerActionsList>
                         </Composer>
                         <ComposerSuggestionsList
+                            isOpen={isSuggestionsOpen}
                             onOpenChange={setIsSuggestionsOpen}
-                            open={isSuggestionsOpen}
                             suggestions={suggestions}
                         >
                             {(suggestion, index) => (
@@ -7982,7 +7663,7 @@ function BrowserContent({
                                             LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS
                                         }
                                         maxColumnCount={7}
-                                        render={LockedPreviewCard}
+                                        render={MediaCardLocked}
                                         rowGutter={16}
                                     />
                                 </div>
@@ -8013,7 +7694,7 @@ function BrowserContent({
                     onOpenChange={handleRemoveDuplicatesDialogOpenChange}
                     open={isRemoveDuplicatesDialogOpen}
                 />
-                <CreateResultsCollectionDialog
+                <CreateFromResultsCollectionDialog
                     collections={collections}
                     createResultsDescriptionDraft={
                         createResultsDescriptionDraft
@@ -8040,5 +7721,346 @@ function BrowserContent({
                 />
             </BrowserContext>
         </LibraryItemsContext>
+    );
+}
+
+function MediaCardMenuFavoriteAction() {
+    const { handleToggle, isFavorite } = useMediaCardFavoriteAction();
+
+    return (
+        <MenuItem onClick={handleToggle}>
+            <Star
+                className={cn(
+                    "size-4.5 text-muted-foreground",
+                    isFavorite && "fill-current"
+                )}
+            />
+            {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            <Kbd className="ml-auto">
+                <AltKbd />F
+            </Kbd>
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuFavoriteAction() {
+    const { handleToggle, isFavorite } = useMediaCardFavoriteAction();
+
+    return (
+        <ContextMenuItem onClick={handleToggle}>
+            <Star
+                className={cn(
+                    "size-4.5 text-muted-foreground",
+                    isFavorite && "fill-current"
+                )}
+            />
+            {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            <Kbd className="ml-auto">
+                <AltKbd />F
+            </Kbd>
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuNoteAction() {
+    const handleOpenNote = useMediaCardNoteAction();
+
+    return (
+        <MenuItem onClick={handleOpenNote}>
+            <FilePenLineIcon className="size-4.5 text-muted-foreground" />
+            Edit note
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuNoteAction() {
+    const handleOpenNote = useMediaCardNoteAction();
+
+    return (
+        <ContextMenuItem onClick={handleOpenNote}>
+            <FilePenLineIcon className="size-4.5 text-muted-foreground" />
+            Edit note
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuQuickLookAction() {
+    const { displayTitle, item } = useMediaCardDataContext();
+
+    return (
+        <QuickLookDrawer
+            description={getLibraryItemDomain(item.url)}
+            key={item.url}
+            title={displayTitle}
+            url={item.url}
+        >
+            <QuickLookDrawerTrigger nativeButton={false} render={<MenuItem />}>
+                <EyeIcon className="size-4.5 text-muted-foreground" />
+                Quick Look
+                <Kbd className="ml-auto">
+                    <AltKbd />E
+                </Kbd>
+            </QuickLookDrawerTrigger>
+        </QuickLookDrawer>
+    );
+}
+
+function MediaCardContextMenuQuickLookAction() {
+    const { displayTitle, item } = useMediaCardDataContext();
+
+    return (
+        <QuickLookDrawer
+            description={getLibraryItemDomain(item.url)}
+            key={item.url}
+            title={displayTitle}
+            url={item.url}
+        >
+            <QuickLookDrawerTrigger
+                nativeButton={false}
+                render={<ContextMenuItem />}
+            >
+                <EyeIcon className="size-4.5 text-muted-foreground" />
+                Quick Look
+                <Kbd className="ml-auto">
+                    <AltKbd />E
+                </Kbd>
+            </QuickLookDrawerTrigger>
+        </QuickLookDrawer>
+    );
+}
+
+function MediaCardMenuZoomAction() {
+    const { onZoomIn } = useMediaCardInteractionContext();
+
+    return (
+        <MenuItem onClick={onZoomIn}>
+            <ZoomIn className="size-4.5 text-muted-foreground" />
+            Zoom in
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuZoomAction() {
+    const { onZoomIn } = useMediaCardInteractionContext();
+
+    return (
+        <ContextMenuItem onClick={onZoomIn}>
+            <ZoomIn className="size-4.5 text-muted-foreground" />
+            Zoom in
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuOpenLinkAction() {
+    const { SourceIcon, handleOpenInNewTab } = useMediaCardLinkActions();
+
+    return (
+        <MenuItem className="cursor-alias" onClick={handleOpenInNewTab}>
+            {SourceIcon ? (
+                <SourceIcon className="size-4 text-muted-foreground" />
+            ) : (
+                <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
+            )}
+            Open in New Tab
+            <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuOpenLinkAction() {
+    const { SourceIcon, handleOpenInNewTab } = useMediaCardLinkActions();
+
+    return (
+        <ContextMenuItem className="cursor-alias" onClick={handleOpenInNewTab}>
+            {SourceIcon ? (
+                <SourceIcon className="size-4 text-muted-foreground" />
+            ) : (
+                <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
+            )}
+            Open in New Tab
+            <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuCopyLinkAction() {
+    const { handleCopyLink } = useMediaCardLinkActions();
+
+    return (
+        <MenuItem onClick={handleCopyLink}>
+            <LinkIcon className="size-4.5 text-muted-foreground" />
+            Copy link URL
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuCopyLinkAction() {
+    const { handleCopyLink } = useMediaCardLinkActions();
+
+    return (
+        <ContextMenuItem onClick={handleCopyLink}>
+            <LinkIcon className="size-4.5 text-muted-foreground" />
+            Copy link URL
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuDownloadAction() {
+    const { isDownloading, onDownload } = useMediaCardInteractionContext();
+
+    return (
+        <MenuItem disabled={isDownloading} onClick={onDownload}>
+            <DownloadIcon className="size-4.5 text-muted-foreground" />
+            {isDownloading ? "Downloading..." : "Download"}
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuDownloadAction() {
+    const { isDownloading, onDownload } = useMediaCardInteractionContext();
+
+    return (
+        <ContextMenuItem disabled={isDownloading} onClick={onDownload}>
+            <DownloadIcon className="size-4.5 text-muted-foreground" />
+            {isDownloading ? "Downloading..." : "Download"}
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuFindSimilarAction() {
+    const handleFindSimilar = useMediaCardFindSimilarAction();
+
+    return (
+        <MenuItem onClick={handleFindSimilar}>
+            <SearchIcon className="size-4.5 text-muted-foreground" />
+            Find similar
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuFindSimilarAction() {
+    const handleFindSimilar = useMediaCardFindSimilarAction();
+
+    return (
+        <ContextMenuItem onClick={handleFindSimilar}>
+            <SearchIcon className="size-4.5 text-muted-foreground" />
+            Find similar
+        </ContextMenuItem>
+    );
+}
+
+function MediaCardMenuWaybackAction() {
+    const {
+        handleWayback180,
+        handleWayback30,
+        handleWayback365,
+        handleWayback90,
+        handleWaybackAll,
+    } = useMediaCardWaybackActions();
+
+    return (
+        <MenuSub>
+            <MenuSubTrigger>
+                <History className="size-4.5 text-muted-foreground" />
+                Previous versions
+            </MenuSubTrigger>
+            <MenuSubPopup>
+                <MenuGroup>
+                    <MenuGroupLabel>Wayback Machine</MenuGroupLabel>
+                    <MenuItem onClick={handleWayback30}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        month ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWayback90}>
+                        <History className="size-4 text-muted-foreground" /> 3
+                        months ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWayback180}>
+                        <History className="size-4 text-muted-foreground" /> 6
+                        months ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWayback365}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        year ago
+                    </MenuItem>
+                    <MenuItem onClick={handleWaybackAll}>
+                        <History className="size-4 text-muted-foreground" />
+                        View all snapshots
+                    </MenuItem>
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
+    );
+}
+
+function MediaCardContextMenuWaybackAction() {
+    const {
+        handleWayback180,
+        handleWayback30,
+        handleWayback365,
+        handleWayback90,
+        handleWaybackAll,
+    } = useMediaCardWaybackActions();
+
+    return (
+        <ContextMenuSub>
+            <ContextMenuSubTrigger>
+                <History className="size-4.5 text-muted-foreground" />
+                Previous versions
+            </ContextMenuSubTrigger>
+            <ContextMenuSubPopup>
+                <ContextMenuGroup>
+                    <ContextMenuGroupLabel>
+                        Wayback Machine
+                    </ContextMenuGroupLabel>
+                    <ContextMenuItem onClick={handleWayback30}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        month ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWayback90}>
+                        <History className="size-4 text-muted-foreground" /> 3
+                        months ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWayback180}>
+                        <History className="size-4 text-muted-foreground" /> 6
+                        months ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWayback365}>
+                        <History className="size-4 text-muted-foreground" /> 1
+                        year ago
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={handleWaybackAll}>
+                        <History className="size-4 text-muted-foreground" />
+                        View all snapshots
+                    </ContextMenuItem>
+                </ContextMenuGroup>
+            </ContextMenuSubPopup>
+        </ContextMenuSub>
+    );
+}
+
+function MediaCardMenuDeleteAction() {
+    const { handleDelete, isDeletePending } = useMediaCardDeleteAction();
+
+    return (
+        <MenuItem disabled={isDeletePending} onClick={handleDelete}>
+            {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
+            <Kbd className="ml-auto">
+                <CmdKbd />⌫
+            </Kbd>
+        </MenuItem>
+    );
+}
+
+function MediaCardContextMenuDeleteAction() {
+    const { handleDelete, isDeletePending } = useMediaCardDeleteAction();
+
+    return (
+        <ContextMenuItem disabled={isDeletePending} onClick={handleDelete}>
+            {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
+            <Kbd className="ml-auto">
+                <CmdKbd />⌫
+            </Kbd>
+        </ContextMenuItem>
     );
 }

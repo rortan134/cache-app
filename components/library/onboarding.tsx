@@ -17,7 +17,7 @@ import { storage } from "stan-js/storage";
 import {
     shareCollectionPubliclySafely,
     useCollectionsContext,
-    useCollectionsPendingActions,
+    useCollectionsPendingActionsContext,
     useLibraryItemsContext,
 } from "@/components/library/collections";
 import { useIntegrationsListStore } from "@/components/library/integrations";
@@ -41,7 +41,7 @@ import {
     MenuTrigger,
 } from "@/components/ui/menu";
 import { RadialIcon } from "@/components/ui/radial-icon";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useSidebarContext } from "@/components/ui/sidebar";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
 import type {
@@ -70,8 +70,8 @@ const ONBOARDING_TASK_META = [
         label: "Add a note",
     },
     {
-        id: "command",
-        label: "Try the Command",
+        id: "composer",
+        label: "Try the Composer",
     },
     {
         id: "share",
@@ -166,8 +166,8 @@ function getCompletedTaskIdSet({
     if (items.some((item) => item.kind === ITEM_KIND_NOTE)) {
         completed.add("note");
     }
-    if (completedOnboardingTaskIds.includes("command")) {
-        completed.add("command");
+    if (completedOnboardingTaskIds.includes("composer")) {
+        completed.add("composer");
     }
     if (completedOnboardingTaskIds.includes("pain-point-survey")) {
         completed.add("pain-point-survey");
@@ -197,22 +197,22 @@ interface OnboardingMenuProps {
     connectedIntegrationCount: number;
     onCreateCollection: () => void;
     onCreateNote: () => void;
-    onOpenCommand: () => void;
+    onOpenComposer: () => void;
 }
 
 export function OnboardingMenu({
     connectedIntegrationCount,
     onCreateCollection,
     onCreateNote,
-    onOpenCommand,
+    onOpenComposer,
 }: OnboardingMenuProps) {
     const gt = useGT();
 
     const { claimCollectionAction, isCollectionActionPending } =
-        useCollectionsPendingActions();
+        useCollectionsPendingActionsContext();
     const { collections, syncCollectionShare } = useCollectionsContext();
     const { items } = useLibraryItemsContext();
-    const { setOpen: setIsSidebarOpen } = useSidebar();
+    const { setOpen: setIsSidebarOpen } = useSidebarContext();
     const { copyToClipboard } = useCopyToClipboard();
 
     const { setIsIntegrationsListOpen } = useIntegrationsListStore();
@@ -253,9 +253,9 @@ export function OnboardingMenu({
         setCompletedOnboardingTaskIds((current) => addUnique(current, taskId));
     });
 
-    const handleOpenCommand = useStableCallback(() => {
-        markTaskCompleted("command");
-        onOpenCommand();
+    const handleOpenComposer = useStableCallback(() => {
+        markTaskCompleted("composer");
+        onOpenComposer();
     });
 
     const handleOpenIntegrations = useStableCallback(() => {
@@ -404,7 +404,7 @@ export function OnboardingMenu({
     const taskHandlerMap: Record<OnboardingTaskId, () => void | Promise<void>> =
         {
             collection: onCreateCollection,
-            command: handleOpenCommand,
+            composer: handleOpenComposer,
             integration: handleOpenIntegrations,
             note: onCreateNote,
             "pain-point-survey": handleOpenSurveyDialog,

@@ -21,59 +21,50 @@ import { stopPropagationForMenuTextInputKeys } from "@/lib/common/dom";
 
 const COMMENT_SWR_KEY_PREFIX = "library-item-comment";
 
-interface CommentActionPayload {
-    contentText: string | null;
-}
-
 async function fetchItemComment([
     _commentSwrKeyPrefix,
     libraryItemId,
-]: readonly [string, string]): Promise<CommentActionPayload> {
+]: readonly [string, string]): Promise<string | null> {
     const result = await getLibraryItemComment(libraryItemId);
 
     if (result.status !== ACTION_STATUS.SUCCESS) {
         throw new Error(result.message);
     }
 
-    return { contentText: result.contentText };
+    return result.contentText;
 }
 
-function getCommentSWRKey(itemId: string, open: boolean) {
+function getCommentKey(itemId: string, open: boolean) {
     return open ? [COMMENT_SWR_KEY_PREFIX, itemId] : null;
 }
 
 interface CommentTextareaProps {
+    isOpen: boolean;
     item: LibraryItemWithCollections;
-    open: boolean;
 }
 
-/**
- * Single-comment editor for a library item. Rendered inside the card's menu
- * surfaces; the comment is fetched on demand (only while a surface is open)
- * and autosaved through `useAutosave`, which also flushes on unmount so a
- * popup closing mid-edit still persists.
- */
-export function CommentTextarea({ item, open }: CommentTextareaProps) {
+export function CommentTextarea({ isOpen, item }: CommentTextareaProps) {
     const gt = useGT();
     const { data, error, isLoading, mutate } = useSWR(
-        getCommentSWRKey(item.id, open),
+        getCommentKey(item.id, isOpen),
         fetchItemComment,
         { keepPreviousData: true }
     );
 
     // Once armed (first opened with the menu), stay armed until unmount so the
-    // autosave flush fires when the popup closes. Without this latch, `open`
+    // autosave flush fires when the popup closes. Without this latch, `isOpen`
     // flips false in the render that precedes unmount, `enabled` follows, and
     // edits made right before closing would be dropped.
     const [hasOpened, setHasOpened] = React.useState(false);
-    if (open && !hasOpened) {
+    if (isOpen && !hasOpened) {
         setHasOpened(true);
     }
 
-    const savedContent = data?.contentText ?? "";
+    const savedContent = data ?? "";
     const [content, setContent] = React.useState(savedContent);
+
     const contentRef = useValueAsRef(content);
-    const hasUserEditedRef = React.useRef(false);
+    const hasBeenEditedRef = React.useRef(false);
 
     // When the fetched comment lands (or a save round-trips), replace the
     // draft unless the user is mid-edit. Mirrors the note editor's
@@ -82,7 +73,7 @@ export function CommentTextarea({ item, open }: CommentTextareaProps) {
         React.useState(savedContent);
     if (prevSavedContent !== savedContent) {
         setPrevSavedContent(savedContent);
-        if (!hasUserEditedRef.current) {
+        if (!hasBeenEditedRef.current) {
             setContent(savedContent);
         }
     }
@@ -96,17 +87,17 @@ export function CommentTextarea({ item, open }: CommentTextareaProps) {
         if (result.status !== ACTION_STATUS.SUCCESS) {
             return false;
         }
-        await mutate({ contentText: result.contentText });
+        await mutate(result.contentText);
         // Clear the mid-edit latch only after the round-trip lands; clearing it
         // before `mutate` would let the draft guard overwrite keystrokes typed
         // while the save was in flight.
-        hasUserEditedRef.current = false;
+        hasBeenEditedRef.current = false;
         return true;
     });
 
     const handleChange = useStableCallback(
         (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            hasUserEditedRef.current = true;
+            hasBeenEditedRef.current = true;
             setContent(event.currentTarget.value);
         }
     );

@@ -72,6 +72,11 @@ import {
     ComboboxTrigger,
 } from "@/components/ui/combobox";
 import {
+    DataList,
+    DataListItem,
+    DataListSection,
+} from "@/components/ui/data-list";
+import {
     Dialog,
     DialogClose,
     DialogDescription,
@@ -171,6 +176,7 @@ import {
     ACTION_STATUS,
     ITEM_KIND_NOTE,
     MIME_TYPES,
+    NAME_MAX_LENGTH,
 } from "@/lib/common/constants";
 import { dayjs } from "@/lib/common/dayjs";
 import { canUseDOM } from "@/lib/common/dom";
@@ -246,8 +252,6 @@ const PREVIEW_IMAGE_LOADS = new Map<
 >();
 const PREVIEW_IMAGE_LOAD_TIMEOUT_MS = 15_000;
 
-const NAME_MAX_LENGTH = 64;
-
 const COLLECTIONS_LIST_SORT_FIELD_STORAGE_KEY = "cache:collections:sort-field";
 const COLLECTIONS_LIST_TEXT_MATCH_QUERY_STORAGE_KEY =
     "cache:collections:text-match-query";
@@ -270,28 +274,7 @@ const LEGACY_COLLECTIONS_LIST_STORAGE_KEYS: Record<string, string> = {
     isRecommendationsOpen: COLLECTIONS_RECOMMENDATIONS_OPEN_STORAGE_KEY,
 };
 
-function migrateCollectionsListStorage(): void {
-    if (!canUseDOM) {
-        return;
-    }
-    try {
-        for (const [legacyKey, currentKey] of Object.entries(
-            LEGACY_COLLECTIONS_LIST_STORAGE_KEYS
-        )) {
-            if (localStorage.getItem(currentKey) !== null) {
-                continue;
-            }
-            const legacyValue = localStorage.getItem(legacyKey);
-            if (legacyValue === null) {
-                continue;
-            }
-            localStorage.setItem(currentKey, legacyValue);
-            localStorage.removeItem(legacyKey);
-        }
-    } catch {
-        // migration is best-effort and the store falls back to defaults.
-    }
-}
+migrateLegacyCollectionsListStorage();
 
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
     compactDisplay: "short",
@@ -391,6 +374,24 @@ const VIEW_OPTIONS = [
     { icon: GlobeCheck, label: "Show shared only", value: "show-shared-only" },
 ] as const;
 
+const LIST_FORMATTER = new Intl.ListFormat(undefined, {
+    style: "long",
+    type: "conjunction",
+});
+
+const NAME_COLLATOR = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: "base",
+});
+
+const SUMMARY_SORTERS = {
+    count: compareItemCount,
+    created: compareCreatedAt,
+    name: compareNames,
+    priority: comparePriorities,
+    updated: compareUpdatedAt,
+} satisfies SummarySorter;
+
 type CollectionSortField =
     | "count"
     | "created"
@@ -482,7 +483,7 @@ type SummarySorter = Record<
     (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
 >;
 
-interface CollectionsContextValue {
+interface CollectionsContext {
     collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionSummary[];
     mergeCollectionSummaries: (collections: LibraryCollectionSummary[]) => void;
@@ -503,7 +504,7 @@ interface CollectionsContextValue {
     syncCollectionShare: (next: CollectionShareState) => void;
 }
 
-interface CollectionsPendingActionsContextValue {
+interface CollectionsPendingActionsContext {
     claimCollectionAction: (
         action: CollectionAction,
         collectionId: string
@@ -514,7 +515,7 @@ interface CollectionsPendingActionsContextValue {
     ) => boolean;
 }
 
-export interface LibraryItemsContextValue {
+export interface LibraryItemsContext {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     favoriteItemIdSet: ReadonlySet<string>;
     favoriteItems: LibraryItemWithCollections[];
@@ -537,30 +538,30 @@ export interface LibraryItemsContextValue {
     pendingDeleteItemId: string | null;
 }
 
-interface CollectionsListItemContextValue {
+interface CollectionsListItemContext {
     collection: LibraryCollectionSummary;
     isSelected: boolean;
     source: CollectionListSource;
 }
 
-interface CollectionsListHoverContextValue {
+interface CollectionsListHoverContext {
     hoveredCollectionIdRef: React.RefObject<string | null>;
     hoveredCollectionSourceRef: React.RefObject<CollectionListSource | null>;
     setHoveredCollectionSource: (source: CollectionListSource | null) => void;
 }
 
-interface CollectionsCreateDialogState {
+interface CollectionsCreateDialogContext {
     createItemId: string | null;
     isCreateOpen: boolean;
 }
 
-interface CollectionsListState {
+interface CollectionsListStateContext {
     pendingDeleteId: string | null;
     pendingPriorityComboboxOpen: PriorityComboboxOpenTarget | null;
     pendingRenameId: string | null;
 }
 
-interface CollectionsListActions {
+interface CollectionsListActionsContext {
     closeCreateDialog: () => void;
     closePendingDelete: () => void;
     closePendingRename: () => void;
@@ -585,658 +586,14 @@ interface CollectionsListActions {
     syncName: (id: string, name: string) => void;
 }
 
+interface CreateFormState {
+    descriptionDraft: string;
+    descriptionErrorMessage: string | null;
+    errorMessage: string | null;
+    nameDraft: string;
+}
+
 const log = createLogger("library:collections");
-
-const LIST_FORMATTER = new Intl.ListFormat(undefined, {
-    style: "long",
-    type: "conjunction",
-});
-
-const NAME_COLLATOR = new Intl.Collator(undefined, {
-    numeric: true,
-    sensitivity: "base",
-});
-
-function getToggledArchivePriority(
-    priority: CollectionPriority
-): CollectionPriority {
-    return priority === "archive" ? "none" : "archive";
-}
-
-function compareNames<T extends Pick<SortableCollectionSummary, "name">>(
-    a: T,
-    b: T
-) {
-    return NAME_COLLATOR.compare(a.name, b.name);
-}
-
-function comparePriorities<
-    T extends Pick<SortableCollectionSummary, "name" | "priority">,
->(a: T, b: T) {
-    const diff = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-    return diff === 0 ? compareNames(a, b) : diff;
-}
-
-function compareCreatedAt<
-    T extends Pick<SortableCollectionSummary, "createdAt">,
->(a: T, b: T) {
-    return b.createdAt.getTime() - a.createdAt.getTime();
-}
-
-function compareUpdatedAt<
-    T extends Pick<SortableCollectionSummary, "updatedAt">,
->(a: T, b: T) {
-    return b.updatedAt.getTime() - a.updatedAt.getTime();
-}
-
-function compareItemCount<
-    T extends Pick<SortableCollectionSummary, "itemCount">,
->(a: T, b: T) {
-    return b.itemCount - a.itemCount;
-}
-
-function textMatchScore(
-    collection: Pick<SortableCollectionSummary, "name">,
-    normalizedQuery: string
-) {
-    if (normalizedQuery.length === 0) {
-        return 0;
-    }
-    const name = collection.name.trim().toLowerCase();
-    if (name === normalizedQuery) {
-        return 3;
-    }
-    if (name.startsWith(normalizedQuery)) {
-        return 2;
-    }
-    if (name.includes(normalizedQuery)) {
-        return 1;
-    }
-    return 0;
-}
-
-function compareTextMatch(query: string) {
-    const normalizedQuery = query.trim().toLowerCase();
-    return (a: SortableCollectionSummary, b: SortableCollectionSummary) =>
-        textMatchScore(b, normalizedQuery) -
-            textMatchScore(a, normalizedQuery) || compareNames(a, b);
-}
-
-const SUMMARY_SORTERS = {
-    count: compareItemCount,
-    created: compareCreatedAt,
-    name: compareNames,
-    priority: comparePriorities,
-    updated: compareUpdatedAt,
-} satisfies SummarySorter;
-
-export function sortCollections<
-    T extends Pick<LibraryCollectionSummary, "name" | "priority">,
->(collections: readonly T[]): T[] {
-    return collections.toSorted(comparePriorities);
-}
-
-function sortCollectionSummaries<T extends SortableCollectionSummary>(
-    collections: readonly T[],
-    sortField: CollectionSortField,
-    textMatchQuery = ""
-): T[] {
-    const comparator =
-        sortField === "text-match"
-            ? compareTextMatch(textMatchQuery)
-            : SUMMARY_SORTERS[sortField];
-    return collections.toSorted(comparator);
-}
-
-function getVisibleCollections(
-    collections: LibraryCollectionSummary[],
-    view: CollectionView
-): LibraryCollectionSummary[] {
-    if (view === "exclude-archives") {
-        return collections.filter(
-            (collection) => collection.priority !== "archive"
-        );
-    }
-    if (view === "show-shared-only") {
-        return collections.filter((collection) => collection.shareId !== null);
-    }
-    return collections;
-}
-
-function appendCollection(
-    items: LibraryItemWithCollections[],
-    itemIds: string[],
-    collection: LibraryCollectionTag
-): LibraryItemWithCollections[] {
-    const itemIdSet = new Set(itemIds);
-    if (itemIdSet.size === 0) {
-        return items;
-    }
-
-    return items.map((item) => {
-        if (!itemIdSet.has(item.id)) {
-            return item;
-        }
-        if (item.collections.some((entry) => entry.id === collection.id)) {
-            return item;
-        }
-        return {
-            ...item,
-            collections: sortCollections([...item.collections, collection]),
-        };
-    });
-}
-
-function mergeCollectionSummaries(
-    collections: LibraryCollectionSummary[],
-    nextCollections: LibraryCollectionSummary[]
-): LibraryCollectionSummary[] {
-    if (nextCollections.length === 0) {
-        return collections;
-    }
-    return sortCollections(mergeById(collections, nextCollections));
-}
-
-function patchCollection<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    patch: Partial<Pick<T, keyof LibraryCollectionTag>>
-): T[] {
-    return updateById(collections, id, (collection) => ({
-        ...collection,
-        ...patch,
-    }));
-}
-
-function replaceCollectionShareState<T extends LibraryCollectionTag>(
-    collections: T[],
-    next: CollectionShareState
-): T[] {
-    return patchCollection(collections, next.id, {
-        sharedAt: next.sharedAt,
-        shareId: next.shareId,
-        updatedAt: next.updatedAt,
-    });
-}
-
-function replaceCollectionName<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    name: string
-): T[] {
-    return sortCollections(patchCollection(collections, id, { name }));
-}
-
-function replaceCollectionPriority<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    priority: CollectionPriority
-): T[] {
-    return sortCollections(patchCollection(collections, id, { priority }));
-}
-
-export function reconcileCollectionTags(
-    collections: readonly LibraryCollectionSummary[],
-    tags: readonly LibraryCollectionTag[]
-): LibraryCollectionTag[] {
-    const collectionById = keyBy(collections, (collection) => collection.id);
-
-    return tags.flatMap((tag) => {
-        const collection = collectionById.get(tag.id);
-        if (!collection) {
-            return [];
-        }
-        return [
-            {
-                createdAt: collection.createdAt,
-                description: collection.description,
-                id: collection.id,
-                name: collection.name,
-                priority: collection.priority,
-                sharedAt: collection.sharedAt,
-                shareId: collection.shareId,
-                updatedAt: collection.updatedAt,
-            },
-        ];
-    });
-}
-
-function replaceItemCollectionTags(
-    items: LibraryItemWithCollections[],
-    updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
-): LibraryItemWithCollections[] {
-    return items.map((item) => ({
-        ...item,
-        collections: updater(item.collections),
-    }));
-}
-
-export function replaceMultipleItemCollections(
-    items: LibraryItemWithCollections[],
-    itemCollections: Array<{
-        collections: LibraryCollectionTag[];
-        itemId: string;
-    }>
-): LibraryItemWithCollections[] {
-    if (itemCollections.length === 0) {
-        return items;
-    }
-
-    const collectionsByItemId = keyBy(itemCollections, (entry) => entry.itemId);
-
-    return items.map((item) => {
-        const nextCollections = collectionsByItemId.get(item.id)?.collections;
-        return nextCollections === undefined
-            ? item
-            : { ...item, collections: nextCollections };
-    });
-}
-
-export function buildCollectionItemIndexes(
-    items: LibraryItemWithCollections[]
-): {
-    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
-    itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
-} {
-    const itemsByCollectionId = new Map<string, LibraryItemWithCollections[]>();
-    for (const item of items) {
-        for (const collection of item.collections) {
-            const entries = itemsByCollectionId.get(collection.id);
-            if (entries) {
-                entries.push(item);
-            } else {
-                itemsByCollectionId.set(collection.id, [item]);
-            }
-        }
-    }
-
-    const collectionPreviewThumbnailUrlsById = new Map<string, string[]>();
-    for (const [collectionId, collectionItems] of itemsByCollectionId) {
-        collectionPreviewThumbnailUrlsById.set(
-            collectionId,
-            buildCollectionPreviewThumbnailUrls(collectionId, collectionItems)
-        );
-    }
-
-    return {
-        collectionPreviewThumbnailUrlsById,
-        itemsByCollectionId,
-    };
-}
-
-function buildCollectionPreviewThumbnailUrls(
-    collectionId: string,
-    items: LibraryItemWithCollections[]
-): string[] {
-    const previewEntries: Array<{ orderSeed: number; url: string }> = [];
-
-    for (const item of items) {
-        const url = itemPreviewImageUrl(item);
-        if (url === null) {
-            continue;
-        }
-        previewEntries.push({
-            orderSeed: djb2Hash(`${collectionId}:${item.id}`),
-            url,
-        });
-    }
-
-    return previewEntries
-        .sort((left, right) => left.orderSeed - right.orderSeed)
-        .slice(0, COLLECTION_PREVIEW_THUMBNAIL_LIMIT)
-        .map((entry) => entry.url);
-}
-
-function getCollectionActionKey(
-    action: CollectionAction,
-    collectionId: string
-): string {
-    return `${action}:${collectionId}`;
-}
-
-function rememberPreviewImage(url: string, aspectRatio: number): void {
-    if (
-        !PREVIEW_IMAGE_CACHE.has(url) &&
-        PREVIEW_IMAGE_CACHE.size >= PREVIEW_IMAGE_CACHE_MAX
-    ) {
-        const oldestKey = PREVIEW_IMAGE_CACHE.keys().next().value;
-        if (oldestKey !== undefined) {
-            PREVIEW_IMAGE_CACHE.delete(oldestKey);
-        }
-    }
-    PREVIEW_IMAGE_CACHE.set(url, aspectRatio);
-}
-
-function getReadyPreviewSlides(urls: string[]): ReadyPreviewSlide[] {
-    const slides: ReadyPreviewSlide[] = [];
-    for (const url of urls) {
-        const aspectRatio = PREVIEW_IMAGE_CACHE.get(url);
-        if (aspectRatio !== undefined) {
-            slides.push({ aspectRatio, src: url });
-        }
-    }
-    return slides;
-}
-
-function mergeReadyPreviewSlide(
-    urls: string[],
-    previous: ReadyPreviewSlide[],
-    slide: ReadyPreviewSlide
-): ReadyPreviewSlide[] {
-    if (previous.some((entry) => entry.src === slide.src)) {
-        return previous;
-    }
-    const readyBySrc = keyBy(previous, (entry) => entry.src);
-    readyBySrc.set(slide.src, slide);
-    return urls.flatMap((url) => {
-        const entry = readyBySrc.get(url);
-        return entry ? [entry] : [];
-    });
-}
-
-function resolveActivePreviewSlide(
-    readySlides: ReadyPreviewSlide[],
-    activeSrc: string | null
-): ReadyPreviewSlide | null {
-    if (activeSrc !== null) {
-        const match = readySlides.find((slide) => slide.src === activeSrc);
-        if (match) {
-            return match;
-        }
-    }
-    return readySlides[0] ?? null;
-}
-
-function nextPreviewSlideSrc(
-    readySlides: ReadyPreviewSlide[],
-    activeSrc: string | null
-): string | null {
-    const first = readySlides[0];
-    if (!first) {
-        return null;
-    }
-    if (readySlides.length === 1) {
-        return first.src;
-    }
-    const currentIndex = readySlides.findIndex(
-        (slide) => slide.src === activeSrc
-    );
-    const nextIndex =
-        currentIndex < 0 ? 0 : (currentIndex + 1) % readySlides.length;
-    return readySlides[nextIndex]?.src ?? first.src;
-}
-
-function startPreviewImageLoads(
-    urls: string[],
-    onReady: (slide: ReadyPreviewSlide) => void,
-    isCancelled: () => boolean
-): void {
-    if (urls.length === 0) {
-        return;
-    }
-
-    let nextIndex = 0;
-
-    const runNext = (): Promise<void> => {
-        if (isCancelled() || nextIndex >= urls.length) {
-            return Promise.resolve();
-        }
-        const url = urls[nextIndex];
-        nextIndex += 1;
-        if (url === undefined) {
-            return runNext();
-        }
-        return loadPreviewImage(url).then(
-            (slide) => {
-                if (!(isCancelled() || slide === null)) {
-                    onReady(slide);
-                }
-                return runNext();
-            },
-            () => runNext()
-        );
-    };
-
-    const workerCount = Math.min(PREVIEW_IMAGE_LOAD_CONCURRENCY, urls.length);
-    for (let worker = 0; worker < workerCount; worker += 1) {
-        runNext().catch(() => undefined);
-    }
-}
-
-function loadPreviewImage(url: string): Promise<ReadyPreviewSlide | null> {
-    const cachedAspectRatio = PREVIEW_IMAGE_CACHE.get(url);
-    if (cachedAspectRatio !== undefined) {
-        return Promise.resolve({ aspectRatio: cachedAspectRatio, src: url });
-    }
-
-    const inflight = PREVIEW_IMAGE_LOADS.get(url);
-    if (inflight) {
-        return inflight;
-    }
-
-    const promise = new Promise<ReadyPreviewSlide | null>((resolve) => {
-        const image = document.createElement("img");
-        image.decoding = "async";
-        let settled = false;
-        let timeoutId = 0;
-
-        const settle = (slide: ReadyPreviewSlide | null) => {
-            if (settled) {
-                return;
-            }
-            settled = true;
-            window.clearTimeout(timeoutId);
-            image.onload = null;
-            image.onerror = null;
-            PREVIEW_IMAGE_LOADS.delete(url);
-            resolve(slide);
-        };
-
-        timeoutId = window.setTimeout(
-            () => settle(null),
-            PREVIEW_IMAGE_LOAD_TIMEOUT_MS
-        );
-
-        image.onload = () => {
-            const { naturalHeight, naturalWidth } = image;
-            if (naturalHeight <= 0 || naturalWidth <= 0) {
-                settle(null);
-                return;
-            }
-            const aspectRatio = naturalWidth / naturalHeight;
-            rememberPreviewImage(url, aspectRatio);
-            settle({ aspectRatio, src: url });
-        };
-        // Failures are not cached so transient CDN/network errors can retry.
-        image.onerror = () => settle(null);
-        image.src = url;
-    });
-
-    PREVIEW_IMAGE_LOADS.set(url, promise);
-    return promise;
-}
-
-function getFavoriteCollections(
-    collectionSummaries: LibraryCollectionSummary[],
-    favoriteCollectionIds: readonly string[]
-): LibraryCollectionSummary[] {
-    if (favoriteCollectionIds.length === 0) {
-        return [];
-    }
-    const favoriteCollectionIdSet = new Set(favoriteCollectionIds);
-    return collectionSummaries.filter((collection) =>
-        favoriteCollectionIdSet.has(collection.id)
-    );
-}
-
-function getPriorityOption(priority: CollectionPriority): PriorityOption {
-    return PRIORITY_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY;
-}
-
-function getCollectionItemStyle(
-    name: string,
-    isSelected: boolean
-): CollectionItemStyle {
-    const hexColor = getHexColorFromName(name);
-    const baseMix = `color-mix(in srgb, ${hexColor} ${isSelected ? 20 : 10}%, transparent)`;
-
-    return {
-        "--accent-color": `color-mix(in srgb, ${hexColor}, light-dark(black, white) 20%)`,
-        "--collection-background": isSelected
-            ? `color-mix(in srgb, ${baseMix}, light-dark(white, black) 4%)`
-            : `color-mix(in srgb, ${baseMix}, light-dark(black, white) 4%)`,
-        "--text-muted-color": `color-mix(in srgb, ${hexColor} 28%, light-dark(black, white) 22%)`,
-    };
-}
-
-function toComboboxValue(
-    option: { icon: React.ElementType; label: string },
-    current: ComboboxValue,
-    overrides: Partial<
-        Pick<ComboboxValue, "sortField" | "sortQuery" | "view">
-    > = {}
-): ComboboxValue {
-    return {
-        icon: option.icon,
-        label: option.label,
-        sortField: overrides.sortField ?? current.sortField,
-        sortQuery: overrides.sortQuery ?? current.sortQuery,
-        view: overrides.view ?? current.view,
-    };
-}
-
-function getComboboxCollectionsSortingGroups(
-    inputValue: string,
-    currentValue: ComboboxValue
-): ComboboxGroupData[] {
-    const query = inputValue.trim();
-    const normalizedQuery = query.toLowerCase();
-
-    const matchingSortOptions = SORT_OPTIONS.filter((option) =>
-        option.label.toLowerCase().includes(normalizedQuery)
-    );
-
-    const hasActiveTextMatch =
-        currentValue.sortField === "text-match" &&
-        currentValue.sortQuery.length > 0;
-
-    const queryMatchesActiveTextMatch =
-        hasActiveTextMatch &&
-        currentValue.sortQuery.toLowerCase().includes(normalizedQuery);
-
-    let textMatchItem: ComboboxValue | null = null;
-
-    if (
-        hasActiveTextMatch &&
-        (normalizedQuery.length === 0 || queryMatchesActiveTextMatch)
-    ) {
-        textMatchItem = toComboboxValue(
-            {
-                icon: ListFilter,
-                label: `\u201c${currentValue.sortQuery}\u201d`,
-            },
-            currentValue,
-            { sortField: "text-match" }
-        );
-    } else if (normalizedQuery.length > 0) {
-        textMatchItem = toComboboxValue(
-            { icon: ListFilter, label: `\u201c${query}\u201d` },
-            currentValue,
-            { sortField: "text-match", sortQuery: query }
-        );
-    }
-
-    const groups: ComboboxGroupData[] = [];
-
-    if (matchingSortOptions.length > 0) {
-        groups.push({
-            group: "sort",
-            items: matchingSortOptions.map((option) =>
-                toComboboxValue(option, currentValue, {
-                    sortField: option.value,
-                })
-            ),
-        });
-    }
-
-    if (textMatchItem) {
-        groups.push({ group: "text-match", items: [textMatchItem] });
-    }
-
-    const matchingViewOptions = VIEW_OPTIONS.filter((option) =>
-        option.label.toLowerCase().includes(normalizedQuery)
-    );
-
-    if (matchingViewOptions.length > 0) {
-        groups.push({
-            group: "view",
-            items: matchingViewOptions.map((option) =>
-                toComboboxValue(option, currentValue, { view: option.value })
-            ),
-        });
-    }
-
-    return groups;
-}
-
-function getComboboxOptionValue(value: ComboboxValue): string {
-    return `${value.sortField}:${value.view}:${value.sortQuery}`;
-}
-
-function isComboboxValueEqual(
-    item: ComboboxValue,
-    value: ComboboxValue
-): boolean {
-    return (
-        item.sortField === value.sortField &&
-        item.view === value.view &&
-        (item.sortField !== "text-match" || item.sortQuery === value.sortQuery)
-    );
-}
-
-function formatFavoritesGroupSummary(
-    collectionLabels: string[],
-    individualItemCount: number
-): string {
-    if (collectionLabels.length === 0 && individualItemCount === 0) {
-        return "";
-    }
-    if (collectionLabels.length === 0) {
-        return individualItemCount === 1
-            ? "1 item"
-            : `${individualItemCount} items`;
-    }
-    if (individualItemCount === 0) {
-        return LIST_FORMATTER.format(collectionLabels);
-    }
-    const moreLabel =
-        individualItemCount === 1 ? "1 more" : `${individualItemCount} more`;
-    return LIST_FORMATTER.format([...collectionLabels, moreLabel]);
-}
-
-function buildPriorityBreakdownEntries(
-    priorityCounts: Partial<Record<CollectionPriority, number>> | undefined
-): PriorityBreakdownEntry[] {
-    return PRIORITIES.flatMap((option) => {
-        const optionCount = priorityCounts?.[option.value] ?? 0;
-        return optionCount > 0 ? [{ ...option, count: optionCount }] : [];
-    }).sort(
-        (left, right) => PRIORITY_RANK[left.value] - PRIORITY_RANK[right.value]
-    );
-}
-
-function getItemUrls(items: LibraryItemWithCollections[]): string[] {
-    return items.map((item) => normalizeURL(item.url));
-}
-
-function getCreatedAssignedItemIds(
-    result: Extract<
-        CollectionCreateResult,
-        { status: typeof ACTION_STATUS.CREATED }
-    >
-): string[] {
-    return result.assignedItemId ? [result.assignedItemId] : [];
-}
 
 const createCollectionSafely = tryAction(
     createCollection,
@@ -1276,8 +633,6 @@ export const shareCollectionPubliclySafely = tryAction(
     (input) => ({ collectionId: input.collectionId })
 );
 
-migrateCollectionsListStorage();
-
 const { useStore: useCollectionsListStore } = createStore({
     favoriteCollectionIds: storage<string[]>([], {
         storageKey: COLLECTIONS_LIST_FAVORITE_IDS_STORAGE_KEY,
@@ -1306,32 +661,9 @@ const { useStore: useCollectionsListFeedbackStore } = createStore({
     feedback: null as CollectionFeedback | null,
 });
 
-const CollectionsContext = React.createContext<CollectionsContextValue | null>(
-    null
-);
+const CollectionsContext = React.createContext<CollectionsContext | null>(null);
 
-export const LibraryItemsContext =
-    React.createContext<LibraryItemsContextValue | null>(null);
-
-const CollectionsListItemContext =
-    React.createContext<CollectionsListItemContextValue | null>(null);
-
-const CollectionsListStateContext =
-    React.createContext<CollectionsListState | null>(null);
-
-const CollectionsListActionsContext =
-    React.createContext<CollectionsListActions | null>(null);
-
-const CollectionsListHoverContext =
-    React.createContext<CollectionsListHoverContextValue | null>(null);
-
-const CollectionsCreateDialogContext =
-    React.createContext<CollectionsCreateDialogState | null>(null);
-
-const CollectionsPendingActionsContext =
-    React.createContext<CollectionsPendingActionsContextValue | null>(null);
-
-export function useCollectionsContext(): CollectionsContextValue {
+export function useCollectionsContext(): CollectionsContext {
     const context = React.use(CollectionsContext);
     if (!context) {
         throw new Error(
@@ -1341,15 +673,8 @@ export function useCollectionsContext(): CollectionsContextValue {
     return context;
 }
 
-export function useLibraryItemsContext(): LibraryItemsContextValue {
-    const context = React.use(LibraryItemsContext);
-    if (!context) {
-        throw new Error(
-            "Library items context is required for library item controls."
-        );
-    }
-    return context;
-}
+const CollectionsListItemContext =
+    React.createContext<CollectionsListItemContext | null>(null);
 
 function useCollectionsListItemContext() {
     const context = React.use(CollectionsListItemContext);
@@ -1361,7 +686,10 @@ function useCollectionsListItemContext() {
     return context;
 }
 
-function useCollectionsListState(): CollectionsListState {
+const CollectionsListStateContext =
+    React.createContext<CollectionsListStateContext | null>(null);
+
+function useCollectionsListStateContext(): CollectionsListStateContext {
     const context = React.use(CollectionsListStateContext);
     if (!context) {
         throw new Error(
@@ -1371,7 +699,10 @@ function useCollectionsListState(): CollectionsListState {
     return context;
 }
 
-function useCollectionsListActions(): CollectionsListActions {
+const CollectionsListActionsContext =
+    React.createContext<CollectionsListActionsContext | null>(null);
+
+function useCollectionsListActionsContext(): CollectionsListActionsContext {
     const context = React.use(CollectionsListActionsContext);
     if (!context) {
         throw new Error(
@@ -1381,7 +712,10 @@ function useCollectionsListActions(): CollectionsListActions {
     return context;
 }
 
-function useCollectionsListHover(): CollectionsListHoverContextValue {
+const CollectionsListHoverContext =
+    React.createContext<CollectionsListHoverContext | null>(null);
+
+function useCollectionsListHoverContext(): CollectionsListHoverContext {
     const context = React.use(CollectionsListHoverContext);
     if (!context) {
         throw new Error(
@@ -1391,7 +725,10 @@ function useCollectionsListHover(): CollectionsListHoverContextValue {
     return context;
 }
 
-function useCollectionsCreateDialogState(): CollectionsCreateDialogState {
+const CollectionsCreateDialogContext =
+    React.createContext<CollectionsCreateDialogContext | null>(null);
+
+function useCollectionsCreateDialogContext(): CollectionsCreateDialogContext {
     const context = React.use(CollectionsCreateDialogContext);
     if (!context) {
         throw new Error(
@@ -1401,7 +738,10 @@ function useCollectionsCreateDialogState(): CollectionsCreateDialogState {
     return context;
 }
 
-export function useCollectionsPendingActions(): CollectionsPendingActionsContextValue {
+const CollectionsPendingActionsContext =
+    React.createContext<CollectionsPendingActionsContext | null>(null);
+
+export function useCollectionsPendingActionsContext(): CollectionsPendingActionsContext {
     const context = React.use(CollectionsPendingActionsContext);
     if (!context) {
         throw new Error(
@@ -1411,171 +751,19 @@ export function useCollectionsPendingActions(): CollectionsPendingActionsContext
     return context;
 }
 
-function useInternalCollectionsState({
-    initialCollections,
-}: {
-    initialCollections: LibraryCollectionSummary[];
-}) {
-    const { sortField, textMatchQuery, view } = useCollectionsListStore();
-
-    const [collections, setCollections] = React.useState<
-        LibraryCollectionSummary[]
-    >(() => initialCollections);
-
-    const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
-        string[]
-    >([]);
-
-    const collectionSummaries = sortCollectionSummaries(
-        getVisibleCollections(collections, view),
-        sortField,
-        textMatchQuery
-    );
-
-    const validCollectionIds = new Set(
-        collections.map((collection) => collection.id)
-    );
-    const validSelectedCollectionIds = selectedCollectionIds.filter((id) =>
-        validCollectionIds.has(id)
-    );
-    const selectedCollectionIdSet = new Set(validSelectedCollectionIds);
-
-    const clearCollectionFilters = useStableCallback(() => {
-        setSelectedCollectionIds([]);
-    });
-
-    const toggleCollectionSelection = useStableCallback((id: string) => {
-        setSelectedCollectionIds((current) => toggleValue(current, id));
-    });
-
-    const mergeCollectionSummariesState = useStableCallback(
-        (nextCollections: LibraryCollectionSummary[]) => {
-            setCollections((current) =>
-                mergeCollectionSummaries(current, nextCollections)
-            );
-        }
-    );
-
-    const replaceCollections = useStableCallback(
-        (nextCollections: LibraryCollectionSummary[]) => {
-            setCollections(sortCollections(nextCollections));
-            const nextCollectionIdSet = new Set(
-                nextCollections.map((collection) => collection.id)
-            );
-            setSelectedCollectionIds((current) =>
-                current.filter((id) => nextCollectionIdSet.has(id))
-            );
-        }
-    );
-
-    const syncCollectionName = useStableCallback((id: string, name: string) => {
-        setCollections((current) => replaceCollectionName(current, id, name));
-    });
-
-    const syncCollectionPriority = useStableCallback(
-        (id: string, priority: CollectionPriority) => {
-            setCollections((current) =>
-                replaceCollectionPriority(current, id, priority)
-            );
-        }
-    );
-
-    const syncCollectionShare = useStableCallback(
-        (next: CollectionShareState) => {
-            setCollections((current) =>
-                replaceCollectionShareState(current, next)
-            );
-        }
-    );
-
-    const syncCollectionDeleted = useStableCallback((collectionId: string) => {
-        setCollections((current) =>
-            current.filter((collection) => collection.id !== collectionId)
+export function useLibraryItemsContext(): LibraryItemsContext {
+    const context = React.use(LibraryItemsContext);
+    if (!context) {
+        throw new Error(
+            "Library items context is required for library item controls."
         );
-        setSelectedCollectionIds((current) =>
-            current.includes(collectionId)
-                ? removeValue(current, collectionId)
-                : current
-        );
-    });
-
-    return {
-        collectionSummaries,
-        collections,
-        mergeCollectionSummaries: mergeCollectionSummariesState,
-        onClearCollectionFilters: clearCollectionFilters,
-        onSelectCollection: toggleCollectionSelection,
-        replaceCollections,
-        selectedCollectionIdSet,
-        selectedCollectionIds: validSelectedCollectionIds,
-        syncCollectionDeleted,
-        syncCollectionName,
-        syncCollectionPriority,
-        syncCollectionShare,
-    };
-}
-
-function useCreateDialogState() {
-    const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-    const [createItemId, setCreateItemId] = React.useState<string | null>(null);
-
-    const requestCreate = useStableCallback((itemId?: string) => {
-        setCreateItemId(itemId ?? null);
-        setIsCreateOpen(true);
-    });
-
-    const onCloseCreate = useStableCallback(() => {
-        setIsCreateOpen(false);
-        setCreateItemId(null);
-    });
-
-    return { createItemId, isCreateOpen, onCloseCreate, requestCreate };
-}
-
-function useCollectionAccessGate() {
-    const { itemsByCollectionId } = useLibraryItemsContext();
-    const { hasAccess } = useSubscriptionAccess();
-    const { showError } = useCollectionFeedback();
-
-    return useStableCallback(
-        (
-            collection: LibraryCollectionSummary,
-            action: CollectionAccessAction
-        ): boolean => {
-            const visibleItemCount =
-                itemsByCollectionId.get(collection.id)?.length ?? 0;
-            const isHidden =
-                !hasAccess && visibleItemCount < collection.itemCount;
-
-            if (isHidden) {
-                showError(
-                    `Upgrade to ${action} every item in ${collection.name}.`
-                );
-                return false;
-            }
-            return true;
-        }
-    );
-}
-
-function useCopyWithFeedback() {
-    const { copyToClipboard } = useCopyToClipboard();
-    const { showError, showSuccess } = useCollectionFeedback();
-
-    return useStableCallback(
-        async (text: string, successMessage: string, errorMessage: string) => {
-            if (await copyToClipboard(text)) {
-                showSuccess(successMessage);
-            } else {
-                showError(errorMessage);
-            }
-        }
-    );
+    }
+    return context;
 }
 
 function useRunCollectionAction() {
     const { collection } = useCollectionsListItemContext();
-    const { claimCollectionAction } = useCollectionsPendingActions();
+    const { claimCollectionAction } = useCollectionsPendingActionsContext();
     const { setFeedback } = useCollectionsListFeedbackStore();
     const ensureAccess = useCollectionAccessGate();
     const [isPending, startTransition] = React.useTransition();
@@ -1625,6 +813,123 @@ function useCollectionFeedback() {
     return { dismissFeedback, feedback, showError, showSuccess };
 }
 
+function useSubmissionDialog({
+    onClose,
+    submissionPendingRef,
+}: {
+    onClose: () => void;
+    submissionPendingRef?: React.RefObject<boolean>;
+}) {
+    const [isSubmitting, startTransition] = React.useTransition();
+    const internalSubmissionPendingRef = React.useRef(false);
+    const pendingRef = submissionPendingRef ?? internalSubmissionPendingRef;
+
+    const handleOpenChange = useStableCallback((nextOpen: boolean) => {
+        if (!(nextOpen || pendingRef.current)) {
+            onClose();
+        }
+    });
+
+    const runSubmission = useStableCallback((run: () => Promise<void>) => {
+        if (pendingRef.current) {
+            return;
+        }
+        pendingRef.current = true;
+        startTransition(async () => {
+            try {
+                await run();
+            } finally {
+                pendingRef.current = false;
+            }
+        });
+    });
+
+    return {
+        handleOpenChange,
+        isSubmitting,
+        runSubmission,
+        submissionPendingRef: pendingRef,
+    };
+}
+
+function useSmartCollectionsToggle() {
+    const { showError } = useCollectionFeedback();
+    const { disabled, isLoading, mutate } = useSmartCollectionsPreference();
+
+    const setEnabled = useStableCallback(async (enabled: boolean) => {
+        try {
+            await mutate(
+                async () => {
+                    const result = await setSmartCollectionsPreference({
+                        enabled,
+                    });
+                    if (result.status !== ACTION_STATUS.UPDATED) {
+                        throw new Error(result.message);
+                    }
+                    return { disabled: !enabled };
+                },
+                {
+                    optimisticData: { disabled: !enabled },
+                    rollbackOnError: true,
+                }
+            );
+        } catch (error) {
+            log.error(
+                `Failed to ${enabled ? "enable" : "disable"} smart collections`,
+                { error }
+            );
+            showError(
+                enabled
+                    ? ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE
+                    : DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE
+            );
+        }
+    });
+
+    return { disabled, isLoading, setEnabled };
+}
+
+function useCollectionAccessGate() {
+    const { itemsByCollectionId } = useLibraryItemsContext();
+    const { hasAccess } = useSubscriptionAccess();
+    const { showError } = useCollectionFeedback();
+
+    return useStableCallback(
+        (
+            collection: LibraryCollectionSummary,
+            action: CollectionAccessAction
+        ): boolean => {
+            const visibleItemCount =
+                itemsByCollectionId.get(collection.id)?.length ?? 0;
+            const isHidden =
+                !hasAccess && visibleItemCount < collection.itemCount;
+
+            if (isHidden) {
+                showError(
+                    `Upgrade to ${action} every item in ${collection.name}.`
+                );
+                return false;
+            }
+            return true;
+        }
+    );
+}
+
+function useCopyWithFeedback() {
+    const { copyToClipboard } = useCopyToClipboard();
+    const { showError, showSuccess } = useCollectionFeedback();
+
+    return useStableCallback(
+        async (text: string, successMessage: string, errorMessage: string) => {
+            if (await copyToClipboard(text)) {
+                showSuccess(successMessage);
+            } else {
+                showError(errorMessage);
+            }
+        }
+    );
+}
+
 function useToggleCollectionFavorite() {
     const { favoriteCollectionIds, setFavoriteCollectionIds } =
         useCollectionsListStore();
@@ -1652,7 +957,7 @@ function useToggleCollectionFavorite() {
 
 function useCollectionDialogRequests() {
     const { setFeedback } = useCollectionsListFeedbackStore();
-    const { isCreateOpen } = useCollectionsCreateDialogState();
+    const { isCreateOpen } = useCollectionsCreateDialogContext();
     const { onCloseCreate, requestCreate } = useCollectionsContext();
     const createSubmissionPendingRef = React.useRef(false);
 
@@ -1711,49 +1016,10 @@ function useCollectionDialogRequests() {
     };
 }
 
-function useSubmissionDialog({
-    onClose,
-    submissionPendingRef,
-}: {
-    onClose: () => void;
-    submissionPendingRef?: React.RefObject<boolean>;
-}) {
-    const [isSubmitting, startTransition] = React.useTransition();
-    const internalSubmissionPendingRef = React.useRef(false);
-    const pendingRef = submissionPendingRef ?? internalSubmissionPendingRef;
-
-    const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        if (!(nextOpen || pendingRef.current)) {
-            onClose();
-        }
-    });
-
-    const runSubmission = useStableCallback((run: () => Promise<void>) => {
-        if (pendingRef.current) {
-            return;
-        }
-        pendingRef.current = true;
-        startTransition(async () => {
-            try {
-                await run();
-            } finally {
-                pendingRef.current = false;
-            }
-        });
-    });
-
-    return {
-        handleOpenChange,
-        isSubmitting,
-        runSubmission,
-        submissionPendingRef: pendingRef,
-    };
-}
-
 function useCollectionRowActions() {
     const { collections, syncCollectionCreated, syncCollectionPriority } =
         useCollectionsContext();
-    const { claimCollectionAction } = useCollectionsPendingActions();
+    const { claimCollectionAction } = useCollectionsPendingActionsContext();
     const { itemsByCollectionId } = useLibraryItemsContext();
     const { setFeedback } = useCollectionsListFeedbackStore();
     const { showError, showSuccess } = useCollectionFeedback();
@@ -1943,6 +1209,10 @@ function useCollectionRowActions() {
     };
 }
 
+function getItemUrls(items: LibraryItemWithCollections[]): string[] {
+    return items.map((item) => normalizeURL(item.url));
+}
+
 function useCollectionPanelHotkeys() {
     const { setIsCollectionsListOpen, setIsFavoritesListOpen } =
         useCollectionsListStore();
@@ -2076,43 +1346,6 @@ function useCollectionHoverHotkeys({
     );
 }
 
-function useSmartCollectionsToggle() {
-    const { showError } = useCollectionFeedback();
-    const { disabled, isLoading, mutate } = useSmartCollectionsPreference();
-
-    const setEnabled = useStableCallback(async (enabled: boolean) => {
-        try {
-            await mutate(
-                async () => {
-                    const result = await setSmartCollectionsPreference({
-                        enabled,
-                    });
-                    if (result.status !== ACTION_STATUS.UPDATED) {
-                        throw new Error(result.message);
-                    }
-                    return { disabled: !enabled };
-                },
-                {
-                    optimisticData: { disabled: !enabled },
-                    rollbackOnError: true,
-                }
-            );
-        } catch (error) {
-            log.error(
-                `Failed to ${enabled ? "enable" : "disable"} smart collections`,
-                { error }
-            );
-            showError(
-                enabled
-                    ? ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE
-                    : DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE
-            );
-        }
-    });
-
-    return { disabled, isLoading, setEnabled };
-}
-
 function useCollectionPreviewPlayback({
     isCycling,
     shouldLoad,
@@ -2222,6 +1455,168 @@ function useCollectionPreviewPlayback({
     };
 }
 
+function rememberPreviewImage(url: string, aspectRatio: number): void {
+    if (
+        !PREVIEW_IMAGE_CACHE.has(url) &&
+        PREVIEW_IMAGE_CACHE.size >= PREVIEW_IMAGE_CACHE_MAX
+    ) {
+        const oldestKey = PREVIEW_IMAGE_CACHE.keys().next().value;
+        if (oldestKey !== undefined) {
+            PREVIEW_IMAGE_CACHE.delete(oldestKey);
+        }
+    }
+    PREVIEW_IMAGE_CACHE.set(url, aspectRatio);
+}
+
+function getReadyPreviewSlides(urls: string[]): ReadyPreviewSlide[] {
+    const slides: ReadyPreviewSlide[] = [];
+    for (const url of urls) {
+        const aspectRatio = PREVIEW_IMAGE_CACHE.get(url);
+        if (aspectRatio !== undefined) {
+            slides.push({ aspectRatio, src: url });
+        }
+    }
+    return slides;
+}
+
+function mergeReadyPreviewSlide(
+    urls: string[],
+    previous: ReadyPreviewSlide[],
+    slide: ReadyPreviewSlide
+): ReadyPreviewSlide[] {
+    if (previous.some((entry) => entry.src === slide.src)) {
+        return previous;
+    }
+    const readyBySrc = keyBy(previous, (entry) => entry.src);
+    readyBySrc.set(slide.src, slide);
+    return urls.flatMap((url) => {
+        const entry = readyBySrc.get(url);
+        return entry ? [entry] : [];
+    });
+}
+
+function resolveActivePreviewSlide(
+    readySlides: ReadyPreviewSlide[],
+    activeSrc: string | null
+): ReadyPreviewSlide | null {
+    if (activeSrc !== null) {
+        const match = readySlides.find((slide) => slide.src === activeSrc);
+        if (match) {
+            return match;
+        }
+    }
+    return readySlides[0] ?? null;
+}
+
+function nextPreviewSlideSrc(
+    readySlides: ReadyPreviewSlide[],
+    activeSrc: string | null
+): string | null {
+    const first = readySlides[0];
+    if (!first) {
+        return null;
+    }
+    if (readySlides.length === 1) {
+        return first.src;
+    }
+    const currentIndex = readySlides.findIndex(
+        (slide) => slide.src === activeSrc
+    );
+    const nextIndex =
+        currentIndex < 0 ? 0 : (currentIndex + 1) % readySlides.length;
+    return readySlides[nextIndex]?.src ?? first.src;
+}
+
+function startPreviewImageLoads(
+    urls: string[],
+    onReady: (slide: ReadyPreviewSlide) => void,
+    isCancelled: () => boolean
+): void {
+    if (urls.length === 0) {
+        return;
+    }
+
+    let nextIndex = 0;
+
+    const runNext = (): Promise<void> => {
+        if (isCancelled() || nextIndex >= urls.length) {
+            return Promise.resolve();
+        }
+        const url = urls[nextIndex];
+        nextIndex += 1;
+        if (url === undefined) {
+            return runNext();
+        }
+        return loadPreviewImage(url).then(
+            (slide) => {
+                if (!(isCancelled() || slide === null)) {
+                    onReady(slide);
+                }
+                return runNext();
+            },
+            () => runNext()
+        );
+    };
+
+    const workerCount = Math.min(PREVIEW_IMAGE_LOAD_CONCURRENCY, urls.length);
+    for (let worker = 0; worker < workerCount; worker += 1) {
+        runNext().catch(() => undefined);
+    }
+}
+
+function loadPreviewImage(url: string): Promise<ReadyPreviewSlide | null> {
+    const cachedAspectRatio = PREVIEW_IMAGE_CACHE.get(url);
+    if (cachedAspectRatio !== undefined) {
+        return Promise.resolve({ aspectRatio: cachedAspectRatio, src: url });
+    }
+
+    const inflight = PREVIEW_IMAGE_LOADS.get(url);
+    if (inflight) {
+        return inflight;
+    }
+
+    const promise = new Promise<ReadyPreviewSlide | null>((resolve) => {
+        const image = document.createElement("img");
+        image.decoding = "async";
+        let settled = false;
+        let timeoutId = 0;
+
+        const settle = (slide: ReadyPreviewSlide | null) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            window.clearTimeout(timeoutId);
+            image.onload = null;
+            image.onerror = null;
+            PREVIEW_IMAGE_LOADS.delete(url);
+            resolve(slide);
+        };
+
+        timeoutId = window.setTimeout(
+            () => settle(null),
+            PREVIEW_IMAGE_LOAD_TIMEOUT_MS
+        );
+
+        image.onload = () => {
+            const { naturalHeight, naturalWidth } = image;
+            if (naturalHeight <= 0 || naturalWidth <= 0) {
+                settle(null);
+                return;
+            }
+            const aspectRatio = naturalWidth / naturalHeight;
+            rememberPreviewImage(url, aspectRatio);
+            settle({ aspectRatio, src: url });
+        };
+        // Failures are not cached so transient CDN/network errors can retry.
+        image.onerror = () => settle(null);
+        image.src = url;
+    });
+
+    PREVIEW_IMAGE_LOADS.set(url, promise);
+    return promise;
+}
+
 function useFailedImageSrc(src: string | Blob | undefined): {
     hasFailed: boolean;
     handleError: () => void;
@@ -2242,31 +1637,677 @@ function useFailedImageSrc(src: string | Blob | undefined): {
     };
 }
 
-interface CreateFormState {
-    descriptionDraft: string;
-    descriptionErrorMessage: string | null;
-    errorMessage: string | null;
-    nameDraft: string;
+function useInternalCollectionsState({
+    initialCollections,
+}: {
+    initialCollections: LibraryCollectionSummary[];
+}) {
+    const { sortField, textMatchQuery, view } = useCollectionsListStore();
+
+    const [collections, setCollections] = React.useState<
+        LibraryCollectionSummary[]
+    >(() => initialCollections);
+
+    const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
+        string[]
+    >([]);
+
+    const collectionSummaries = sortCollectionSummaries(
+        getVisibleCollections(collections, view),
+        sortField,
+        textMatchQuery
+    );
+
+    const validCollectionIds = new Set(
+        collections.map((collection) => collection.id)
+    );
+    const validSelectedCollectionIds = selectedCollectionIds.filter((id) =>
+        validCollectionIds.has(id)
+    );
+    const selectedCollectionIdSet = new Set(validSelectedCollectionIds);
+
+    const clearCollectionFilters = useStableCallback(() => {
+        setSelectedCollectionIds([]);
+    });
+
+    const toggleCollectionSelection = useStableCallback((id: string) => {
+        setSelectedCollectionIds((current) => toggleValue(current, id));
+    });
+
+    const mergeCollectionSummariesState = useStableCallback(
+        (nextCollections: LibraryCollectionSummary[]) => {
+            setCollections((current) =>
+                mergeCollectionSummaries(current, nextCollections)
+            );
+        }
+    );
+
+    const replaceCollections = useStableCallback(
+        (nextCollections: LibraryCollectionSummary[]) => {
+            setCollections(sortCollections(nextCollections));
+            const nextCollectionIdSet = new Set(
+                nextCollections.map((collection) => collection.id)
+            );
+            setSelectedCollectionIds((current) =>
+                current.filter((id) => nextCollectionIdSet.has(id))
+            );
+        }
+    );
+
+    const syncCollectionName = useStableCallback((id: string, name: string) => {
+        setCollections((current) => replaceCollectionName(current, id, name));
+    });
+
+    const syncCollectionPriority = useStableCallback(
+        (id: string, priority: CollectionPriority) => {
+            setCollections((current) =>
+                replaceCollectionPriority(current, id, priority)
+            );
+        }
+    );
+
+    const syncCollectionShare = useStableCallback(
+        (next: CollectionShareState) => {
+            setCollections((current) =>
+                replaceCollectionShareState(current, next)
+            );
+        }
+    );
+
+    const syncCollectionDeleted = useStableCallback((collectionId: string) => {
+        setCollections((current) =>
+            current.filter((collection) => collection.id !== collectionId)
+        );
+        setSelectedCollectionIds((current) =>
+            current.includes(collectionId)
+                ? removeValue(current, collectionId)
+                : current
+        );
+    });
+
+    return {
+        collectionSummaries,
+        collections,
+        mergeCollectionSummaries: mergeCollectionSummariesState,
+        onClearCollectionFilters: clearCollectionFilters,
+        onSelectCollection: toggleCollectionSelection,
+        replaceCollections,
+        selectedCollectionIdSet,
+        selectedCollectionIds: validSelectedCollectionIds,
+        syncCollectionDeleted,
+        syncCollectionName,
+        syncCollectionPriority,
+        syncCollectionShare,
+    };
 }
 
-interface CollectionsListChildrenProps<T> {
-    children: (item: T, index: number) => React.ReactNode;
+function textMatchScore(
+    collection: Pick<SortableCollectionSummary, "name">,
+    normalizedQuery: string
+) {
+    if (normalizedQuery.length === 0) {
+        return 0;
+    }
+    const name = collection.name.trim().toLowerCase();
+    if (name === normalizedQuery) {
+        return 3;
+    }
+    if (name.startsWith(normalizedQuery)) {
+        return 2;
+    }
+    if (name.includes(normalizedQuery)) {
+        return 1;
+    }
+    return 0;
 }
 
-interface CollectionsListGroupTriggerProps
-    extends React.ComponentProps<typeof CollapsibleTrigger> {
-    count: number;
-    description?: string;
-    isOpen: boolean;
-    labels: string[];
-    placeholder: string;
-    priorityCounts?: Partial<Record<CollectionPriority, number>>;
+function compareTextMatch(query: string) {
+    const normalizedQuery = query.trim().toLowerCase();
+    return (a: SortableCollectionSummary, b: SortableCollectionSummary) =>
+        textMatchScore(b, normalizedQuery) -
+            textMatchScore(a, normalizedQuery) || compareNames(a, b);
 }
 
-interface CollectionsListItemProps extends React.ComponentProps<"div"> {
-    collection: LibraryCollectionSummary;
-    source: CollectionListSource;
+function sortCollectionSummaries<T extends SortableCollectionSummary>(
+    collections: readonly T[],
+    sortField: CollectionSortField,
+    textMatchQuery = ""
+): T[] {
+    const comparator =
+        sortField === "text-match"
+            ? compareTextMatch(textMatchQuery)
+            : SUMMARY_SORTERS[sortField];
+    return collections.toSorted(comparator);
 }
+
+function getVisibleCollections(
+    collections: LibraryCollectionSummary[],
+    view: CollectionView
+): LibraryCollectionSummary[] {
+    if (view === "exclude-archives") {
+        return collections.filter(
+            (collection) => collection.priority !== "archive"
+        );
+    }
+    if (view === "show-shared-only") {
+        return collections.filter((collection) => collection.shareId !== null);
+    }
+    return collections;
+}
+
+function mergeCollectionSummaries(
+    collections: LibraryCollectionSummary[],
+    nextCollections: LibraryCollectionSummary[]
+): LibraryCollectionSummary[] {
+    if (nextCollections.length === 0) {
+        return collections;
+    }
+    return sortCollections(mergeById(collections, nextCollections));
+}
+
+function useCreateDialogState() {
+    const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+    const [createItemId, setCreateItemId] = React.useState<string | null>(null);
+
+    const requestCreate = useStableCallback((itemId?: string) => {
+        setCreateItemId(itemId ?? null);
+        setIsCreateOpen(true);
+    });
+
+    const onCloseCreate = useStableCallback(() => {
+        setIsCreateOpen(false);
+        setCreateItemId(null);
+    });
+
+    return { createItemId, isCreateOpen, onCloseCreate, requestCreate };
+}
+
+function migrateLegacyCollectionsListStorage(): void {
+    if (!canUseDOM) {
+        return;
+    }
+    try {
+        for (const [legacyKey, currentKey] of Object.entries(
+            LEGACY_COLLECTIONS_LIST_STORAGE_KEYS
+        )) {
+            if (localStorage.getItem(currentKey) !== null) {
+                continue;
+            }
+            const legacyValue = localStorage.getItem(legacyKey);
+            if (legacyValue === null) {
+                continue;
+            }
+            localStorage.setItem(currentKey, legacyValue);
+            localStorage.removeItem(legacyKey);
+        }
+    } catch {
+        // migration is best-effort and the store falls back to defaults.
+    }
+}
+
+function compareCreatedAt<
+    T extends Pick<SortableCollectionSummary, "createdAt">,
+>(a: T, b: T) {
+    return b.createdAt.getTime() - a.createdAt.getTime();
+}
+
+function compareUpdatedAt<
+    T extends Pick<SortableCollectionSummary, "updatedAt">,
+>(a: T, b: T) {
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
+}
+
+function compareItemCount<
+    T extends Pick<SortableCollectionSummary, "itemCount">,
+>(a: T, b: T) {
+    return b.itemCount - a.itemCount;
+}
+
+export function reconcileCollectionTags(
+    collections: readonly LibraryCollectionSummary[],
+    tags: readonly LibraryCollectionTag[]
+): LibraryCollectionTag[] {
+    const collectionById = keyBy(collections, (collection) => collection.id);
+
+    return tags.flatMap((tag) => {
+        const collection = collectionById.get(tag.id);
+        if (!collection) {
+            return [];
+        }
+        return [
+            {
+                createdAt: collection.createdAt,
+                description: collection.description,
+                id: collection.id,
+                name: collection.name,
+                priority: collection.priority,
+                sharedAt: collection.sharedAt,
+                shareId: collection.shareId,
+                updatedAt: collection.updatedAt,
+            },
+        ];
+    });
+}
+
+export function replaceMultipleItemCollections(
+    items: LibraryItemWithCollections[],
+    itemCollections: Array<{
+        collections: LibraryCollectionTag[];
+        itemId: string;
+    }>
+): LibraryItemWithCollections[] {
+    if (itemCollections.length === 0) {
+        return items;
+    }
+
+    const collectionsByItemId = keyBy(itemCollections, (entry) => entry.itemId);
+
+    return items.map((item) => {
+        const nextCollections = collectionsByItemId.get(item.id)?.collections;
+        return nextCollections === undefined
+            ? item
+            : { ...item, collections: nextCollections };
+    });
+}
+
+export function buildCollectionItemIndexes(
+    items: LibraryItemWithCollections[]
+): {
+    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
+    itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
+} {
+    const itemsByCollectionId = new Map<string, LibraryItemWithCollections[]>();
+    for (const item of items) {
+        for (const collection of item.collections) {
+            const entries = itemsByCollectionId.get(collection.id);
+            if (entries) {
+                entries.push(item);
+            } else {
+                itemsByCollectionId.set(collection.id, [item]);
+            }
+        }
+    }
+
+    const collectionPreviewThumbnailUrlsById = new Map<string, string[]>();
+    for (const [collectionId, collectionItems] of itemsByCollectionId) {
+        collectionPreviewThumbnailUrlsById.set(
+            collectionId,
+            buildCollectionPreviewThumbnailUrls(collectionId, collectionItems)
+        );
+    }
+
+    return {
+        collectionPreviewThumbnailUrlsById,
+        itemsByCollectionId,
+    };
+}
+
+export function buildFavoriteItemIndexes(
+    items: readonly LibraryItemWithCollections[]
+): {
+    favoriteItemIdSet: ReadonlySet<string>;
+    favoriteItems: LibraryItemWithCollections[];
+} {
+    const favoriteItems = items
+        .filter(
+            (
+                item
+            ): item is LibraryItemWithCollections & { favoritedAt: Date } =>
+                item.favoritedAt !== null
+        )
+        .toSorted(
+            (left, right) =>
+                right.favoritedAt.getTime() - left.favoritedAt.getTime()
+        );
+    const favoriteItemIdSet = new Set(favoriteItems.map((item) => item.id));
+
+    return { favoriteItemIdSet, favoriteItems };
+}
+
+function buildCollectionPreviewThumbnailUrls(
+    collectionId: string,
+    items: LibraryItemWithCollections[]
+): string[] {
+    const previewEntries: Array<{ orderSeed: number; url: string }> = [];
+
+    for (const item of items) {
+        const url = itemPreviewImageUrl(item);
+        if (url === null) {
+            continue;
+        }
+        previewEntries.push({
+            orderSeed: djb2Hash(`${collectionId}:${item.id}`),
+            url,
+        });
+    }
+
+    return previewEntries
+        .sort((left, right) => left.orderSeed - right.orderSeed)
+        .slice(0, COLLECTION_PREVIEW_THUMBNAIL_LIMIT)
+        .map((entry) => entry.url);
+}
+
+function getToggledArchivePriority(
+    priority: CollectionPriority
+): CollectionPriority {
+    return priority === "archive" ? "none" : "archive";
+}
+
+function compareNames<T extends Pick<SortableCollectionSummary, "name">>(
+    a: T,
+    b: T
+) {
+    return NAME_COLLATOR.compare(a.name, b.name);
+}
+
+function comparePriorities<
+    T extends Pick<SortableCollectionSummary, "name" | "priority">,
+>(a: T, b: T) {
+    const diff = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+    return diff === 0 ? compareNames(a, b) : diff;
+}
+
+export function sortCollections<
+    T extends Pick<LibraryCollectionSummary, "name" | "priority">,
+>(collections: readonly T[]): T[] {
+    return collections.toSorted(comparePriorities);
+}
+
+function patchCollection<T extends LibraryCollectionTag>(
+    collections: T[],
+    id: string,
+    patch: Partial<Pick<T, keyof LibraryCollectionTag>>
+): T[] {
+    return updateById(collections, id, (collection) => ({
+        ...collection,
+        ...patch,
+    }));
+}
+
+function replaceCollectionShareState<T extends LibraryCollectionTag>(
+    collections: T[],
+    next: CollectionShareState
+): T[] {
+    return patchCollection(collections, next.id, {
+        sharedAt: next.sharedAt,
+        shareId: next.shareId,
+        updatedAt: next.updatedAt,
+    });
+}
+
+function replaceCollectionName<T extends LibraryCollectionTag>(
+    collections: T[],
+    id: string,
+    name: string
+): T[] {
+    return sortCollections(patchCollection(collections, id, { name }));
+}
+
+function replaceCollectionPriority<T extends LibraryCollectionTag>(
+    collections: T[],
+    id: string,
+    priority: CollectionPriority
+): T[] {
+    return sortCollections(patchCollection(collections, id, { priority }));
+}
+
+function getFavoriteCollections(
+    collectionSummaries: LibraryCollectionSummary[],
+    favoriteCollectionIds: readonly string[]
+): LibraryCollectionSummary[] {
+    if (favoriteCollectionIds.length === 0) {
+        return [];
+    }
+    const favoriteCollectionIdSet = new Set(favoriteCollectionIds);
+    return collectionSummaries.filter((collection) =>
+        favoriteCollectionIdSet.has(collection.id)
+    );
+}
+
+function getCreatedAssignedItemIds(
+    result: Extract<
+        CollectionCreateResult,
+        { status: typeof ACTION_STATUS.CREATED }
+    >
+): string[] {
+    return result.assignedItemId ? [result.assignedItemId] : [];
+}
+
+function getPriorityOption(priority: CollectionPriority): PriorityOption {
+    return PRIORITY_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY;
+}
+
+function getCollectionItemStyle(
+    name: string,
+    isSelected: boolean
+): CollectionItemStyle {
+    const hexColor = getHexColorFromName(name);
+    const baseMix = `color-mix(in srgb, ${hexColor} ${isSelected ? 20 : 10}%, transparent)`;
+
+    return {
+        "--accent-color": `color-mix(in srgb, ${hexColor}, light-dark(black, white) 20%)`,
+        "--collection-background": isSelected
+            ? `color-mix(in srgb, ${baseMix}, light-dark(white, black) 4%)`
+            : `color-mix(in srgb, ${baseMix}, light-dark(black, white) 4%)`,
+        "--text-muted-color": `color-mix(in srgb, ${hexColor} 28%, light-dark(black, white) 22%)`,
+    };
+}
+
+function toComboboxValue(
+    option: { icon: React.ElementType; label: string },
+    current: ComboboxValue,
+    overrides: Partial<
+        Pick<ComboboxValue, "sortField" | "sortQuery" | "view">
+    > = {}
+): ComboboxValue {
+    return {
+        icon: option.icon,
+        label: option.label,
+        sortField: overrides.sortField ?? current.sortField,
+        sortQuery: overrides.sortQuery ?? current.sortQuery,
+        view: overrides.view ?? current.view,
+    };
+}
+
+function getComboboxCollectionsSortingGroups(
+    inputValue: string,
+    currentValue: ComboboxValue
+): ComboboxGroupData[] {
+    const query = inputValue.trim();
+    const normalizedQuery = query.toLowerCase();
+
+    const matchingSortOptions = SORT_OPTIONS.filter((option) =>
+        option.label.toLowerCase().includes(normalizedQuery)
+    );
+
+    const hasActiveTextMatch =
+        currentValue.sortField === "text-match" &&
+        currentValue.sortQuery.length > 0;
+
+    const queryMatchesActiveTextMatch =
+        hasActiveTextMatch &&
+        currentValue.sortQuery.toLowerCase().includes(normalizedQuery);
+
+    let textMatchItem: ComboboxValue | null = null;
+
+    if (
+        hasActiveTextMatch &&
+        (normalizedQuery.length === 0 || queryMatchesActiveTextMatch)
+    ) {
+        textMatchItem = toComboboxValue(
+            {
+                icon: ListFilter,
+                label: `\u201c${currentValue.sortQuery}\u201d`,
+            },
+            currentValue,
+            { sortField: "text-match" }
+        );
+    } else if (normalizedQuery.length > 0) {
+        textMatchItem = toComboboxValue(
+            { icon: ListFilter, label: `\u201c${query}\u201d` },
+            currentValue,
+            { sortField: "text-match", sortQuery: query }
+        );
+    }
+
+    const groups: ComboboxGroupData[] = [];
+
+    if (matchingSortOptions.length > 0) {
+        groups.push({
+            group: "sort",
+            items: matchingSortOptions.map((option) =>
+                toComboboxValue(option, currentValue, {
+                    sortField: option.value,
+                })
+            ),
+        });
+    }
+
+    if (textMatchItem) {
+        groups.push({ group: "text-match", items: [textMatchItem] });
+    }
+
+    const matchingViewOptions = VIEW_OPTIONS.filter((option) =>
+        option.label.toLowerCase().includes(normalizedQuery)
+    );
+
+    if (matchingViewOptions.length > 0) {
+        groups.push({
+            group: "view",
+            items: matchingViewOptions.map((option) =>
+                toComboboxValue(option, currentValue, { view: option.value })
+            ),
+        });
+    }
+
+    return groups;
+}
+
+function getComboboxOptionValue(value: ComboboxValue): string {
+    return `${value.sortField}:${value.view}:${value.sortQuery}`;
+}
+
+function isComboboxValueEqual(
+    item: ComboboxValue,
+    value: ComboboxValue
+): boolean {
+    return (
+        item.sortField === value.sortField &&
+        item.view === value.view &&
+        (item.sortField !== "text-match" || item.sortQuery === value.sortQuery)
+    );
+}
+
+function formatFavoritesGroupSummary(
+    collectionLabels: string[],
+    individualItemCount: number
+): string {
+    if (collectionLabels.length === 0 && individualItemCount === 0) {
+        return "";
+    }
+    if (collectionLabels.length === 0) {
+        return individualItemCount === 1
+            ? "1 item"
+            : `${individualItemCount} items`;
+    }
+    if (individualItemCount === 0) {
+        return LIST_FORMATTER.format(collectionLabels);
+    }
+    const moreLabel =
+        individualItemCount === 1 ? "1 more" : `${individualItemCount} more`;
+    return LIST_FORMATTER.format([...collectionLabels, moreLabel]);
+}
+
+function buildPriorityBreakdownEntries(
+    priorityCounts: Partial<Record<CollectionPriority, number>> | undefined
+): PriorityBreakdownEntry[] {
+    return PRIORITIES.flatMap((option) => {
+        const optionCount = priorityCounts?.[option.value] ?? 0;
+        return optionCount > 0 ? [{ ...option, count: optionCount }] : [];
+    }).sort(
+        (left, right) => PRIORITY_RANK[left.value] - PRIORITY_RANK[right.value]
+    );
+}
+
+function appendCollection(
+    items: LibraryItemWithCollections[],
+    itemIds: string[],
+    collection: LibraryCollectionTag
+): LibraryItemWithCollections[] {
+    const itemIdSet = new Set(itemIds);
+    if (itemIdSet.size === 0) {
+        return items;
+    }
+
+    return items.map((item) => {
+        if (!itemIdSet.has(item.id)) {
+            return item;
+        }
+        if (item.collections.some((entry) => entry.id === collection.id)) {
+            return item;
+        }
+        return {
+            ...item,
+            collections: sortCollections([...item.collections, collection]),
+        };
+    });
+}
+
+function replaceItemCollectionTags(
+    items: LibraryItemWithCollections[],
+    updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
+): LibraryItemWithCollections[] {
+    return items.map((item) => ({
+        ...item,
+        collections: updater(item.collections),
+    }));
+}
+
+function getCollectionActionKey(
+    action: CollectionAction,
+    collectionId: string
+): string {
+    return `${action}:${collectionId}`;
+}
+
+function renderSearchQueryMatch(
+    textToHighlight: string,
+    query: string
+): React.ReactNode {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length === 0) {
+        return textToHighlight;
+    }
+
+    const chunks = findTextMatches({
+        autoEscape: true,
+        caseSensitive: false,
+        searchWords: [normalizedQuery],
+        textToHighlight,
+    });
+
+    if (chunks.length === 1 && !chunks[0]?.highlight) {
+        return textToHighlight;
+    }
+
+    return chunks.map(({ end, highlight, start }) => {
+        const text = textToHighlight.slice(start, end);
+
+        return highlight ? (
+            <mark
+                className="bg-(--accent-color) text-(--collection-background)"
+                key={start}
+            >
+                {text}
+            </mark>
+        ) : (
+            text
+        );
+    });
+}
+
+export const LibraryItemsContext =
+    React.createContext<LibraryItemsContext | null>(null);
 
 export function Collections() {
     return (
@@ -2364,7 +2405,7 @@ export function Collections() {
                     </CollectionsListContent>
                     <CollectionsListRecommendations>
                         {(template) => (
-                            <CollectionsRecommendationItem
+                            <CollectionsListRecommendationItem
                                 key={template.value}
                                 template={template}
                             />
@@ -2395,16 +2436,18 @@ export function CollectionsProvider({
 
     const [pendingCollectionActionKeys, setPendingCollectionActionKeys] =
         React.useState<Set<string>>(() => new Set());
-    const collectionActionKeysRef = useRefWithInit(() => new Set<string>());
+    const collectionActionKeys = useRefWithInit(
+        () => new Set<string>()
+    ).current;
 
     const claimCollectionAction = useStableCallback(
         (action: CollectionAction, collectionId: string) => {
             const key = getCollectionActionKey(action, collectionId);
-            if (collectionActionKeysRef.current.has(key)) {
+            if (collectionActionKeys.has(key)) {
                 return null;
             }
 
-            collectionActionKeysRef.current.add(key);
+            collectionActionKeys.add(key);
             setPendingCollectionActionKeys((current) => {
                 const next = new Set(current);
                 next.add(key);
@@ -2412,7 +2455,7 @@ export function CollectionsProvider({
             });
 
             return () => {
-                if (!collectionActionKeysRef.current.delete(key)) {
+                if (!collectionActionKeys.delete(key)) {
                     return;
                 }
                 setPendingCollectionActionKeys((current) => {
@@ -2491,7 +2534,7 @@ export function CollectionsProvider({
         }
     );
 
-    const value: CollectionsContextValue = {
+    const value: CollectionsContext = {
         ...state,
         onCloseCreate: createDialog.onCloseCreate,
         requestCreate: createDialog.requestCreate,
@@ -2502,12 +2545,12 @@ export function CollectionsProvider({
         syncCollectionShare,
     };
 
-    const createDialogValue: CollectionsCreateDialogState = {
+    const createDialogValue: CollectionsCreateDialogContext = {
         createItemId: createDialog.createItemId,
         isCreateOpen: createDialog.isCreateOpen,
     };
 
-    const pendingActionsValue: CollectionsPendingActionsContextValue = {
+    const pendingActionsValue: CollectionsPendingActionsContext = {
         claimCollectionAction,
         isCollectionActionPending,
     };
@@ -2521,6 +2564,24 @@ export function CollectionsProvider({
             </CollectionsPendingActionsContext>
         </CollectionsCreateDialogContext>
     );
+}
+
+interface CollectionsListChildrenProps<T> {
+    children: (item: T, index: number) => React.ReactNode;
+}
+
+function CollectionsListFavoritesContent({
+    children,
+}: CollectionsListChildrenProps<LibraryCollectionSummary>) {
+    const { collectionSummaries } = useCollectionsContext();
+    const { favoriteCollectionIds } = useCollectionsListStore();
+
+    const favoriteCollections = getFavoriteCollections(
+        collectionSummaries,
+        favoriteCollectionIds
+    );
+
+    return favoriteCollections.map(children);
 }
 
 function CollectionsListProvider({ children }: React.PropsWithChildren) {
@@ -2586,13 +2647,13 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
         };
     }, []);
 
-    const state: CollectionsListState = {
+    const state: CollectionsListStateContext = {
         pendingDeleteId: dialogs.pendingDeleteId,
         pendingPriorityComboboxOpen: rowActions.pendingPriorityComboboxOpen,
         pendingRenameId: dialogs.pendingRenameId,
     };
 
-    const actions: CollectionsListActions = {
+    const actions: CollectionsListActionsContext = {
         closeCreateDialog: dialogs.closeCreateDialog,
         closePendingDelete: dialogs.closePendingDelete,
         closePendingRename: dialogs.closePendingRename,
@@ -2613,7 +2674,7 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
         syncName: syncCollectionName,
     };
 
-    const hoverContextValue: CollectionsListHoverContextValue = {
+    const hoverContextValue: CollectionsListHoverContext = {
         hoveredCollectionIdRef,
         hoveredCollectionSourceRef,
         setHoveredCollectionSource,
@@ -2657,6 +2718,16 @@ function CollectionsListContent({
             {collectionSummaries.map(children)}
         </DisclosureListVertical>
     );
+}
+
+interface CollectionsListGroupTriggerProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
+    count: number;
+    description?: string;
+    isOpen: boolean;
+    labels: string[];
+    placeholder: string;
+    priorityCounts?: Partial<Record<CollectionPriority, number>>;
 }
 
 function CollectionsListGroupTrigger({
@@ -2711,7 +2782,7 @@ function CollectionsListGroupTrigger({
                 side="right"
             >
                 {isOpen && priorityBreakdownEntries.length > 0 ? (
-                    <CollectionsListPriorityBreakdown
+                    <CollectionsListBreakdown
                         entries={priorityBreakdownEntries}
                     />
                 ) : (
@@ -2838,11 +2909,13 @@ function CollectionsListFavoritesCarouselContent({
     );
 }
 
+interface CollectionsListFavoritesCarouselSlideProps {
+    item: LibraryItemWithCollections;
+}
+
 function CollectionsListFavoritesCarouselSlide({
     item,
-}: {
-    item: LibraryItemWithCollections;
-}) {
+}: CollectionsListFavoritesCarouselSlideProps) {
     const { onOpenFavoriteItem, onToggleItemFavorite } =
         useLibraryItemsContext();
     const { showError } = useCollectionFeedback();
@@ -2957,27 +3030,13 @@ function CollectionsListFavoritesCarouselImage({
         <img
             {...props}
             alt={alt}
-            className={className}
+            className={cn("drag-none", className)}
             decoding="async"
             loading="eager"
             onError={handleError}
             src={src}
         />
     );
-}
-
-function CollectionsListFavoritesContent({
-    children,
-}: CollectionsListChildrenProps<LibraryCollectionSummary>) {
-    const { collectionSummaries } = useCollectionsContext();
-    const { favoriteCollectionIds } = useCollectionsListStore();
-
-    const favoriteCollections = getFavoriteCollections(
-        collectionSummaries,
-        favoriteCollectionIds
-    );
-
-    return favoriteCollections.map(children);
 }
 
 function CollectionsListToolbar({
@@ -3027,7 +3086,7 @@ function CollectionsListEmpty({
     ...props
 }: React.ComponentProps<"div">) {
     const { collections, collectionSummaries } = useCollectionsContext();
-    const { openCreateDialog } = useCollectionsListActions();
+    const { openCreateDialog } = useCollectionsListActionsContext();
     const { setTextMatchQuery, setView, textMatchQuery, view } =
         useCollectionsListStore();
 
@@ -3284,7 +3343,7 @@ function CollectionsListSortingCombobox({
             >
                 <ListFilter
                     aria-hidden
-                    className="inline-block size-3.5 shrink-0"
+                    className="inline-block size-3 shrink-0"
                     focusable="false"
                 />
             </ComboboxTrigger>
@@ -3329,13 +3388,15 @@ function CollectionsListSortingCombobox({
     );
 }
 
+interface CollectionsListSortingComboboxItemProps {
+    icon: React.ElementType;
+    label: string;
+}
+
 function CollectionsListSortingComboboxItem({
     icon: Icon,
     label,
-}: {
-    icon: React.ElementType;
-    label: string;
-}) {
+}: CollectionsListSortingComboboxItemProps) {
     return (
         <span className="flex min-w-0 items-center gap-2 text-foreground text-sm">
             <Icon
@@ -3352,7 +3413,7 @@ function CollectionsListCreateButton({
     onClick: onClickProp,
     ...props
 }: React.ComponentProps<typeof Button>) {
-    const { openCreateDialog } = useCollectionsListActions();
+    const { openCreateDialog } = useCollectionsListActionsContext();
 
     const onClick = useStableCallback(onClickProp);
     const handleClick = useStableCallback(
@@ -3465,6 +3526,11 @@ function CollectionsListSmartCollectionsPopover() {
     );
 }
 
+interface CollectionsListItemProps extends React.ComponentProps<"div"> {
+    collection: LibraryCollectionSummary;
+    source: CollectionListSource;
+}
+
 function CollectionsListItem({
     className,
     collection,
@@ -3476,7 +3542,7 @@ function CollectionsListItem({
 }: CollectionsListItemProps) {
     const { selectedCollectionIdSet } = useCollectionsContext();
     const { hoveredCollectionIdRef, setHoveredCollectionSource } =
-        useCollectionsListHover();
+        useCollectionsListHoverContext();
 
     const hoverClaimIdRef = React.useRef(0);
 
@@ -3612,15 +3678,17 @@ function CollectionsListItemTrigger({
     );
 }
 
+interface CollectionsListItemPreviewImageProps {
+    activeSlide: ReadyPreviewSlide;
+    collectionName: string;
+    onSlideError: (src: string) => void;
+}
+
 function CollectionsListItemPreviewImage({
     activeSlide,
     collectionName,
     onSlideError,
-}: {
-    activeSlide: ReadyPreviewSlide;
-    collectionName: string;
-    onSlideError: (src: string) => void;
-}) {
+}: CollectionsListItemPreviewImageProps) {
     const [currentSlide, setCurrentSlide] = React.useState(activeSlide);
     const [outgoingSlide, setOutgoingSlide] =
         React.useState<ReadyPreviewSlide | null>(null);
@@ -3680,11 +3748,11 @@ function CollectionsListItemPreviewImage({
                     alt=""
                     aria-hidden
                     className={cn(
-                        "pointer-events-none absolute inset-0 size-full object-cover transition-opacity ease-out",
+                        "drag-none absolute inset-0 size-full object-cover transition-opacity ease-out",
                         isFading ? "opacity-0" : "opacity-100"
                     )}
                     decoding="async"
-                    draggable={false}
+                    draggable="false"
                     key={outgoingSlide.src}
                     src={outgoingSlide.src}
                     style={crossfadeStyle}
@@ -3694,11 +3762,11 @@ function CollectionsListItemPreviewImage({
             <img
                 alt={`${collectionName} preview`}
                 className={cn(
-                    "pointer-events-none absolute inset-0 size-full object-cover transition-opacity ease-out",
+                    "drag-none absolute inset-0 size-full object-cover transition-opacity ease-out",
                     isCurrentSlideVisible ? "opacity-100" : "opacity-0"
                 )}
                 decoding="async"
-                draggable={false}
+                draggable="false"
                 key={currentSlide.src}
                 onError={handleCurrentError}
                 src={currentSlide.src}
@@ -3718,7 +3786,7 @@ function CollectionsListItemValue() {
                 className="max-w-full shrink-0 truncate font-medium text-sm tracking-tight"
                 title={collection.description ?? undefined}
             >
-                {renderQueryMatch(collection.name, textMatchQuery)}
+                {renderSearchQueryMatch(collection.name, textMatchQuery)}
             </span>
             {isSelected ? (
                 <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground opacity-100">
@@ -3735,9 +3803,9 @@ function CollectionsListItemValue() {
 }
 
 function CollectionsListItemPriorityCombobox() {
-    const { pendingPriorityComboboxOpen } = useCollectionsListState();
+    const { pendingPriorityComboboxOpen } = useCollectionsListStateContext();
     const { onUpdatePriority, setPendingPriorityComboboxOpen } =
-        useCollectionsListActions();
+        useCollectionsListActionsContext();
     const { collection, source } = useCollectionsListItemContext();
 
     const SelectedPriorityIcon = getPriorityOption(collection.priority).icon;
@@ -3837,7 +3905,7 @@ function CollectionsListItemControls({
     const { favoriteCollectionIdSet, toggleFavorite } =
         useToggleCollectionFavorite();
     const { onRename, onDelete, onDuplicate, onUpdatePriority } =
-        useCollectionsListActions();
+        useCollectionsListActionsContext();
     const { collection } = useCollectionsListItemContext();
 
     const isFavorite = favoriteCollectionIdSet.has(collection.id);
@@ -3992,7 +4060,7 @@ function CollectionsListItemControls({
 
 function CollectionsListItemShareSubmenu() {
     const { collection } = useCollectionsListItemContext();
-    const { isCollectionActionPending } = useCollectionsPendingActions();
+    const { isCollectionActionPending } = useCollectionsPendingActionsContext();
     const { syncCollectionShare } = useCollectionsContext();
     const { showError, showSuccess } = useCollectionFeedback();
     const copyWithFeedback = useCopyWithFeedback();
@@ -4122,9 +4190,9 @@ function CollectionsListItemShareSubmenu() {
 
 function CollectionsListItemExportSubMenu() {
     const { onCopyLinks, onCopyTitle, onExportCsv, onOpenLinks } =
-        useCollectionsListActions();
+        useCollectionsListActionsContext();
     const { collection } = useCollectionsListItemContext();
-    const { isCollectionActionPending } = useCollectionsPendingActions();
+    const { isCollectionActionPending } = useCollectionsPendingActionsContext();
     const { showError, showSuccess } = useCollectionFeedback();
     const { isPending, runCollectionAction } = useRunCollectionAction();
 
@@ -4254,13 +4322,15 @@ function CollectionsListRecommendations({
     );
 }
 
-function CollectionsRecommendationItem({
-    template,
-}: {
+interface CollectionsListRecommendationItemProps {
     template: CollectionTemplateOption;
-}) {
+}
+
+function CollectionsListRecommendationItem({
+    template,
+}: CollectionsListRecommendationItemProps) {
     const { showError, showSuccess } = useCollectionFeedback();
-    const { syncCreated } = useCollectionsListActions();
+    const { syncCreated } = useCollectionsListActionsContext();
     const { mutate: mutateRecommendations } = useCollectionRecommendations();
     const [isPending, startTransition] = React.useTransition();
 
@@ -4351,13 +4421,38 @@ function CollectionsRecommendationItem({
     );
 }
 
-// # Dialogs
+interface CollectionsListBreakdownProps {
+    entries: PriorityBreakdownEntry[];
+}
+
+function CollectionsListBreakdown({ entries }: CollectionsListBreakdownProps) {
+    return (
+        <DataList>
+            <DataListSection>
+                {entries.map(({ count, icon: Icon, label, value }) => (
+                    <DataListItem
+                        icon={
+                            <Icon
+                                aria-hidden
+                                className="size-3.5 shrink-0 text-muted-foreground"
+                                focusable="false"
+                            />
+                        }
+                        key={value}
+                        label={label}
+                        value={count}
+                    />
+                ))}
+            </DataListSection>
+        </DataList>
+    );
+}
 
 function CollectionsCreateDialog() {
-    const { createItemId, isCreateOpen } = useCollectionsCreateDialogState();
+    const { createItemId, isCreateOpen } = useCollectionsCreateDialogContext();
     const { showSuccess } = useCollectionFeedback();
     const { closeCreateDialog, createSubmissionPendingRef, syncCreated } =
-        useCollectionsListActions();
+        useCollectionsListActionsContext();
     const { disabled, setEnabled } = useSmartCollectionsToggle();
     const { mutate: mutateRecommendations } = useCollectionRecommendations();
 
@@ -4817,9 +4912,9 @@ function CollectionsCreateDialog() {
 
 function CollectionsRenameDialog() {
     const { collections } = useCollectionsContext();
-    const { pendingRenameId } = useCollectionsListState();
+    const { pendingRenameId } = useCollectionsListStateContext();
     const { showSuccess } = useCollectionFeedback();
-    const { closePendingRename, syncName } = useCollectionsListActions();
+    const { closePendingRename, syncName } = useCollectionsListActionsContext();
 
     const pendingRename =
         collections.find((collection) => collection.id === pendingRenameId) ??
@@ -4979,9 +5074,10 @@ function CollectionsRenameDialog() {
 
 function CollectionsDeleteDialog() {
     const { collections } = useCollectionsContext();
-    const { pendingDeleteId } = useCollectionsListState();
+    const { pendingDeleteId } = useCollectionsListStateContext();
     const { showSuccess } = useCollectionFeedback();
-    const { closePendingDelete, syncDeleted } = useCollectionsListActions();
+    const { closePendingDelete, syncDeleted } =
+        useCollectionsListActionsContext();
     const {
         handleOpenChange,
         isSubmitting,
@@ -5069,69 +5165,4 @@ function CollectionsDeleteDialog() {
             </DialogPopup>
         </Dialog>
     );
-}
-
-function CollectionsListPriorityBreakdown({
-    entries,
-}: {
-    entries: PriorityBreakdownEntry[];
-}) {
-    return (
-        <ul className="flex w-full flex-col gap-2">
-            {entries.map(({ count, icon: Icon, label, value }) => (
-                <li
-                    className="mr-1 ml-0.5 flex items-center gap-1.5 text-nowrap"
-                    key={value}
-                >
-                    <Icon
-                        aria-hidden
-                        className="size-3.5 shrink-0 text-muted-foreground"
-                        focusable="false"
-                    />
-                    <span className="min-w-0 flex-1 truncate text-xs">
-                        {label}
-                    </span>
-                    <span className="ml-auto font-medium text-xs tabular-nums">
-                        {count}
-                    </span>
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-function renderQueryMatch(
-    textToHighlight: string,
-    query: string
-): React.ReactNode {
-    const normalizedQuery = query.trim();
-    if (normalizedQuery.length === 0) {
-        return textToHighlight;
-    }
-
-    const chunks = findTextMatches({
-        autoEscape: true,
-        caseSensitive: false,
-        searchWords: [normalizedQuery],
-        textToHighlight,
-    });
-
-    if (chunks.length === 1 && !chunks[0]?.highlight) {
-        return textToHighlight;
-    }
-
-    return chunks.map(({ end, highlight, start }) => {
-        const text = textToHighlight.slice(start, end);
-
-        return highlight ? (
-            <mark
-                className="bg-(--accent-color) text-(--collection-background)"
-                key={start}
-            >
-                {text}
-            </mark>
-        ) : (
-            text
-        );
-    });
 }
