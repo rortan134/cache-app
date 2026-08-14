@@ -168,12 +168,12 @@ import {
     mergeById,
     removeValue,
     toggleValue,
-    updateById,
 } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
 import {
     ACTION_STATUS,
+    DESCRIPTION_MAX_LENGTH,
     ITEM_KIND_NOTE,
     MIME_TYPES,
     NAME_MAX_LENGTH,
@@ -237,8 +237,6 @@ const SHARE_COLLECTION_ERROR_MESSAGE =
     "We couldn't create a public link right now.";
 
 const COLLECTION_PREVIEW_THUMBNAIL_LIMIT = 5;
-
-const COLLECTION_DESCRIPTION_MAX_LENGTH = 1024;
 
 const PREVIEW_SLIDE_INTERVAL_MS = 1400;
 const PREVIEW_CROSSFADE_MS = 400;
@@ -439,6 +437,13 @@ interface SyncCreatedCollectionInput {
     collection: LibraryCollectionSummary;
 }
 
+interface CreateCollectionAndSyncInput {
+    assignToItemId?: string;
+    description?: string;
+    name: string;
+    syncCreated: (input: SyncCreatedCollectionInput) => void;
+}
+
 interface PriorityOption {
     icon: React.ElementType;
     label: string;
@@ -483,7 +488,7 @@ type SummarySorter = Record<
     (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
 >;
 
-interface CollectionsContext {
+interface CollectionsRootContext {
     collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionSummary[];
     mergeCollectionSummaries: (collections: LibraryCollectionSummary[]) => void;
@@ -494,17 +499,14 @@ interface CollectionsContext {
     requestCreate: (itemId?: string) => void;
     selectedCollectionIdSet: ReadonlySet<string>;
     selectedCollectionIds: string[];
-    syncCollectionCreated: (input: {
-        assignedItemIds: string[];
-        collection: LibraryCollectionSummary;
-    }) => void;
+    syncCollectionCreated: (input: SyncCreatedCollectionInput) => void;
     syncCollectionDeleted: (collectionId: string) => void;
     syncCollectionName: (id: string, name: string) => void;
     syncCollectionPriority: (id: string, priority: CollectionPriority) => void;
     syncCollectionShare: (next: CollectionShareState) => void;
 }
 
-interface CollectionsPendingActionsContext {
+interface CollectionsRootPendingActionsContext {
     claimCollectionAction: (
         action: CollectionAction,
         collectionId: string
@@ -550,7 +552,7 @@ interface CollectionsListHoverContext {
     setHoveredCollectionSource: (source: CollectionListSource | null) => void;
 }
 
-interface CollectionsCreateDialogContext {
+interface CollectionsRootCreateDialogContext {
     createItemId: string | null;
     isCreateOpen: boolean;
 }
@@ -661,10 +663,11 @@ const { useStore: useCollectionsListFeedbackStore } = createStore({
     feedback: null as CollectionFeedback | null,
 });
 
-const CollectionsContext = React.createContext<CollectionsContext | null>(null);
+const CollectionsRootContext =
+    React.createContext<CollectionsRootContext | null>(null);
 
-export function useCollectionsContext(): CollectionsContext {
-    const context = React.use(CollectionsContext);
+export function useCollectionsContext(): CollectionsRootContext {
+    const context = React.use(CollectionsRootContext);
     if (!context) {
         throw new Error(
             "Collections context is required for collection controls."
@@ -725,11 +728,11 @@ function useCollectionsListHoverContext(): CollectionsListHoverContext {
     return context;
 }
 
-const CollectionsCreateDialogContext =
-    React.createContext<CollectionsCreateDialogContext | null>(null);
+const CollectionsRootCreateDialogContext =
+    React.createContext<CollectionsRootCreateDialogContext | null>(null);
 
-function useCollectionsCreateDialogContext(): CollectionsCreateDialogContext {
-    const context = React.use(CollectionsCreateDialogContext);
+function useCollectionsCreateDialogContext(): CollectionsRootCreateDialogContext {
+    const context = React.use(CollectionsRootCreateDialogContext);
     if (!context) {
         throw new Error(
             "Collections create dialog state must be read within a CollectionsProvider."
@@ -738,11 +741,11 @@ function useCollectionsCreateDialogContext(): CollectionsCreateDialogContext {
     return context;
 }
 
-const CollectionsPendingActionsContext =
-    React.createContext<CollectionsPendingActionsContext | null>(null);
+const CollectionsRootPendingActionsContext =
+    React.createContext<CollectionsRootPendingActionsContext | null>(null);
 
-export function useCollectionsPendingActionsContext(): CollectionsPendingActionsContext {
-    const context = React.use(CollectionsPendingActionsContext);
+export function useCollectionsPendingActionsContext(): CollectionsRootPendingActionsContext {
+    const context = React.use(CollectionsRootPendingActionsContext);
     if (!context) {
         throw new Error(
             "Pending collection actions must be read within a CollectionsProvider."
@@ -987,6 +990,14 @@ function useCollectionDialogRequests() {
         }
     );
 
+    const closePendingDelete = useStableCallback(() => {
+        setPendingDeleteId(null);
+    });
+
+    const closePendingRename = useStableCallback(() => {
+        setPendingRenameId(null);
+    });
+
     const handleCreateShortcutPress = useStableCallback(() => {
         if (isCreateOpen) {
             if (createSubmissionPendingRef.current) {
@@ -1005,8 +1016,8 @@ function useCollectionDialogRequests() {
 
     return {
         closeCreateDialog: onCloseCreate,
-        closePendingDelete: () => setPendingDeleteId(null),
-        closePendingRename: () => setPendingRenameId(null),
+        closePendingDelete,
+        closePendingRename,
         createSubmissionPendingRef,
         openCreateDialog,
         pendingDeleteId,
@@ -1255,7 +1266,7 @@ function useCollectionHoverHotkeys({
 
     const { collections } = useCollectionsContext();
 
-    const resolveHoveredCollection = () => {
+    const resolveHoveredCollection = useStableCallback(() => {
         if (!isCollectionHoverHotkeySurface()) {
             return null;
         }
@@ -1264,86 +1275,84 @@ function useCollectionHoverHotkeys({
                 (collection) => collection.id === hoveredCollectionIdRef.current
             ) ?? null
         );
-    };
+    });
 
-    useHotkeys(
-        "alt+e",
-        (event) => {
-            const target = resolveHoveredCollection();
-            if (target) {
-                event.preventDefault();
-                requestRename(target);
-            }
-        },
-        { description: "Rename hovered collection" }
-    );
-
-    useHotkeys(
-        ["delete", "backspace"],
-        (event) => {
-            const target = resolveHoveredCollection();
-            if (target) {
-                event.preventDefault();
-                requestDelete(target);
-            }
-        },
-        { description: "Delete hovered collection" }
-    );
-
-    useHotkeys(
-        "c",
-        (event) => {
-            const target = resolveHoveredCollection();
-            if (target && target.itemCount > 0) {
-                event.preventDefault();
-                onCopyLinks(target);
-            }
-        },
-        { description: "Copy links from hovered collection" }
-    );
-
-    useHotkeys(
-        "alt+f",
-        (event) => {
-            const target = resolveHoveredCollection();
-            if (target && !favoriteCollectionIdSet.has(target.id)) {
-                event.preventDefault();
-                toggleFavorite(target);
-            }
-        },
-        { description: "Favorite hovered collection" }
-    );
-
-    useHotkeys(
-        "shift+mod+a",
-        (event) => {
-            const target = resolveHoveredCollection();
-            if (target) {
-                event.preventDefault();
-                onUpdatePriority(
-                    target.id,
-                    getToggledArchivePriority(target.priority)
-                );
-            }
-        },
-        { description: "Archive or unarchive hovered collection" }
-    );
-
-    useHotkeys(
-        "p",
-        () => {
-            const target = resolveHoveredCollection();
-            if (!target) {
-                return;
-            }
-            const source = hoveredCollectionSourceRef.current ?? "collections";
-            setPendingPriorityComboboxOpen({ collectionId: target.id, source });
-        },
-        {
-            description: "Set priority for hovered collection",
-            preventDefault: true,
+    const handleRename = useStableCallback((event: KeyboardEvent) => {
+        const target = resolveHoveredCollection();
+        if (target) {
+            event.preventDefault();
+            requestRename(target);
         }
-    );
+    });
+
+    const handleDelete = useStableCallback((event: KeyboardEvent) => {
+        const target = resolveHoveredCollection();
+        if (target) {
+            event.preventDefault();
+            requestDelete(target);
+        }
+    });
+
+    const handleCopyLinks = useStableCallback((event: KeyboardEvent) => {
+        const target = resolveHoveredCollection();
+        if (target && target.itemCount > 0) {
+            event.preventDefault();
+            onCopyLinks(target);
+        }
+    });
+
+    const handleFavorite = useStableCallback((event: KeyboardEvent) => {
+        const target = resolveHoveredCollection();
+        if (target && !favoriteCollectionIdSet.has(target.id)) {
+            event.preventDefault();
+            toggleFavorite(target);
+        }
+    });
+
+    const handleArchiveToggle = useStableCallback((event: KeyboardEvent) => {
+        const target = resolveHoveredCollection();
+        if (target) {
+            event.preventDefault();
+            onUpdatePriority(
+                target.id,
+                getToggledArchivePriority(target.priority)
+            );
+        }
+    });
+
+    const handleSetPriority = useStableCallback((event: KeyboardEvent) => {
+        const target = resolveHoveredCollection();
+        if (!target) {
+            return;
+        }
+        event.preventDefault();
+        const source = hoveredCollectionSourceRef.current ?? "collections";
+        setPendingPriorityComboboxOpen({ collectionId: target.id, source });
+    });
+
+    useHotkeys("alt+e", handleRename, {
+        description: "Rename hovered collection",
+    });
+
+    useHotkeys(["delete", "backspace"], handleDelete, {
+        description: "Delete hovered collection",
+    });
+
+    useHotkeys("c", handleCopyLinks, {
+        description: "Copy links from hovered collection",
+    });
+
+    useHotkeys("alt+f", handleFavorite, {
+        description: "Favorite hovered collection",
+    });
+
+    useHotkeys("shift+mod+a", handleArchiveToggle, {
+        description: "Archive or unarchive hovered collection",
+    });
+
+    useHotkeys("p", handleSetPriority, {
+        description: "Set priority for hovered collection",
+    });
 }
 
 function useCollectionPreviewPlayback({
@@ -2013,15 +2022,41 @@ export function sortCollections<
     return collections.toSorted(comparePriorities);
 }
 
+function areCollectionTagValuesEqual(
+    current: LibraryCollectionTag,
+    next: LibraryCollectionTag
+): boolean {
+    return (
+        current.createdAt === next.createdAt &&
+        current.description === next.description &&
+        current.id === next.id &&
+        current.name === next.name &&
+        current.priority === next.priority &&
+        current.sharedAt === next.sharedAt &&
+        current.shareId === next.shareId &&
+        current.updatedAt === next.updatedAt
+    );
+}
+
 function patchCollection<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
     patch: Partial<Pick<T, keyof LibraryCollectionTag>>
 ): T[] {
-    return updateById(collections, id, (collection) => ({
-        ...collection,
-        ...patch,
-    }));
+    const index = collections.findIndex((collection) => collection.id === id);
+    const current = collections[index];
+    if (current === undefined) {
+        return collections;
+    }
+
+    const next = { ...current, ...patch };
+    if (areCollectionTagValuesEqual(current, next)) {
+        return collections;
+    }
+
+    return collections.map((collection, collectionIndex) =>
+        collectionIndex === index ? next : collection
+    );
 }
 
 function replaceCollectionShareState<T extends LibraryCollectionTag>(
@@ -2040,7 +2075,10 @@ function replaceCollectionName<T extends LibraryCollectionTag>(
     id: string,
     name: string
 ): T[] {
-    return sortCollections(patchCollection(collections, id, { name }));
+    const nextCollections = patchCollection(collections, id, { name });
+    return nextCollections === collections
+        ? collections
+        : sortCollections(nextCollections);
 }
 
 function replaceCollectionPriority<T extends LibraryCollectionTag>(
@@ -2048,7 +2086,10 @@ function replaceCollectionPriority<T extends LibraryCollectionTag>(
     id: string,
     priority: CollectionPriority
 ): T[] {
-    return sortCollections(patchCollection(collections, id, { priority }));
+    const nextCollections = patchCollection(collections, id, { priority });
+    return nextCollections === collections
+        ? collections
+        : sortCollections(nextCollections);
 }
 
 function getFavoriteCollections(
@@ -2071,6 +2112,40 @@ function getCreatedAssignedItemIds(
     >
 ): string[] {
     return result.assignedItemId ? [result.assignedItemId] : [];
+}
+
+async function createCollectionAndSync({
+    assignToItemId,
+    description,
+    name,
+    syncCreated,
+}: CreateCollectionAndSyncInput): Promise<CollectionCreateResult> {
+    const result = await createCollectionSafely({
+        assignToItemId,
+        description,
+        name,
+    });
+
+    if (result.status !== ACTION_STATUS.CREATED) {
+        return result;
+    }
+
+    syncCreated({
+        assignedItemIds: getCreatedAssignedItemIds(result),
+        collection: result.collection,
+    });
+    return result;
+}
+
+async function refreshCollectionRecommendations(
+    mutateRecommendations: () => Promise<unknown>,
+    errorMessage: string
+): Promise<void> {
+    try {
+        await mutateRecommendations();
+    } catch (error) {
+        log.error(errorMessage, { error });
+    }
 }
 
 function getPriorityOption(priority: CollectionPriority): PriorityOption {
@@ -2253,14 +2328,31 @@ function appendCollection(
     });
 }
 
+function areCollectionTagListsEqual(
+    current: readonly LibraryCollectionTag[],
+    next: readonly LibraryCollectionTag[]
+): boolean {
+    return (
+        current.length === next.length &&
+        current.every((collection, index) => collection === next[index])
+    );
+}
+
 function replaceItemCollectionTags(
     items: LibraryItemWithCollections[],
     updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
 ): LibraryItemWithCollections[] {
-    return items.map((item) => ({
-        ...item,
-        collections: updater(item.collections),
-    }));
+    let hasChanges = false;
+    const nextItems = items.map((item) => {
+        const nextCollections = updater(item.collections);
+        if (areCollectionTagListsEqual(item.collections, nextCollections)) {
+            return item;
+        }
+        hasChanges = true;
+        return { ...item, collections: nextCollections };
+    });
+
+    return hasChanges ? nextItems : items;
 }
 
 function getCollectionActionKey(
@@ -2294,10 +2386,7 @@ function renderSearchQueryMatch(
         const text = textToHighlight.slice(start, end);
 
         return highlight ? (
-            <mark
-                className="bg-(--accent-color) text-(--collection-background)"
-                key={start}
-            >
+            <mark className="bg-(--accent-color)/50" key={start}>
                 {text}
             </mark>
         ) : (
@@ -2479,10 +2568,7 @@ export function CollectionsProvider({
         );
 
     const syncCollectionCreated = useStableCallback(
-        (input: {
-            assignedItemIds: string[];
-            collection: LibraryCollectionSummary;
-        }) => {
+        (input: SyncCreatedCollectionInput) => {
             state.mergeCollectionSummaries([input.collection]);
             setItems((current) =>
                 appendCollection(
@@ -2534,7 +2620,7 @@ export function CollectionsProvider({
         }
     );
 
-    const value: CollectionsContext = {
+    const value: CollectionsRootContext = {
         ...state,
         onCloseCreate: createDialog.onCloseCreate,
         requestCreate: createDialog.requestCreate,
@@ -2545,24 +2631,24 @@ export function CollectionsProvider({
         syncCollectionShare,
     };
 
-    const createDialogValue: CollectionsCreateDialogContext = {
+    const createDialogValue: CollectionsRootCreateDialogContext = {
         createItemId: createDialog.createItemId,
         isCreateOpen: createDialog.isCreateOpen,
     };
 
-    const pendingActionsValue: CollectionsPendingActionsContext = {
+    const pendingActionsValue: CollectionsRootPendingActionsContext = {
         claimCollectionAction,
         isCollectionActionPending,
     };
 
     return (
-        <CollectionsCreateDialogContext value={createDialogValue}>
-            <CollectionsPendingActionsContext value={pendingActionsValue}>
-                <CollectionsContext value={value}>
+        <CollectionsRootCreateDialogContext value={createDialogValue}>
+            <CollectionsRootPendingActionsContext value={pendingActionsValue}>
+                <CollectionsRootContext value={value}>
                     {children}
-                </CollectionsContext>
-            </CollectionsPendingActionsContext>
-        </CollectionsCreateDialogContext>
+                </CollectionsRootContext>
+            </CollectionsRootPendingActionsContext>
+        </CollectionsRootCreateDialogContext>
     );
 }
 
@@ -2647,13 +2733,19 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
         };
     }, []);
 
-    const state: CollectionsListStateContext = {
+    const hoverContextValue: CollectionsListHoverContext = {
+        hoveredCollectionIdRef,
+        hoveredCollectionSourceRef,
+        setHoveredCollectionSource,
+    };
+
+    const stateContextValue: CollectionsListStateContext = {
         pendingDeleteId: dialogs.pendingDeleteId,
         pendingPriorityComboboxOpen: rowActions.pendingPriorityComboboxOpen,
         pendingRenameId: dialogs.pendingRenameId,
     };
 
-    const actions: CollectionsListActionsContext = {
+    const actionsContextValue: CollectionsListActionsContext = {
         closeCreateDialog: dialogs.closeCreateDialog,
         closePendingDelete: dialogs.closePendingDelete,
         closePendingRename: dialogs.closePendingRename,
@@ -2674,16 +2766,10 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
         syncName: syncCollectionName,
     };
 
-    const hoverContextValue: CollectionsListHoverContext = {
-        hoveredCollectionIdRef,
-        hoveredCollectionSourceRef,
-        setHoveredCollectionSource,
-    };
-
     return (
         <CollectionsListHoverContext value={hoverContextValue}>
-            <CollectionsListStateContext value={state}>
-                <CollectionsListActionsContext value={actions}>
+            <CollectionsListStateContext value={stateContextValue}>
+                <CollectionsListActionsContext value={actionsContextValue}>
                     {children}
                 </CollectionsListActionsContext>
             </CollectionsListStateContext>
@@ -2691,17 +2777,13 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
     );
 }
 
-function CollectionsList({
-    className,
-    ...props
-}: React.ComponentProps<typeof Collapsible>) {
+function CollectionsList(props: React.ComponentProps<typeof Collapsible>) {
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
         useCollectionsListStore();
 
     return (
         <Collapsible
             {...props}
-            className={cn("relative", className)}
             onOpenChange={setIsCollectionsListOpen}
             open={isCollectionsListOpen}
         />
@@ -2820,10 +2902,9 @@ function CollectionsListTrigger(
     );
 }
 
-function CollectionsListFavorites({
-    className,
-    ...props
-}: React.ComponentProps<typeof Collapsible>) {
+function CollectionsListFavorites(
+    props: React.ComponentProps<typeof Collapsible>
+) {
     const { collectionSummaries } = useCollectionsContext();
     const { favoriteItems } = useLibraryItemsContext();
     const {
@@ -2843,7 +2924,6 @@ function CollectionsListFavorites({
     return (
         <Collapsible
             {...props}
-            className={cn("relative", className)}
             onOpenChange={setIsFavoritesListOpen}
             open={isFavoritesListOpen}
         />
@@ -3032,7 +3112,7 @@ function CollectionsListFavoritesCarouselImage({
             alt={alt}
             className={cn("drag-none", className)}
             decoding="async"
-            loading="eager"
+            loading="lazy"
             onError={handleError}
             src={src}
         />
@@ -3300,19 +3380,17 @@ function CollectionsListSortingCombobox({
         }
     });
 
-    useHotkeys(
-        "mod+f",
-        (event) => {
-            event.preventDefault();
-            setIsCollectionsListOpen(true);
-            setIsSortOpen(true);
-        },
-        {
-            description: "Sort and organize collections",
-            enabled: !isSortOpen,
-            preventDefault: true,
-        }
-    );
+    const handleSortHotkey = useStableCallback((event: KeyboardEvent) => {
+        event.preventDefault();
+        setIsCollectionsListOpen(true);
+        setIsSortOpen(true);
+    });
+
+    useHotkeys("mod+f", handleSortHotkey, {
+        description: "Sort and organize collections",
+        enabled: !isSortOpen,
+        preventDefault: true,
+    });
 
     return (
         <Combobox
@@ -4340,26 +4418,19 @@ function CollectionsListRecommendationItem({
             return;
         }
         startTransition(async () => {
-            const result = await createCollectionSafely({
+            const result = await createCollectionAndSync({
                 description: template.description,
                 name: template.name,
+                syncCreated,
             });
             if (result.status !== ACTION_STATUS.CREATED) {
                 showError(result.message);
                 return;
             }
-            syncCreated({
-                assignedItemIds: getCreatedAssignedItemIds(result),
-                collection: result.collection,
-            });
-            try {
-                await mutateRecommendations();
-            } catch (error) {
-                log.error(
-                    "Failed to refresh collection recommendations after creating from template",
-                    { error }
-                );
-            }
+            await refreshCollectionRecommendations(
+                mutateRecommendations,
+                "Failed to refresh collection recommendations after creating from template"
+            );
             showSuccess(`${template.name} created from template.`);
         });
     });
@@ -4520,7 +4591,7 @@ function CollectionsCreateDialog() {
             description: string | undefined;
             name: string;
             onStart?: () => void;
-            refreshRecommendations: boolean;
+            shouldRefreshRecommendations: boolean;
             successMessage: (collectionName: string) => string;
         }) => {
             if (
@@ -4532,10 +4603,11 @@ function CollectionsCreateDialog() {
             input.onStart?.();
 
             runSubmission(async () => {
-                const result = await createCollectionSafely({
+                const result = await createCollectionAndSync({
                     assignToItemId: createItemId ?? undefined,
                     description: input.description,
                     name: input.name,
+                    syncCreated,
                 });
                 if (result.status !== ACTION_STATUS.CREATED) {
                     setFormState((current) => ({
@@ -4544,19 +4616,11 @@ function CollectionsCreateDialog() {
                     }));
                     return;
                 }
-                syncCreated({
-                    assignedItemIds: getCreatedAssignedItemIds(result),
-                    collection: result.collection,
-                });
-                if (input.refreshRecommendations) {
-                    try {
-                        await mutateRecommendations();
-                    } catch (error) {
-                        log.error(
-                            "Failed to refresh collection recommendations after creation",
-                            { error }
-                        );
-                    }
+                if (input.shouldRefreshRecommendations) {
+                    await refreshCollectionRecommendations(
+                        mutateRecommendations,
+                        "Failed to refresh collection recommendations after creation"
+                    );
                 }
                 showSuccess(input.successMessage(result.collection.name));
                 closeCreateDialog();
@@ -4577,7 +4641,7 @@ function CollectionsCreateDialog() {
         runCreate({
             description: normalizeWhitespace(descriptionDraft) || undefined,
             name,
-            refreshRecommendations: false,
+            shouldRefreshRecommendations: false,
             successMessage: (collectionName) => `${collectionName} created.`,
         });
     });
@@ -4675,7 +4739,7 @@ function CollectionsCreateDialog() {
                             ? { ...current, errorMessage: null }
                             : current
                     ),
-                refreshRecommendations: true,
+                shouldRefreshRecommendations: true,
                 successMessage: () => `${template.name} created from template.`,
             });
         }
@@ -4762,9 +4826,7 @@ function CollectionsCreateDialog() {
                                     className="-mx-[calc(--spacing(3)-1px)] *:resize-none *:pr-10"
                                     id={descriptionInputId}
                                     isUnstyled
-                                    maxLength={
-                                        COLLECTION_DESCRIPTION_MAX_LENGTH
-                                    }
+                                    maxLength={DESCRIPTION_MAX_LENGTH}
                                     onChange={handleDescriptionChange}
                                     placeholder="Describe what belongs here..."
                                     size="lg"
