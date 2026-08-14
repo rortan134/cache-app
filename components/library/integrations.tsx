@@ -90,6 +90,12 @@ interface UseIntegrationActionsResult {
 
 const log = createLogger("library:integrations");
 
+export const { useStore: useIntegrationsListStore } = createStore({
+    isIntegrationsListOpen: storage(true, {
+        storageKey: INTEGRATIONS_LIST_OPEN_STORAGE_KEY,
+    }),
+});
+
 function useIntegrationActions({
     direction,
     integration,
@@ -103,24 +109,59 @@ function useIntegrationActions({
 
     // synchronous guard so a same-role click is blocked before the state
     // update commits
-    const [activeActionRoles, setActiveActionRoles] = React.useState(
-        () => new Set<IntegrationActionRole>()
-    );
+    const activeActionRoles = useRefWithInit(() => {
+        let roles = new Set<IntegrationActionRole>();
+        const listeners = new Set<() => void>();
+        const notify = () => {
+            for (const listener of listeners) {
+                listener();
+            }
+        };
+        return {
+            add(role: IntegrationActionRole) {
+                if (!roles.has(role)) {
+                    roles = new Set(roles);
+                    roles.add(role);
+                    notify();
+                }
+            },
+            delete(role: IntegrationActionRole) {
+                if (!roles.has(role)) {
+                    return;
+                }
+                roles = new Set(roles);
+                roles.delete(role);
+                notify();
+            },
+            getSnapshot() {
+                return roles;
+            },
+            has(role: IntegrationActionRole) {
+                return roles.has(role);
+            },
+            subscribe(listener: () => void) {
+                listeners.add(listener);
+                return () => {
+                    listeners.delete(listener);
+                };
+            },
+        };
+    }).current;
 
-    const activeActionRolesRef = useRefWithInit(
-        () => new Set<IntegrationActionRole>()
+    const actionLoadingRoles = React.useSyncExternalStore(
+        activeActionRoles.subscribe,
+        activeActionRoles.getSnapshot,
+        activeActionRoles.getSnapshot
     );
 
     const handleIntegrationAction = useStableCallback(
         async (role: IntegrationActionRole) => {
-            if (activeActionRolesRef.current.has(role)) {
+            if (activeActionRoles.has(role)) {
                 return;
             }
 
             setActionStatus(null);
-
-            activeActionRolesRef.current.add(role);
-            setActiveActionRoles(new Set(activeActionRolesRef.current));
+            activeActionRoles.add(role);
 
             try {
                 const result = await executeIntegrationAction({
@@ -155,25 +196,23 @@ function useIntegrationActions({
                     tone: "error",
                 });
             } finally {
-                activeActionRolesRef.current.delete(role);
-                setActiveActionRoles(new Set(activeActionRolesRef.current));
+                activeActionRoles.delete(role);
             }
         }
     );
-
-    const visibleActions: IntegrationActionViewModel[] = [];
 
     const integrationActions = listIntegrationActions(
         integration.id,
         direction
     );
+    const visibleActions: IntegrationActionViewModel[] = [];
 
     for (const action of integrationActions) {
         if (!isActionVisible(action, isConnected)) {
             continue;
         }
         visibleActions.push({
-            isLoading: activeActionRoles.has(action.role),
+            isLoading: actionLoadingRoles.has(action.role),
             label: resolveActionLabel({
                 connectBehavior: integration.behaviors.connect,
                 isConnected,
@@ -189,12 +228,6 @@ function useIntegrationActions({
 
     return { actionStatus, actions: visibleActions };
 }
-
-export const { useStore: useIntegrationsListStore } = createStore({
-    isIntegrationsListOpen: storage(true, {
-        storageKey: INTEGRATIONS_LIST_OPEN_STORAGE_KEY,
-    }),
-});
 
 function resolveActionLabel(args: {
     connectBehavior?:
@@ -447,7 +480,6 @@ function IntegrationsListTrigger({
                         render={
                             render ?? (
                                 <SidebarItem
-                                    className="opacity-100"
                                     render={<button type="button" />}
                                 />
                             )
@@ -566,6 +598,7 @@ function IntegrationsListItem({
             render={
                 <SidebarItem
                     aria-disabled={isPrimaryActionLoading}
+                    className="opacity-100"
                     role={primaryAction ? "button" : undefined}
                     tabIndex={primaryAction ? 0 : undefined}
                 />
