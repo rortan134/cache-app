@@ -113,7 +113,6 @@ export function PublicShareGrid({
         <Masonry
             columnGutter={16}
             itemAs="article"
-            itemStyle={{ contain: "layout style" }}
             items={items}
             maxColumnCount={7}
             render={PublicShareGridCard}

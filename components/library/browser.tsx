@@ -4358,7 +4358,6 @@ function BrowserMasonry({ children }: BrowserMasonryProps) {
                     columnGutter={16}
                     itemAs="article"
                     itemKey={getBrowserMasonryItemKey}
-                    itemStyle={{ contain: "layout style" }}
                     items={items}
                     key={rootKey}
                     maxColumnCount={7}
@@ -5091,7 +5090,7 @@ function MediaCardMenuCommentTextarea() {
         return null;
     }
 
-    return <CommentTextarea isOpen={isOverlayOpen} item={item} />;
+    return <CommentTextarea isOpen={isOverlayOpen} item={item} key={item.id} />;
 }
 
 function MediaCardMenuContent() {

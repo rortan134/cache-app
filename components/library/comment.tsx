@@ -34,8 +34,11 @@ async function fetchItemComment([
     return result.contentText;
 }
 
-function getCommentKey(itemId: string, open: boolean) {
-    return open ? [COMMENT_SWR_KEY_PREFIX, itemId] : null;
+function getCommentKey(
+    itemId: string,
+    isOpen: boolean
+): readonly [string, string] | null {
+    return isOpen ? [COMMENT_SWR_KEY_PREFIX, itemId] : null;
 }
 
 interface CommentTextareaProps {
@@ -45,6 +48,7 @@ interface CommentTextareaProps {
 
 export function CommentTextarea({ isOpen, item }: CommentTextareaProps) {
     const gt = useGT();
+
     const { data, error, isLoading, mutate } = useSWR(
         getCommentKey(item.id, isOpen),
         fetchItemComment,
@@ -65,6 +69,7 @@ export function CommentTextarea({ isOpen, item }: CommentTextareaProps) {
 
     const contentRef = useValueAsRef(content);
     const hasBeenEditedRef = React.useRef(false);
+    const editVersionRef = React.useRef(0);
 
     // When the fetched comment lands (or a save round-trips), replace the
     // draft unless the user is mid-edit. Mirrors the note editor's
@@ -79,6 +84,7 @@ export function CommentTextarea({ isOpen, item }: CommentTextareaProps) {
     }
 
     const handleSave = useStableCallback(async () => {
+        const saveVersion = editVersionRef.current;
         const next = normalizeCommentText(contentRef.current) ?? "";
         const result = await updateLibraryItemComment({
             contentText: next,
@@ -88,15 +94,18 @@ export function CommentTextarea({ isOpen, item }: CommentTextareaProps) {
             return false;
         }
         await mutate(result.contentText);
-        // Clear the mid-edit latch only after the round-trip lands; clearing it
-        // before `mutate` would let the draft guard overwrite keystrokes typed
-        // while the save was in flight.
-        hasBeenEditedRef.current = false;
+        // Clear the mid-edit latch only after the round-trip lands and only if
+        // no newer edit occurred while the save was in flight. Clearing it
+        // before `mutate` would let the draft guard overwrite those keystrokes.
+        if (editVersionRef.current === saveVersion) {
+            hasBeenEditedRef.current = false;
+        }
         return true;
     });
 
     const handleChange = useStableCallback(
         (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+            editVersionRef.current += 1;
             hasBeenEditedRef.current = true;
             setContent(event.currentTarget.value);
         }
