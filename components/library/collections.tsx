@@ -639,6 +639,7 @@ const { useStore: useCollectionsListStore } = createStore({
     favoriteCollectionIds: storage<string[]>([], {
         storageKey: COLLECTIONS_LIST_FAVORITE_IDS_STORAGE_KEY,
     }),
+    feedback: null as CollectionFeedback | null,
     isCollectionsListOpen: storage(false, {
         storageKey: COLLECTIONS_LIST_OPEN_STORAGE_KEY,
     }),
@@ -657,10 +658,6 @@ const { useStore: useCollectionsListStore } = createStore({
     view: storage<CollectionView>("show-all", {
         storageKey: COLLECTIONS_LIST_VIEW_STORAGE_KEY,
     }),
-});
-
-const { useStore: useCollectionsListFeedbackStore } = createStore({
-    feedback: null as CollectionFeedback | null,
 });
 
 const CollectionsRootContext =
@@ -767,7 +764,7 @@ export function useLibraryItemsContext(): LibraryItemsContext {
 function useRunCollectionAction() {
     const { collection } = useCollectionsListItemContext();
     const { claimCollectionAction } = useCollectionsPendingActionsContext();
-    const { setFeedback } = useCollectionsListFeedbackStore();
+    const { setFeedback } = useCollectionsListStore();
     const ensureAccess = useCollectionAccessGate();
     const [isPending, startTransition] = React.useTransition();
 
@@ -799,7 +796,7 @@ function useRunCollectionAction() {
 }
 
 function useCollectionFeedback() {
-    const { feedback, setFeedback } = useCollectionsListFeedbackStore();
+    const { feedback, setFeedback } = useCollectionsListStore();
 
     const showError = useStableCallback((message: string) => {
         setFeedback({ message, tone: "error" });
@@ -934,9 +931,8 @@ function useCopyWithFeedback() {
 }
 
 function useToggleCollectionFavorite() {
-    const { favoriteCollectionIds, setFavoriteCollectionIds } =
+    const { favoriteCollectionIds, setFavoriteCollectionIds, setFeedback } =
         useCollectionsListStore();
-    const { setFeedback } = useCollectionsListFeedbackStore();
 
     const favoriteCollectionIdSet = new Set(favoriteCollectionIds);
 
@@ -959,7 +955,7 @@ function useToggleCollectionFavorite() {
 }
 
 function useCollectionDialogRequests() {
-    const { setFeedback } = useCollectionsListFeedbackStore();
+    const { setFeedback } = useCollectionsListStore();
     const { isCreateOpen } = useCollectionsCreateDialogContext();
     const { onCloseCreate, requestCreate } = useCollectionsContext();
     const createSubmissionPendingRef = React.useRef(false);
@@ -1032,7 +1028,7 @@ function useCollectionRowActions() {
         useCollectionsContext();
     const { claimCollectionAction } = useCollectionsPendingActionsContext();
     const { itemsByCollectionId } = useLibraryItemsContext();
-    const { setFeedback } = useCollectionsListFeedbackStore();
+    const { setFeedback } = useCollectionsListStore();
     const { showError, showSuccess } = useCollectionFeedback();
     const ensureAccess = useCollectionAccessGate();
     const copyWithFeedback = useCopyWithFeedback();
