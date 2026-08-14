@@ -130,7 +130,7 @@ export function CommentTextarea({ item, open }: CommentTextareaProps) {
         <div className="mt-1 mb-1.5 space-y-1 px-0.5">
             <Textarea
                 aria-label={gt("Comment on this item")}
-                className="border-none"
+                className="dark:border-none"
                 disabled={isLoading}
                 maxLength={COMMENT_TEXT_MAX_LENGTH}
                 onChange={handleChange}

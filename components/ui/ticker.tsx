@@ -107,7 +107,7 @@ export function Ticker({
                 className={cn(
                     "flex shrink-0 select-none",
                     isOverflowing &&
-                        "paused group-hover:running hover:running group-hover:animate-marquee",
+                        "paused group-hover:running hover:running group-hover:animate-marquee group-hover:delay-200",
                     direction === "right" && "direction-reverse"
                 )}
                 style={trackStyle}
