@@ -73,7 +73,7 @@ import {
     sortCollections,
     useCollectionsContext,
 } from "@/components/library/collections";
-import { CommentTextarea } from "@/components/library/comments";
+import { CommentTextarea } from "@/components/library/comment";
 import {
     Composer,
     ComposerActionMetrics,
