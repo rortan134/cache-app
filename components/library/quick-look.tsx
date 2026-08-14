@@ -774,15 +774,15 @@ function QuickLookDrawerToggle({
             if (event.defaultPrevented) {
                 return;
             }
-            setIsOpen(!isOpen);
+            setIsOpen((prev) => !prev);
         }
     );
+
+    const toggleLabel = isOpen ? "Close preview" : "Open preview";
 
     if (!isOpen && items.length === 0) {
         return null;
     }
-
-    const toggleLabel = isOpen ? "Close preview" : "Open preview";
 
     return (
         <Button

@@ -4217,10 +4217,10 @@ function BrowserGroupAIOverview({
 }
 
 function BrowserGroupAIOverviewContent() {
+    const t = useGT();
     const { collapsed, items, title } = useBrowserGroupContext();
-
-    const contentId = React.useId();
     const [isExpanded, setIsExpanded] = React.useState(false);
+    const contentId = React.useId();
 
     const payload = React.useDeferredValue(
         JSON.stringify({
@@ -4231,10 +4231,6 @@ function BrowserGroupAIOverviewContent() {
             sectionTitle: title,
         })
     );
-
-    const handleToggleExpanded = useStableCallback(() => {
-        setIsExpanded((prev) => !prev);
-    });
 
     const { data, isLoading, isValidating } =
         useSWR<SectionDescriptionResponse>(
@@ -4248,9 +4244,12 @@ function BrowserGroupAIOverviewContent() {
             }
         );
 
+    const handleToggleExpanded = useStableCallback(() => {
+        setIsExpanded((prev) => !prev);
+    });
+
     const summary = data?.summary.trim();
     const isPending = isLoading || isValidating;
-    const t = useGT();
 
     if (collapsed) {
         return null;
@@ -4890,9 +4889,9 @@ function MediaCardDataProvider({
 
 function MediaCardInteractionProvider({ children }: React.PropsWithChildren) {
     const { item } = useMediaCardDataContext();
+    const [isZoomed, setIsZoomed] = React.useState(false);
     const [isDownloading, startDownloadTransition] = React.useTransition();
     const [hasDownloadError, setHasDownloadError] = React.useState(false);
-    const [isZoomed, setIsZoomed] = React.useState(false);
 
     const handleDownload = useStableCallback(() => {
         setHasDownloadError(false);
@@ -5004,7 +5003,7 @@ function MediaCardMenuDetails() {
                     />
                 }
             >
-                <span className="block truncate text-xs">
+                <span className="block min-w-0 truncate text-xs">
                     {getLibraryItemPrimaryText(item)}
                 </span>
                 <ChevronDown className="ml-auto inline-block size-4" />
@@ -5040,6 +5039,7 @@ function MediaCardMenuDetails() {
 
 function MediaCardMenuActionList() {
     const data = useMediaCardDataContext();
+
     const visiblePlugins = MEDIA_CARD_ACTION_PLUGINS.filter((plugin) =>
         plugin.isAvailable(data)
     );
@@ -5061,6 +5061,7 @@ function MediaCardMenuActionList() {
 
 function MediaCardContextMenuActionList() {
     const data = useMediaCardDataContext();
+
     const visiblePlugins = MEDIA_CARD_ACTION_PLUGINS.filter((plugin) =>
         plugin.isAvailable(data)
     );
@@ -5149,9 +5150,9 @@ function MediaCardContextMenuSurface({ children }: React.PropsWithChildren) {
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
     const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
 
+    const isPointerOverCardRef = React.useRef(false);
     const isPickerOpen = openPickerItemId === item.id;
     const isHoverPinned = isMenuOpen || isContextMenuOpen || isPickerOpen;
-    const isPointerOverCardRef = React.useRef(false);
 
     React.useEffect(
         () => () => {
@@ -5227,6 +5228,7 @@ function MediaCardPreview(props: React.ComponentProps<"div">) {
     const { isNote, item, previewImageUrl } = useMediaCardDataContext();
     const { isZoomed, onZoomChange } = useMediaCardInteractionContext();
     const { isLastVisited } = useLastVisited();
+
     const hasNoteContent = (item.noteContentText ?? "").trim().length > 0;
     const previewVideoUrl = itemPreviewVideoUrl(item);
 
@@ -5334,6 +5336,7 @@ function MediaCardActions() {
         openPickerItemId,
         setOpenPickerItemId,
     } = useMediaCardEnvironmentContext();
+
     const isPickerOpen = openPickerItemId === item.id;
 
     const handlePickerOpenChange = useStableCallback((nextOpen: boolean) => {
