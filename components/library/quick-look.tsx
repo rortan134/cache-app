@@ -28,12 +28,12 @@ import {
     DrawerTrigger,
     DrawerViewport,
 } from "@/components/ui/drawer";
+import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
 import { clamp } from "@/lib/common/numbers";
 import { type Oembed, OembedSchema } from "@/lib/common/oembed";
 import { parseValidUrl } from "@/lib/common/url";
-import { MediaPlaceholder } from "../ui/media-placeholder";
 
 const QUICK_LOOK_BLOCKED_URL = "about:blank";
 const DEFAULT_TITLE = "Preview";
@@ -522,7 +522,10 @@ export function QuickLookDrawerContent({
                 }}
                 shouldShowBackdrop={false}
             >
-                <DrawerPopup className="max-w-full" variant="straight">
+                <DrawerPopup
+                    className="max-w-full bg-background"
+                    variant="straight"
+                >
                     <DrawerHeader
                         className={cn("p-2 pr-11 pb-2!", {
                             "p-0 pb-0!": !activeEntry,
@@ -603,12 +606,8 @@ function QuickLookDrawerPanel({ activeEntry }: QuickLookDrawerPanelProps) {
 
 function QuickLookPanelEmpty() {
     return (
-        <MediaPlaceholder className="bg-popover">
-            <Globe
-                aria-hidden
-                className="size-6 text-muted-foreground opacity-50"
-                focusable="false"
-            />
+        <MediaPlaceholder className="bg-background">
+            <Globe aria-hidden className="size-6" focusable="false" />
             <span className="text-center text-lg">Quick Look</span>
         </MediaPlaceholder>
     );
@@ -717,7 +716,7 @@ function QuickLookLoading() {
     return (
         <div
             aria-live="polite"
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-sm"
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-center"
             role="status"
         >
             <Spinner className="size-5 text-muted-foreground" />
@@ -738,7 +737,7 @@ function QuickLookBlocked({ url }: { url: string }) {
     return (
         <div
             aria-live="polite"
-            className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center"
+            className="flex size-full flex-col items-center justify-center gap-4 px-6 text-center"
             role="alert"
         >
             <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">

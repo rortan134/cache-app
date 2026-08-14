@@ -376,7 +376,9 @@ interface ComposerInputEndAddonProps {
 function ComposerInputEndAddon({ stackEntries }: ComposerInputEndAddonProps) {
     return (
         <>
-            {stackEntries.length === 0 ? <ComposerInputShortcut /> : null}
+            {stackEntries.length === 0 ? (
+                <ComposerInputEndAddonShortcut />
+            ) : null}
             <DisclosureListHorizontal
                 badgeRender={
                     <Badge
@@ -398,13 +400,13 @@ function ComposerInputEndAddon({ stackEntries }: ComposerInputEndAddonProps) {
     );
 }
 
-function ComposerInputShortcut() {
+function ComposerInputEndAddonShortcut() {
     return (
         <>
             <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
                 <CmdKbd />G
             </Kbd>
-            <span className="absolute right-3.5 flex items-center gap-0.5 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
+            <span className="absolute right-3.5 flex items-center gap-1 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
                 <Kbd className="border-none text-muted-foreground opacity-50">
                     Tab
                 </Kbd>
@@ -745,7 +747,7 @@ export function ComposerSuggestionsList({
                 className={cn("px-3", className)}
                 render={<ScrollArea shouldScrollFade />}
             >
-                <div className="flex w-max flex-nowrap items-center gap-1.5 text-nowrap">
+                <div className="flex w-max select-none flex-nowrap items-center gap-1.5 text-nowrap">
                     {suggestions.map((suggestion, i) => (
                         <React.Fragment key={suggestion.label}>
                             {children(suggestion, i)}
