@@ -15,7 +15,7 @@
 
 ## Why Cache
 
-Bookmarking is broken. When you hit "save" on a tweet, a video, or a post, you are making a deliberate decision that *this is worth remembering*. But that intent is immediately lost. It vanishes into a list you never revisit, scattered across a dozen platforms with no connection to your actual workflow or goals. The feeds are designed to keep you scrolling, not to help you resurface what you need. Existing tools treat the "save" action as an afterthought, a dead end rather than a starting point.
+Bookmarking is broken. When you hit "save" on a tweet, a video, or a post, you are making a deliberate decision that _this is worth remembering_. But that intent is immediately lost. It vanishes into a list you never revisit, scattered across a dozen platforms with no connection to your actual workflow or goals. The feeds are designed to keep you scrolling, not to help you resurface what you need. Existing tools treat the "save" action as an afterthought, a dead end rather than a starting point.
 
 Cache exists because that signal is too valuable to waste. It treats the act of saving as a first-class event and builds the entire experience around turning that intent into action. It does not replace your platforms; it respects the intent behind why you use them and gives it a destination.
 
@@ -127,7 +127,6 @@ Endpoint: `https://www.cachd.app/mcp`
 
 - **Remind me** — Set up unique reminders when saving or browsing on items to come back to later.
 - **Inbox view** — Triage view for reviewing entries.
-- **Notes improvements** — Richer editing experience, advanced formatting.
 - **Smart collection controls** — Review suggestions and control automatic assignment for each collection.
 - **Raycast integration** — Capture and search Cache from Raycast.
 - **Substack integration** — Import and save Substack posts and newsletters.
