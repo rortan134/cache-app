@@ -31,7 +31,7 @@ export async function deleteAccountAction(): Promise<DeleteAccountActionState> {
             status: "success",
         };
     } catch (error) {
-        if (error instanceof AccountError) {
+        if (AccountError.isInstance(error)) {
             return {
                 message: error.data.message,
                 redirect: null,

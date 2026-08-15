@@ -51,7 +51,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { LibraryMetricsSnapshot } from "@/lib/collections/metrics";
 import { cn } from "@/lib/common/cn";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { formatSharePercent } from "@/lib/common/numbers";
+import { formatSharePercent } from "@/lib/common/number";
 
 const MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
 
@@ -406,7 +406,7 @@ function ComposerInputEndAddonShortcut() {
             <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
                 <CmdKbd />G
             </Kbd>
-            <span className="absolute right-3.5 flex items-center gap-1 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
+            <span className="absolute right-3.5 flex items-center gap-0.5 text-nowrap opacity-0 group-data-popup-open/input:opacity-100 dark:gap-1">
                 <Kbd className="border-none text-muted-foreground opacity-50">
                     Tab
                 </Kbd>

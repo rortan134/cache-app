@@ -1,83 +1,82 @@
-import pRetry from "p-retry";
+import pRetry, { type Options } from "p-retry";
+import { HttpError } from "@/lib/common/http";
+import { isNetworkError } from "@/lib/common/network";
 
-interface RetryOptions {
-    attempts?: number;
-    delayMs?: number | ((attempt: number, error: unknown) => number);
-    onRetry?: (error: unknown, attempt: number, delayMs: number) => void;
-    shouldRetry?: (
-        error: unknown,
-        attempt: number
-    ) => boolean | Promise<boolean>;
-    signal?: AbortSignal;
-}
+const DEFAULT_RETRIES = 2;
+const DEFAULT_MIN_TIMEOUT_MS = 500;
+const DEFAULT_FACTOR = 2;
+const DEFAULT_MAX_TIMEOUT_MS = 10_000;
+const DEFAULT_SHOULD_RETRY: NonNullable<Options["shouldRetry"]> = ({ error }) =>
+    !HttpError.isInstance(error) ||
+    error.isRetryable() ||
+    isNetworkError(error);
 
-function sleep(ms: number, signal?: AbortSignal) {
-    return new Promise<void>((resolve, reject) => {
-        if (ms <= 0) {
-            resolve();
-            return;
-        }
-        if (signal?.aborted) {
-            reject(new DOMException("The operation was aborted", "AbortError"));
-            return;
-        }
-        const timer = setTimeout(() => {
-            signal?.removeEventListener("abort", onAbort);
-            resolve();
-        }, ms);
-        const onAbort = () => {
-            clearTimeout(timer);
-            reject(new DOMException("The operation was aborted", "AbortError"));
-        };
-        signal?.addEventListener("abort", onAbort, { once: true });
+export function withRetry<T>(
+    input: (attemptNumber: number) => PromiseLike<T> | T,
+    options: Options = {}
+): Promise<T> {
+    const {
+        factor = DEFAULT_FACTOR,
+        maxTimeout = DEFAULT_MAX_TIMEOUT_MS,
+        minTimeout = DEFAULT_MIN_TIMEOUT_MS,
+        retries = DEFAULT_RETRIES,
+        shouldRetry = DEFAULT_SHOULD_RETRY,
+        ...rest
+    } = options;
+
+    return pRetry(input, {
+        ...rest,
+        factor,
+        maxTimeout,
+        minTimeout,
+        retries,
+        shouldRetry,
     });
 }
 
-export function withRetry<T>(
-    operation: (attempt: number) => Promise<T>,
-    {
-        attempts = 3,
-        delayMs = 0,
-        signal,
-        shouldRetry = () => true,
-        onRetry,
-    }: RetryOptions = {}
-): Promise<T> {
-    const retries = Math.max(0, attempts - 1);
+export function waitForRetry(
+    delayMs: number,
+    signal?: AbortSignal
+): Promise<void> {
+    if (signal?.aborted) {
+        return Promise.reject(
+            signal.reason ??
+                new DOMException("The operation was aborted", "AbortError")
+        );
+    }
 
-    return pRetry(
-        async (attemptNum) => {
-            const attemptIndex = attemptNum - 1;
-            try {
-                return await operation(attemptIndex);
-            } catch (err) {
-                const willRetry =
-                    attemptIndex + 1 <= retries &&
-                    (await shouldRetry(err, attemptIndex));
-                if (!willRetry) {
-                    throw err;
-                }
-                const wait =
-                    typeof delayMs === "function"
-                        ? Math.max(0, delayMs(attemptIndex, err))
-                        : Math.max(0, delayMs);
-                onRetry?.(err, attemptIndex, wait);
-                if (wait > 0) {
-                    await sleep(wait, signal);
-                }
-                throw err instanceof TypeError
-                    ? new Error((err as Error).message, { cause: err })
-                    : (err as Error);
+    if (delayMs <= 0) {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+
+        const cleanup = () => {
+            if (timer !== undefined) {
+                clearTimeout(timer);
+                timer = undefined;
             }
-        },
-        {
-            factor: 1,
-            maxTimeout: 0,
-            minTimeout: 0,
-            onFailedAttempt: () => undefined,
-            randomize: false,
-            retries,
-            signal,
+            signal?.removeEventListener("abort", handleAbort);
+        };
+
+        const handleAbort = () => {
+            cleanup();
+            reject(
+                signal?.reason ??
+                    new DOMException("The operation was aborted", "AbortError")
+            );
+        };
+
+        if (signal?.aborted) {
+            handleAbort();
+            return;
         }
-    );
+
+        signal?.addEventListener("abort", handleAbort, { once: true });
+        timer = setTimeout(() => {
+            cleanup();
+            resolve();
+        }, delayMs);
+    });
 }

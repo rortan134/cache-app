@@ -60,7 +60,7 @@ export async function parseFeed(url: string): Promise<ParsedFeed> {
 
         xml = await response.text();
     } catch (error) {
-        if (error instanceof RssFeedError) {
+        if (RssFeedError.isInstance(error)) {
             throw error;
         }
         throw new RssFeedError(

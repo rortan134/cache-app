@@ -24,7 +24,7 @@ import {
 import {
     getIncrementedName,
     normalizeCollectionName,
-} from "@/lib/common/strings";
+} from "@/lib/common/string";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
 import { prisma } from "@/prisma";
 import { Prisma } from "@/prisma/client/client";

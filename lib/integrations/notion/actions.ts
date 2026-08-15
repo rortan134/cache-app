@@ -135,7 +135,7 @@ async function sendToNotion(
     } catch (error) {
         const details = extractNamedErrorMessage(error);
 
-        if (error instanceof IntegrationUserError) {
+        if (IntegrationUserError.isInstance(error)) {
             return {
                 message: details.message,
                 status:
@@ -145,7 +145,7 @@ async function sendToNotion(
             };
         }
 
-        if (error instanceof IntegrationApiError) {
+        if (IntegrationApiError.isInstance(error)) {
             log.error("Notion API send failure", {
                 error,
                 userId: auth.userId,

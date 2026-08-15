@@ -2,7 +2,7 @@ import {
     type CollectionTemplateOption,
     TEMPLATES,
 } from "@/lib/collections/templates";
-import { normalizeCollectionName } from "@/lib/common/strings";
+import { normalizeCollectionName } from "@/lib/common/string";
 
 const MAX_RECOMMENDATIONS = 2;
 

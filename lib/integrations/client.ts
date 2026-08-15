@@ -2,7 +2,7 @@ import copy from "copy-to-clipboard";
 import { authClient } from "@/lib/auth/client";
 import { CACHE_SITE_OPEN_AND_SYNC_EVENT } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
-import { asRecord } from "@/lib/common/objects";
+import { asRecord } from "@/lib/common/object";
 import { openExternalUrl } from "@/lib/common/url";
 import {
     IntegrationApiError,

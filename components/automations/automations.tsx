@@ -30,11 +30,11 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { getMonthDayLabel } from "@/lib/common/date";
 import { dayjs } from "@/lib/common/dayjs";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
-    getMonthDayLabel,
 } from "@/lib/common/time";
 import {
     deleteAutomation,

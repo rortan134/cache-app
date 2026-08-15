@@ -1,6 +1,6 @@
 import "server-only";
 
-import { mapConcurrent } from "@/lib/common/arrays";
+import { mapConcurrent } from "@/lib/common/array";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { upsertLibraryItemImports } from "@/lib/integrations/import";
 import { LibraryItemSource } from "@/prisma/client/enums";

@@ -4,7 +4,7 @@ import {
     getNoteExcerpt,
     normalizeWhitespace,
     truncateText,
-} from "@/lib/common/strings";
+} from "@/lib/common/string";
 import { normalizeURL } from "@/lib/common/url";
 
 export const NOTION_COLLECTION_ITEM_LIMIT = 100;

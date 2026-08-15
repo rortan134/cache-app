@@ -1,4 +1,4 @@
-import { unique } from "@/lib/common/arrays";
+import { unique } from "@/lib/common/array";
 
 export const DEFAULT_AGENT_MODEL = "gemini-3.5-flash-lite";
 

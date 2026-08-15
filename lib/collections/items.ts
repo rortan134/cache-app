@@ -21,7 +21,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/action";
-import { unique } from "@/lib/common/arrays";
+import { unique } from "@/lib/common/array";
 import {
     ACTION_STATUS,
     BATCH_UPDATE_MAX_ITEMS,

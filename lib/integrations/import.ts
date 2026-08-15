@@ -1,6 +1,6 @@
 import "server-only";
 
-import { chunk, mapConcurrent } from "@/lib/common/arrays";
+import { chunk, mapConcurrent } from "@/lib/common/array";
 import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { prisma } from "@/prisma";

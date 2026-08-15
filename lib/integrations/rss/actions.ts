@@ -82,7 +82,7 @@ export async function addFeed(input: {
         return { feedId, status: "SUCCESS" };
     } catch (error) {
         if (
-            error instanceof RssFeedError &&
+            RssFeedError.isInstance(error) &&
             error.data.kind === "already_exists"
         ) {
             return {

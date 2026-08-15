@@ -1,4 +1,4 @@
-import { normalizeCollectionName } from "@/lib/common/strings";
+import { normalizeCollectionName } from "@/lib/common/string";
 
 export interface CollectionTemplateOption {
     description: string;

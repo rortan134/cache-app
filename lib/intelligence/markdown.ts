@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/common/objects";
+import { isRecord } from "@/lib/common/object";
 
 const JSON_MARKDOWN_FIELD_NAMES = [
     "markdown",

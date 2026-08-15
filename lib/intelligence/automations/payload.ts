@@ -2,7 +2,7 @@ import "server-only";
 
 import { abortAfter, isAbortError } from "@/lib/common/abort";
 import { HttpError } from "@/lib/common/http";
-import { withRetry } from "@/lib/common/retry";
+import { waitForRetry, withRetry } from "@/lib/common/retry";
 import {
     crossOriginSafeHeaders,
     fetchPublicHop,
@@ -10,7 +10,7 @@ import {
     resolvePublicHttpUrl,
     resolveRedirectLocation,
 } from "@/lib/common/security/fetch";
-import { truncateText } from "@/lib/common/strings";
+import { truncateText } from "@/lib/common/string";
 import { prisma } from "@/prisma";
 import { AutomationPayloadScope } from "@/prisma/client/enums";
 import {
@@ -51,20 +51,41 @@ function parseRetryAfterMs(response: {
     }
 
     const seconds = Number(header);
-    if (!Number.isNaN(seconds)) {
-        return seconds * 1000;
+    if (Number.isFinite(seconds)) {
+        return Math.max(0, seconds * 1000);
     }
 
-    try {
-        const date = new Date(header);
-        if (!Number.isNaN(date.getTime())) {
-            return Math.max(0, date.getTime() - Date.now());
-        }
-    } catch {
-        return null;
-    }
+    const date = new Date(header);
+    return Number.isNaN(date.getTime())
+        ? null
+        : Math.max(0, date.getTime() - Date.now());
+}
 
-    return null;
+function isRetryableAutomationError(error: unknown): boolean {
+    if (HttpError.isInstance(error)) {
+        return error.isRetryable();
+    }
+    if (error instanceof Error) {
+        return (
+            error.message.includes("aborted") ||
+            error.message.includes("fetch failed")
+        );
+    }
+    return true;
+}
+
+function getAutomationRetryDelayMs(
+    attemptNumber: number,
+    error: unknown
+): number {
+    if (
+        HttpError.isInstance(error) &&
+        error.retryAfter !== null &&
+        Number.isFinite(error.retryAfter)
+    ) {
+        return Math.max(0, error.retryAfter);
+    }
+    return AUTOMATION_WEB_FETCH_RETRY_BASE_DELAY_MS * 2 ** (attemptNumber - 1);
 }
 
 function hasCaptchaChallenge(text: string): boolean {
@@ -223,6 +244,7 @@ export async function automationWebFetch(args: { url: string }) {
     "use step";
 
     const totalTimeout = abortAfter(AUTOMATION_WEB_FETCH_TOTAL_TIMEOUT_MS);
+    const startedAt = Date.now();
 
     try {
         let currentUrl = args.url;
@@ -263,31 +285,39 @@ export async function automationWebFetch(args: { url: string }) {
                         return res;
                     },
                     {
-                        attempts: AUTOMATION_WEB_FETCH_RETRY_ATTEMPTS,
-                        delayMs: (attempt, error) => {
+                        factor: 1,
+                        maxTimeout: 0,
+                        minTimeout: 0,
+                        onFailedAttempt: async ({
+                            attemptNumber,
+                            error,
+                            retriesLeft,
+                        }) => {
                             if (
-                                error instanceof HttpError &&
-                                error.retryAfter !== null
+                                retriesLeft <= 0 ||
+                                !isRetryableAutomationError(error)
                             ) {
-                                return error.retryAfter;
+                                return;
                             }
-                            return (
-                                AUTOMATION_WEB_FETCH_RETRY_BASE_DELAY_MS *
-                                2 ** attempt
+                            const remainingTimeoutMs = Math.max(
+                                0,
+                                AUTOMATION_WEB_FETCH_TOTAL_TIMEOUT_MS -
+                                    (Date.now() - startedAt)
+                            );
+                            await waitForRetry(
+                                Math.min(
+                                    getAutomationRetryDelayMs(
+                                        attemptNumber,
+                                        error
+                                    ),
+                                    remainingTimeoutMs
+                                ),
+                                totalTimeout.signal
                             );
                         },
-                        shouldRetry: (error) => {
-                            if (error instanceof HttpError) {
-                                return error.isRetryable();
-                            }
-                            if (error instanceof Error) {
-                                return (
-                                    error.message.includes("aborted") ||
-                                    error.message.includes("fetch failed")
-                                );
-                            }
-                            return true;
-                        },
+                        retries: AUTOMATION_WEB_FETCH_RETRY_ATTEMPTS - 1,
+                        shouldRetry: ({ error }) =>
+                            isRetryableAutomationError(error),
                         signal: totalTimeout.signal,
                     }
                 );

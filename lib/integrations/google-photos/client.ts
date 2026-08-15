@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@/lib/common/error";
-import { withRetry } from "@/lib/common/retry";
+import { waitForRetry, withRetry } from "@/lib/common/retry";
 import {
     IntegrationApiError,
     IntegrationConnectionError,
@@ -126,12 +126,29 @@ async function pollUntilMediaSelected(
             });
         },
         {
-            attempts: Number.MAX_SAFE_INTEGER,
-            delayMs: (_, err) =>
-                err instanceof PickerNotReadyError
-                    ? Math.max(1000, err.data.pollIntervalMs)
-                    : 1000,
-            shouldRetry: (err) => err instanceof PickerNotReadyError,
+            factor: 1,
+            maxTimeout: 0,
+            minTimeout: 0,
+            onFailedAttempt: async ({ error, retriesLeft }) => {
+                if (
+                    retriesLeft <= 0 ||
+                    !PickerNotReadyError.isInstance(error)
+                ) {
+                    return;
+                }
+                const remainingMs = Math.max(
+                    0,
+                    timeoutMs - (Date.now() - startedAt)
+                );
+                await waitForRetry(
+                    Math.min(
+                        Math.max(1000, error.data.pollIntervalMs),
+                        remainingMs
+                    )
+                );
+            },
+            retries: Number.MAX_SAFE_INTEGER,
+            shouldRetry: ({ error }) => PickerNotReadyError.isInstance(error),
         }
     );
 }

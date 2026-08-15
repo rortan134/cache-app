@@ -2,7 +2,7 @@
 
 import type * as React from "react";
 import { cn } from "@/lib/common/cn";
-import { formatSharePercent } from "@/lib/common/numbers";
+import { formatSharePercent } from "@/lib/common/number";
 
 export interface StackedBarChartSegment {
     color: string;

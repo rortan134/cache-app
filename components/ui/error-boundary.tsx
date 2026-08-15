@@ -7,7 +7,7 @@ import { catchError, type ErrorInfo } from "next/error";
 import { useOffline } from "next/offline";
 import { fromError } from "zod-validation-error";
 import { Button } from "@/components/ui/button";
-import { isNetworkError } from "@/lib/common/http";
+import { isNetworkError } from "@/lib/common/network";
 
 const CHUNK_OR_HYDRATION_ERROR_RE =
     /ChunkLoadError|CSSChunkLoadError|Loading chunk failed|Failed to fetch dynamically imported module|Hydration failed|Invariant Violation|Minified React error/;

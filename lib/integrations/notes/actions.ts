@@ -109,7 +109,7 @@ export async function updateNote(input: {
         };
     } catch (error) {
         const details = extractNamedErrorMessage(error);
-        if (error instanceof IntegrationUserError && error.data.resource) {
+        if (IntegrationUserError.isInstance(error) && error.data.resource) {
             return {
                 message: details.message,
                 status: "NOT_FOUND",

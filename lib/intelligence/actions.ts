@@ -6,7 +6,7 @@ import type { CollectionTemplateOption } from "@/lib/collections/templates";
 import { TEMPLATES } from "@/lib/collections/templates";
 import { getValidationErrorMessage } from "@/lib/common/action";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { normalizeCollectionName } from "@/lib/common/strings";
+import { normalizeCollectionName } from "@/lib/common/string";
 import { recommendCollectionTemplates } from "@/lib/intelligence/recommendations";
 import { prisma } from "@/prisma";
 import {

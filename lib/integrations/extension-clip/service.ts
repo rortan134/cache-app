@@ -11,7 +11,7 @@ import {
     COLLECTION_VALIDATION_MESSAGES,
     type LibraryCollectionSummary,
 } from "@/lib/collections/utils";
-import { unique } from "@/lib/common/arrays";
+import { unique } from "@/lib/common/array";
 import { NamedError } from "@/lib/common/error";
 import { canonicalBookmarkUrl, parseStandaloneUrl } from "@/lib/common/url";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
@@ -220,7 +220,7 @@ export async function clipPageFromExtension(args: {
         };
     } catch (error) {
         if (
-            error instanceof LibraryCollectionError &&
+            LibraryCollectionError.isInstance(error) &&
             error.data.code === "not_found"
         ) {
             throw new ExtensionClipError(

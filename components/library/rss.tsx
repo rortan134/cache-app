@@ -293,7 +293,7 @@ function RssAddFeedForm({ onFeedAdded }: RssAddFeedFormProps) {
                     type="url"
                     value={url}
                 />
-                <Button isLoading={isPending} size="sm" type="submit">
+                <Button isLoading={isPending} type="submit">
                     Add
                 </Button>
             </div>

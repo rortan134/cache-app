@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
         return Response.json({ ok: true, ...response }, { headers: cors });
     } catch (error) {
-        if (error instanceof ExtensionClipError) {
+        if (ExtensionClipError.isInstance(error)) {
             const status =
                 error.data.code === "invalid_url" ||
                 error.data.code === "invalid_collections"

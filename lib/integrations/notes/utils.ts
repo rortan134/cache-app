@@ -10,8 +10,8 @@ import {
     type SerializedLexicalNode,
     type SerializedTextNode,
 } from "lexical";
-import { isRecord } from "@/lib/common/objects";
-import { decodeHtmlEntities } from "@/lib/common/strings";
+import { isRecord } from "@/lib/common/object";
+import { decodeHtmlEntities } from "@/lib/common/string";
 
 export const NOTE_EMPTY_HTML = "<p></p>";
 

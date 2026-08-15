@@ -14,7 +14,7 @@ import {
     PRISMA_UNIQUE_CONSTRAINT_ERROR,
 } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { normalizeCollectionName } from "@/lib/common/strings";
+import { normalizeCollectionName } from "@/lib/common/string";
 import { IntegrationUserError } from "@/lib/integrations/error";
 import {
     type NormalizedNotePayload,

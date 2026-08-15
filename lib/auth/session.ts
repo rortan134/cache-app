@@ -34,7 +34,7 @@ export async function withSession<T>(
     } catch (error) {
         log.error("Session operation failed", error);
 
-        if (error instanceof SessionError) {
+        if (SessionError.isInstance(error)) {
             throw error;
         }
 

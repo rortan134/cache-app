@@ -54,7 +54,7 @@ import type { Session } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
 import { ACTION_STATUS } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { getInitials } from "@/lib/common/strings";
+import { getInitials } from "@/lib/common/string";
 import { getDesktopDownloads } from "@/lib/desktop/actions";
 import { DESKTOP_ASSETS } from "@/lib/desktop/constants";
 import { detectDesktopPlatform } from "@/lib/desktop/platform";

@@ -52,7 +52,7 @@ export async function runOAuthImport<
         scheduleSmartCollections(userId, smartCollectionItemIds);
         return Response.json(response);
     } catch (error) {
-        if (error instanceof IntegrationConnectionError) {
+        if (IntegrationConnectionError.isInstance(error)) {
             if (error.data.code === "not_connected") {
                 return Response.json(
                     { error: config.messages.notConnected },
@@ -68,7 +68,7 @@ export async function runOAuthImport<
         }
 
         if (
-            error instanceof IntegrationApiError &&
+            IntegrationApiError.isInstance(error) &&
             error.data.integrationId === config.providerId
         ) {
             return Response.json(

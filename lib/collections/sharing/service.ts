@@ -254,9 +254,15 @@ export async function enablePublicCollectionShare(input: {
                             Prisma.TransactionIsolationLevel.RepeatableRead,
                     }
                 ),
+            // A unique share-ID collision is resolved by generating a fresh ID;
+            // waiting does not improve the outcome, so retry immediately.
             {
-                attempts: COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX,
-                shouldRetry: isPrismaUniqueConstraintError,
+                factor: 1,
+                maxTimeout: 0,
+                minTimeout: 0,
+                retries: COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX - 1,
+                shouldRetry: ({ error }) =>
+                    isPrismaUniqueConstraintError(error),
             }
         );
     } catch (error) {

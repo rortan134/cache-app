@@ -1,13 +1,13 @@
 import * as z from "zod";
-import { unique } from "@/lib/common/arrays";
+import { unique } from "@/lib/common/array";
 import {
     ACTION_STATUS,
     FALLBACK_URL,
     ITEM_KIND_BOOKMARK,
     SORT_ASC,
 } from "@/lib/common/constants";
-import { parseDate } from "@/lib/common/dates";
-import { escapeCsv, neutralizeCsvFormula } from "@/lib/common/strings";
+import { parseDate } from "@/lib/common/date";
+import { escapeCsv, neutralizeCsvFormula } from "@/lib/common/string";
 import { normalizeURL, toValidUrl } from "@/lib/common/url";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";

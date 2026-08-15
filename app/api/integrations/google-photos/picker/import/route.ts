@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         });
     } catch (error) {
         if (
-            error instanceof IntegrationApiError &&
+            IntegrationApiError.isInstance(error) &&
             error.data.integrationId === "google-photos"
         ) {
             const status = error.data.status ?? 500;

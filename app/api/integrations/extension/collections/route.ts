@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         return Response.json({ ok: true, ...result }, { headers: cors });
     } catch (error) {
         if (
-            error instanceof LibraryCollectionError &&
+            LibraryCollectionError.isInstance(error) &&
             error.data.code === "duplicate_name"
         ) {
             return Response.json(

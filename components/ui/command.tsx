@@ -62,7 +62,7 @@ export function CommandInput({
                 {...props}
                 className={cn(
                     "min-h-11 rounded-full p-1.5",
-                    "border bg-card shadow-xs outline-none ring-0 before:hidden has-focus-visible:border-border has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
+                    "border border-input/50 bg-card shadow-xs outline-none ring-0 before:hidden has-focus-visible:border-border has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
                     startAddon &&
                         "data-[size=sm]:*:data-[slot=command-input]:ps-[calc(--spacing(7.5)-1px)] *:data-[slot=command-input]:ps-[calc(--spacing(8.5)-1px)] sm:data-[size=sm]:*:data-[slot=command-input]:ps-[calc(--spacing(7)-1px)] sm:*:data-[slot=command-input]:ps-[calc(--spacing(9)-1px)]",
                     size === "sm"

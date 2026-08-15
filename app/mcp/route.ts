@@ -320,7 +320,7 @@ async function handleDeleteLibraryItem(
         };
     } catch (error) {
         if (
-            error instanceof LibraryCollectionError &&
+            LibraryCollectionError.isInstance(error) &&
             error.data.code === "not_found"
         ) {
             // Treat already-trashed or never-existed as a successful no-op

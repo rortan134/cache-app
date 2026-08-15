@@ -1,7 +1,7 @@
 "use client";
 
 import type * as React from "react";
-import { clamp } from "@/lib/common/numbers";
+import { clamp } from "@/lib/common/number";
 
 const ICON_VIEWBOX = 24;
 const ICON_CENTER = 12;

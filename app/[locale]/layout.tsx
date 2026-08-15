@@ -1,4 +1,4 @@
-import "@/lib/common/dayjs/locales";
+import "@/lib/common/dayjs/locale";
 import "../globals.css";
 
 import { GTProvider, getLocales } from "gt-next";

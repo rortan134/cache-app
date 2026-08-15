@@ -7,7 +7,7 @@ import {
     type LinkReachabilityStatus,
 } from "@/lib/collections/library-quality";
 import { isAbortError } from "@/lib/common/abort";
-import { mapConcurrent } from "@/lib/common/arrays";
+import { mapConcurrent } from "@/lib/common/array";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getRedisClient } from "@/lib/common/redis";
 import {

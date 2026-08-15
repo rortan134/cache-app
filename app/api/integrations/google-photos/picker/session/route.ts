@@ -25,7 +25,7 @@ function photosAuthErrorResponse(error: IntegrationApiError): Response {
 
 function isPhotosAuthFailure(error: unknown): error is IntegrationApiError {
     return (
-        error instanceof IntegrationApiError &&
+        IntegrationApiError.isInstance(error) &&
         error.data.integrationId === "google-photos" &&
         (error.data.status === 401 || error.data.status === 403)
     );
@@ -56,7 +56,7 @@ export async function POST() {
                 continue;
             }
             if (
-                error instanceof IntegrationApiError &&
+                IntegrationApiError.isInstance(error) &&
                 error.data.integrationId === "google-photos"
             ) {
                 return photosAuthErrorResponse(error);
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
         );
     } catch (error) {
         if (
-            error instanceof IntegrationApiError &&
+            IntegrationApiError.isInstance(error) &&
             error.data.integrationId === "google-photos"
         ) {
             return photosAuthErrorResponse(error);

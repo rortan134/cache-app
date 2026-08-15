@@ -6,7 +6,7 @@ import type {
     ITEM_KIND_BOOKMARK,
     ITEM_KIND_FOLDER,
 } from "@/lib/common/constants";
-import { parseDate } from "@/lib/common/dates";
+import { parseDate } from "@/lib/common/date";
 import { upsertLibraryItemImports } from "@/lib/integrations/import";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";

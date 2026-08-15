@@ -1,7 +1,7 @@
 import "server-only";
 
 import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
-import { parseDate } from "@/lib/common/dates";
+import { parseDate } from "@/lib/common/date";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";
 import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
 

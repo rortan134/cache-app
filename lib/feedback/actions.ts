@@ -52,7 +52,7 @@ export async function createFeedback(
             status: "success",
         };
     } catch (error) {
-        if (error instanceof FeedbackError) {
+        if (FeedbackError.isInstance(error)) {
             return {
                 message: error.data.message,
                 status: "error",

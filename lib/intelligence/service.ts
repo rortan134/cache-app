@@ -275,7 +275,7 @@ async function executeGeneration<T>(
 
         return normalized;
     } catch (error) {
-        if (error instanceof GenAiProtectionError) {
+        if (GenAiProtectionError.isInstance(error)) {
             throw error;
         }
 

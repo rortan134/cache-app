@@ -1,5 +1,16 @@
 import { createHash } from "node:crypto";
 
+/** Fast SHA-1 digest in hexadecimal; not suitable for security-sensitive uses. */
+export function sha1Hex(input: string | Uint8Array): string {
+    const hash = createHash("sha1");
+    if (typeof input === "string") {
+        hash.update(input, "utf8");
+    } else {
+        hash.update(input);
+    }
+    return hash.digest("hex");
+}
+
 /**
  * Fast digest — safe only for high-entropy input (API keys, encrypted values,
  * digests). Passwords never land here: Better Auth owns the slow KDF.

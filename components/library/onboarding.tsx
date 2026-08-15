@@ -48,7 +48,7 @@ import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { addUnique, unique } from "@/lib/common/arrays";
+import { addUnique, unique } from "@/lib/common/array";
 import { cn } from "@/lib/common/cn";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 

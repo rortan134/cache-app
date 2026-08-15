@@ -1,6 +1,6 @@
 import "server-only";
 
-import { mapConcurrent } from "@/lib/common/arrays";
+import { mapConcurrent } from "@/lib/common/array";
 import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";

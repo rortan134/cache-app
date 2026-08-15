@@ -40,11 +40,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/common/cn";
+import { getMonthDayLabel } from "@/lib/common/date";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
-    getMonthDayLabel,
     getTimeOfDayOption,
     getTimeOfDayOptionByLabel,
     getTimeOfDayOptions,

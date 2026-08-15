@@ -1,5 +1,8 @@
+/**
+ * Based on https://github.com/anomalyco/opencode/blob/dev/packages/core/src/util/error.ts
+ */
 import * as z from "zod";
-import { isRecord } from "@/lib/common/objects";
+import { asRecord, isRecord } from "@/lib/common/object";
 
 export abstract class NamedError extends Error {
     abstract readonly data: unknown;
@@ -14,34 +17,29 @@ export abstract class NamedError extends Error {
             data,
             name: z.literal(name),
         });
+        type DataInput = z.input<Data>;
 
         const result = class extends NamedError {
             static readonly Schema = schema;
-
+            readonly data: DataInput;
             override readonly name: Name = name;
-            readonly data: z.input<Data>;
 
-            constructor(errorData: z.input<Data>, options?: ErrorOptions) {
-                const record =
-                    typeof errorData === "object"
-                        ? (errorData as Record<string, unknown>)
-                        : null;
+            constructor(payload: DataInput, options?: ErrorOptions) {
+                const _payload = asRecord(payload);
                 const message =
-                    typeof record?.message === "string" ? record.message : name;
+                    typeof _payload?.message === "string"
+                        ? _payload.message
+                        : name;
+
                 super(message, options);
                 this.name = name;
-                this.data = errorData;
+                this.data = payload;
             }
 
             static isInstance(
-                input: unknown
-            ): input is InstanceType<typeof result> {
-                return (
-                    typeof input === "object" &&
-                    input !== null &&
-                    "name" in input &&
-                    (input as { name: unknown }).name === name
-                );
+                error: unknown
+            ): error is InstanceType<typeof result> {
+                return schema.safeParse(error).success;
             }
 
             schema() {
@@ -72,17 +70,15 @@ export function extractNamedErrorMessage(e: unknown): {
     message: string;
     operation?: string;
 } {
-    if (e instanceof NamedError) {
-        const data = isRecord(e.data) ? e.data : undefined;
-        const operation =
-            typeof data?.operation === "string" ? data.operation : undefined;
-        const message =
-            (typeof data?.message === "string" && data.message) || e.message;
-        return { message, operation };
-    }
+    const record = isRecord(e) ? e : undefined;
+    const data = record && isRecord(record.data) ? record.data : undefined;
 
-    const data = isRecord(e) && isRecord(e.data) ? e.data : undefined;
-    const errorMessage = e instanceof Error ? e.message : undefined;
+    let errorMessage: string | undefined;
+    if (typeof record?.message === "string") {
+        errorMessage = record.message;
+    } else if (e instanceof Error) {
+        errorMessage = e.message;
+    }
 
     return {
         message:
@@ -98,33 +94,31 @@ export function extractNamedErrorMessage(e: unknown): {
  * Extracts a human-readable error message from a variety of error payloads.
  */
 export function getErrorMessage(
-    payload: unknown,
+    value: unknown,
     fallback = "An unexpected error occurred"
 ): string {
-    if (typeof payload === "string" && payload.length > 0) {
-        return payload;
+    if (typeof value === "string" && value.length > 0) {
+        return value;
     }
 
-    if (payload instanceof Error) {
-        return payload.message;
+    if (value instanceof Error) {
+        return value.message;
     }
 
-    if (typeof payload === "object" && payload !== null) {
-        const record = payload as Record<string, unknown>;
-
+    if (isRecord(value)) {
         // Better-auth error shape
-        if (typeof record.message === "string" && record.message.length > 0) {
-            return record.message;
+        if (typeof value.message === "string" && value.message.length > 0) {
+            return value.message;
         }
 
         // Generic API error shape
-        if (typeof record.error === "string" && record.error.length > 0) {
-            return record.error;
+        if (typeof value.error === "string" && value.error.length > 0) {
+            return value.error;
         }
 
         // Nested data shape
-        if (typeof record.data === "object" && record.data !== null) {
-            return getErrorMessage(record.data, fallback);
+        if (isRecord(value.data)) {
+            return getErrorMessage(value.data, fallback);
         }
     }
 

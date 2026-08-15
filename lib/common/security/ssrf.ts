@@ -4,7 +4,7 @@ import {
     isLocalhostAlias,
     normalizeHostname,
     unwrapIpv6Brackets,
-} from "./hostnames";
+} from "./hostname";
 
 const log = createLogger("security/ssrf");
 

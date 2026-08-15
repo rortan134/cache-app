@@ -18,7 +18,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/action";
-import { unique } from "@/lib/common/arrays";
+import { unique } from "@/lib/common/array";
 import { ACTION_STATUS, DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { CollectionPriority } from "@/prisma/client/enums";

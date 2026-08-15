@@ -4,7 +4,7 @@ import undici, { Agent } from "undici";
 import { abortAfterAny } from "@/lib/common/abort";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { type ResolvedHost, resolveHostAddresses } from "./dns";
-import { unwrapIpv6Brackets } from "./hostnames";
+import { unwrapIpv6Brackets } from "./hostname";
 import { isBlockedHostname, isIpLiteral, parseHttpUrl } from "./ssrf";
 
 const PUBLIC_FETCH_DNS_TIMEOUT_MS = 15_000;
@@ -29,10 +29,37 @@ const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 /**
  * Budgets released early because the response body outlives the request
- * (streamed to a client); keyed so {@link releaseResponseBodyBudget} can clear
- * the timer without adding surface to the Response object itself.
+ * (streamed to a client). A string marker keeps the release operation working
+ * when this shared package is loaded more than once in the same process.
  */
-const responseBodyBudgetReleasers = new WeakMap<Response, () => void>();
+const RESPONSE_BODY_BUDGET_RELEASE_KEY = Symbol.for(
+    "cache.common.response-body-budget-release"
+);
+
+function isResponseBodyBudgetReleaser(value: unknown): value is () => void {
+    return typeof value === "function";
+}
+
+function setResponseBodyBudgetReleaser(
+    response: Response,
+    releaser: () => void
+): void {
+    Object.defineProperty(response, RESPONSE_BODY_BUDGET_RELEASE_KEY, {
+        configurable: true,
+        enumerable: false,
+        value: releaser,
+    });
+}
+
+function getResponseBodyBudgetReleaser(
+    response: Response
+): (() => void) | undefined {
+    const value = Object.getOwnPropertyDescriptor(
+        response,
+        RESPONSE_BODY_BUDGET_RELEASE_KEY
+    )?.value;
+    return isResponseBodyBudgetReleaser(value) ? value : undefined;
+}
 
 export interface PublicHttpUrl {
     /** The validated public address to pin the connection to. */
@@ -215,7 +242,7 @@ function budgetResponseBody(
         statusText: response.statusText,
     });
     Object.defineProperty(budgeted, "url", { value: response.url });
-    responseBodyBudgetReleasers.set(budgeted, clearTimeout);
+    setResponseBodyBudgetReleaser(budgeted, clearTimeout);
     return budgeted;
 }
 
@@ -226,7 +253,7 @@ function budgetResponseBody(
  * (the stream ends at the timeout).
  */
 export function releaseResponseBodyBudget(response: Response): void {
-    responseBodyBudgetReleasers.get(response)?.();
+    getResponseBodyBudgetReleaser(response)?.();
 }
 
 export type FetchHttpRedirectResult =

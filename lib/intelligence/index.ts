@@ -19,7 +19,7 @@ import { serverEnv } from "@/env/server";
 import { templateDescriptionForNameKey } from "@/lib/collections/templates";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { abortAfter } from "@/lib/common/abort";
-import { unique } from "@/lib/common/arrays";
+import { unique } from "@/lib/common/array";
 import {
     ITEM_KIND_BOOKMARK,
     MIME_TYPES,
@@ -32,7 +32,7 @@ import {
     normalizeCollectionName,
     normalizeWhitespace,
     truncateText,
-} from "@/lib/common/strings";
+} from "@/lib/common/string";
 import { isHttpUrl } from "@/lib/common/url";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
 import { GenAiProtectionError } from "@/lib/intelligence/error";
@@ -1084,7 +1084,7 @@ export async function autoTagLibraryItemsByIds(args: {
                 args.userId
             );
         } catch (error) {
-            if (error instanceof GenAiProtectionError) {
+            if (GenAiProtectionError.isInstance(error)) {
                 log.warn("Smart collections request denied", {
                     itemId: item.id,
                     reason: error.data.reason,

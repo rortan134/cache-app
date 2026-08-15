@@ -68,7 +68,7 @@ export async function GET(request: Request) {
                             runId: run.runId,
                             workflowRunId,
                         }),
-                    { attempts: 3, delayMs: 50 }
+                    { factor: 1, minTimeout: 50 }
                 );
             } catch (error) {
                 log.error("Failed to attach workflow run id", {

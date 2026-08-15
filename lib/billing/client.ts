@@ -56,7 +56,7 @@ export const withStripe = async <T>(
     } catch (error) {
         log.error("Stripe operation failed:", error);
 
-        if (error instanceof StripeError) {
+        if (StripeError.isInstance(error)) {
             throw error;
         }
 
