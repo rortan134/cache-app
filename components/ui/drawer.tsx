@@ -68,9 +68,13 @@ export function Drawer<Payload = unknown>({
     );
 }
 
-export const DrawerTrigger = DrawerPrimitive.Trigger;
+export function DrawerTrigger(props: DrawerPrimitive.Trigger.Props) {
+    return <DrawerPrimitive.Trigger {...props} data-slot="drawer-trigger" />;
+}
 
-export const DrawerClose = DrawerPrimitive.Close;
+export function DrawerClose(props: DrawerPrimitive.Close.Props) {
+    return <DrawerPrimitive.Close {...props} data-slot="drawer-close" />;
+}
 
 interface DrawerViewportProps extends DrawerPrimitive.Viewport.Props {
     portalProps?: DrawerPrimitive.Portal.Props;
@@ -140,6 +144,7 @@ export function DrawerPopup({
 
     return (
         <DrawerPrimitive.Popup
+            {...props}
             className={cn(
                 "relative flex max-h-full min-h-0 w-full min-w-0 flex-col bg-popover not-dark:bg-clip-padding text-popover-foreground shadow-lg/5 outline-none transition-[transform,opacity,box-shadow,height,background-color] duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform [--drawer-enter-exit-translation:--spacing(6)] [--peek:calc(--spacing(6)-1px)] [--scale-base:calc(max(0,1-(var(--nested-drawers)*var(--stack-step))))] [--scale:clamp(0,calc(var(--scale-base)+(var(--stack-step)*var(--stack-progress))),1)] [--shrink:calc(1-var(--scale))] [--stack-peek-offset:max(0px,calc((var(--nested-drawers)-var(--stack-progress))*var(--peek)))] [--stack-progress:clamp(0,var(--drawer-swipe-progress),1)] [--stack-step:0.05] before:pointer-events-none before:absolute before:inset-0 before:shadow-[0_1px_--theme(--color-black/4%)] after:pointer-events-none after:absolute after:bg-popover data-swiping:select-none data-nested-drawer-open:overflow-hidden data-nested-drawer-open:bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(2%*(var(--nested-drawers)-var(--stack-progress))))] data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:shadow-transparent data-starting-style:shadow-transparent data-ending-style:duration-100 dark:data-nested-drawer-open:bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(6%*(var(--nested-drawers)-var(--stack-progress))))] dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
                 "touch-none",
@@ -188,7 +193,6 @@ export function DrawerPopup({
                 className
             )}
             data-slot="drawer-popup"
-            {...props}
         >
             {children}
             {shouldShowCloseButton ? (

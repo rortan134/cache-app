@@ -77,6 +77,7 @@ export function CommandInput({
                 // biome-ignore lint/a11y/useSemanticElements: groups input adornments without naming a form field group.
                 <div
                     className="absolute inset-e-0.5 inset-y-0 z-10 flex shrink-0 flex-nowrap items-center justify-end gap-0.5 pe-[calc(--spacing(2)-1px)] has-[+[data-size=sm]]:pe-[calc(--spacing(1.5)-1px)]"
+                    data-slot="command-end-addon"
                     role="group"
                 >
                     {endAddon}
@@ -198,7 +199,7 @@ export function CommandGroupLabel({
         <Autocomplete.GroupLabel
             {...props}
             className={cn(
-                "px-2 py-1.5 text-muted-foreground text-xs",
+                "px-2 py-1.5 font-medium text-muted-foreground text-xs",
                 className
             )}
             data-slot="command-group-label"

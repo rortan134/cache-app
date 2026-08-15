@@ -149,6 +149,7 @@ export function Attachments({
         <ul
             {...props}
             className={cn("flex flex-wrap items-start gap-2", className)}
+            data-slot="attachments"
         />
     );
 }
@@ -178,6 +179,7 @@ export function Attachment({
                     "hover:bg-accent hover:text-accent-foreground",
                     className
                 )}
+                data-slot="attachment"
             />
         </AttachmentItemContext>
     );
@@ -201,6 +203,7 @@ export function AttachmentPreview({
                 "flex size-5 shrink-0 items-center justify-center overflow-hidden rounded bg-background",
                 className
             )}
+            data-slot="attachment-preview"
         >
             {renderAttachmentPreviewContent(data, mediaCategory, fallbackIcon)}
         </div>
@@ -221,7 +224,11 @@ export function AttachmentInfo({
     const label = getAttachmentLabel(data);
 
     return (
-        <div {...props} className={cn("min-w-0 flex-1", className)}>
+        <div
+            {...props}
+            className={cn("min-w-0 flex-1", className)}
+            data-slot="attachment-info"
+        >
             <span className="block truncate">{label}</span>
             {shouldShowMediaType && data.mediaType ? (
                 <span className="block truncate text-muted-foreground text-xs">

@@ -350,7 +350,7 @@ export function PriorityNoneIcon({
         <svg
             {...props}
             aria-label="No priority"
-            className={cn("size-6 shrink-0", className)}
+            className={cn("size-4 shrink-0", className)}
             focusable="false"
             height="16"
             role="img"

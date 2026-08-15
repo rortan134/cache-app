@@ -1,5 +1,6 @@
 "use client";
 
+import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -8,14 +9,13 @@ import {
     BlossomNext,
     BlossomPrev,
 } from "@blossom-carousel/react";
+import "@blossom-carousel/react/style.css";
 import { useGT } from "gt-next";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { cn } from "@/lib/common/cn";
-import "@blossom-carousel/react/style.css";
-import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import * as React from "react";
 
 type CarouselHandle = React.ComponentRef<typeof BlossomCarousel> | null;
 
