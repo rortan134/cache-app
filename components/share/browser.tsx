@@ -5,18 +5,20 @@ import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import * as React from "react";
-import { Masonry } from "@/components/ui/masonry";
+import {
+    Masonry,
+    type MasonryRenderComponentProps,
+} from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Ticker } from "@/components/ui/ticker";
 import { cn } from "@/lib/common/cn";
 import {
-    cacheDimensions,
+    createDimensionsCache,
     type Dimensions,
-    pinDefaultDimensionsIfMissing,
-    readCachedDimensions,
+    type DimensionsCache,
     resolveDisplayDimensions,
-} from "@/lib/common/dimensions";
+} from "@/lib/common/dimension";
 
 const SHARE_SKELETON_PLACEHOLDERS = [
     { aspect: "aspect-[3/4]", id: "share-skel-0" },
@@ -97,6 +99,17 @@ export function PublicShareGrid({
 }: {
     items: PublicShareGridItem[];
 }): React.ReactElement {
+    const [dimensionsCache] = React.useState(createDimensionsCache);
+
+    const renderCard = useStableCallback(
+        ({ data }: MasonryRenderComponentProps<PublicShareGridItem>) => (
+            <PublicShareGridCard
+                data={data}
+                dimensionsCache={dimensionsCache}
+            />
+        )
+    );
+
     if (items.length === 0) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
@@ -115,7 +128,7 @@ export function PublicShareGrid({
             itemAs="article"
             items={items}
             maxColumnCount={7}
-            render={PublicShareGridCard}
+            render={renderCard}
             rowGutter={16}
             tabIndex={-1}
         />
@@ -143,11 +156,15 @@ export function PublicShareGridSkeleton(): React.ReactElement {
     );
 }
 
+interface PublicShareGridCardProps {
+    data: PublicShareGridItem;
+    dimensionsCache: DimensionsCache;
+}
+
 function PublicShareGridCard({
     data,
-}: {
-    data: PublicShareGridItem;
-}): React.ReactElement {
+    dimensionsCache,
+}: PublicShareGridCardProps): React.ReactElement {
     const isNote = data.kind === "note";
     const noteExcerpt = data.noteExcerpt ?? "Untitled note";
     const displayTitle = data.title;
@@ -162,7 +179,10 @@ function PublicShareGridCard({
             </div>
         </div>
     ) : (
-        <PreviewMedia src={data.previewImageUrl} />
+        <PreviewMedia
+            dimensionsCache={dimensionsCache}
+            src={data.previewImageUrl}
+        />
     );
 
     const titleElement = isNote ? null : (
@@ -203,11 +223,13 @@ function PublicShareGridCard({
 }
 
 interface PreviewMediaProps extends Omit<React.ComponentProps<"img">, "src"> {
+    dimensionsCache: DimensionsCache;
     src: string | null;
 }
 
 function PreviewMedia({
     className,
+    dimensionsCache,
     src,
     ref,
     ...props
@@ -217,14 +239,14 @@ function PreviewMedia({
 
     const [didFail, setDidFail] = React.useState(false);
     const [dimensions, setDimensions] = React.useState<Dimensions | null>(() =>
-        readCachedDimensions(src)
+        dimensionsCache.readCachedDimensions(src)
     );
     const [prevSrc, setPrevSrc] = React.useState(src);
 
     if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setDidFail(false);
-        setDimensions(readCachedDimensions(src));
+        setDimensions(dimensionsCache.readCachedDimensions(src));
     }
 
     const canRenderImage = Boolean(src) && !didFail;
@@ -244,7 +266,7 @@ function PreviewMedia({
                 return;
             }
             const next: Dimensions = { h, w };
-            cacheDimensions(src, next);
+            dimensionsCache.cacheDimensions(src, next);
             setDimensions((current) =>
                 current?.w === w && current.h === h ? current : next
             );
@@ -256,7 +278,7 @@ function PreviewMedia({
             if (!src || event.currentTarget.getAttribute("src") !== src) {
                 return;
             }
-            setDimensions(pinDefaultDimensionsIfMissing(src));
+            setDimensions(dimensionsCache.pinDefaultDimensionsIfMissing(src));
             setDidFail(true);
         }
     );

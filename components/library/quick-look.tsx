@@ -31,7 +31,7 @@ import {
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
-import { clamp } from "@/lib/common/numbers";
+import { clamp } from "@/lib/common/number";
 import { type Oembed, OembedSchema } from "@/lib/common/oembed";
 import { parseValidUrl } from "@/lib/common/url";
 
@@ -608,7 +608,9 @@ function QuickLookPanelEmpty() {
     return (
         <MediaPlaceholder className="bg-background">
             <Globe aria-hidden className="size-6" focusable="false" />
-            <span className="text-center text-lg">Quick Look</span>
+            <span className="text-center font-medium text-base">
+                Quick Look
+            </span>
         </MediaPlaceholder>
     );
 }

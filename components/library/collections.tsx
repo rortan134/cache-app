@@ -168,9 +168,9 @@ import {
     mergeById,
     removeValue,
     toggleValue,
-} from "@/lib/common/arrays";
+} from "@/lib/common/array";
 import { cn } from "@/lib/common/cn";
-import { getHexColorFromName } from "@/lib/common/colors";
+import { getHexColorFromName } from "@/lib/common/color";
 import {
     ACTION_STATUS,
     DESCRIPTION_MAX_LENGTH,
@@ -179,22 +179,19 @@ import {
     NAME_MAX_LENGTH,
 } from "@/lib/common/constants";
 import { dayjs } from "@/lib/common/dayjs";
-import { canUseDOM } from "@/lib/common/dom";
+import { canUseDOM, getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 import { saveFile } from "@/lib/common/file";
 import {
-    claimCollectionHoverHotkeySurface,
-    clearCollectionHoverHotkeySurface,
-    isCollectionHoverHotkeySurface,
-    releaseCollectionHoverHotkeySurface,
+    type CollectionHoverHotkeySurface,
+    createCollectionHoverHotkeySurface,
 } from "@/lib/common/hover-hotkey-surface";
 import { getSystemControlKey } from "@/lib/common/keyboard";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
-    djb2Hash,
     getNoteExcerpt,
     normalizeWhitespace,
     slugify,
-} from "@/lib/common/strings";
+} from "@/lib/common/string";
 import { normalizeURL, openExternalUrl } from "@/lib/common/url";
 import { sendCollectionToNotion } from "@/lib/integrations/notion/actions";
 import { getSourceLabel } from "@/lib/integrations/support";
@@ -235,8 +232,6 @@ const ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
     "We couldn't turn on smart collections right now.";
 const SHARE_COLLECTION_ERROR_MESSAGE =
     "We couldn't create a public link right now.";
-
-const COLLECTION_PREVIEW_THUMBNAIL_LIMIT = 5;
 
 const PREVIEW_SLIDE_INTERVAL_MS = 1400;
 const PREVIEW_CROSSFADE_MS = 400;
@@ -491,6 +486,7 @@ type SummarySorter = Record<
 interface CollectionsRootContext {
     collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionSummary[];
+    hoverHotkeySurface: CollectionHoverHotkeySurface;
     mergeCollectionSummaries: (collections: LibraryCollectionSummary[]) => void;
     onClearCollectionFilters: () => void;
     onCloseCreate: () => void;
@@ -1243,27 +1239,31 @@ function useCollectionPanelHotkeys() {
     });
 }
 
-function useCollectionHoverHotkeys({
-    dialogs,
-    hoveredCollectionIdRef,
-    hoveredCollectionSourceRef,
-    rowActions,
-}: {
+interface UseCollectionHoverHotkeysProps {
     dialogs: ReturnType<typeof useCollectionDialogRequests>;
     hoveredCollectionIdRef: React.RefObject<string | null>;
     hoveredCollectionSourceRef: React.RefObject<CollectionListSource | null>;
+    hoverHotkeySurface: CollectionHoverHotkeySurface;
     rowActions: ReturnType<typeof useCollectionRowActions>;
-}) {
+}
+
+function useCollectionHoverHotkeys({
+    dialogs,
+    hoverHotkeySurface,
+    hoveredCollectionIdRef,
+    hoveredCollectionSourceRef,
+    rowActions,
+}: UseCollectionHoverHotkeysProps) {
     const { onCopyLinks, onUpdatePriority, setPendingPriorityComboboxOpen } =
         rowActions;
     const { requestDelete, requestRename } = dialogs;
+
     const { favoriteCollectionIdSet, toggleFavorite } =
         useToggleCollectionFavorite();
-
     const { collections } = useCollectionsContext();
 
     const resolveHoveredCollection = useStableCallback(() => {
-        if (!isCollectionHoverHotkeySurface()) {
+        if (!hoverHotkeySurface.isClaimed()) {
             return null;
         }
         return (
@@ -1351,15 +1351,17 @@ function useCollectionHoverHotkeys({
     });
 }
 
+interface UseCollectionPreviewPlaybackProps {
+    isCycling: boolean;
+    shouldLoad: boolean;
+    thumbnails: string[];
+}
+
 function useCollectionPreviewPlayback({
     isCycling,
     shouldLoad,
     thumbnails,
-}: {
-    isCycling: boolean;
-    shouldLoad: boolean;
-    thumbnails: string[];
-}) {
+}: UseCollectionPreviewPlaybackProps) {
     const isReducedMotion = useReducedMotion();
     const thumbnailsKey = thumbnails.join("\0");
     const slideTimeout = useTimeout();
@@ -1642,11 +1644,13 @@ function useFailedImageSrc(src: string | Blob | undefined): {
     };
 }
 
+interface UseInternalCollectionsStateProps {
+    initialCollections: LibraryCollectionSummary[];
+}
+
 function useInternalCollectionsState({
     initialCollections,
-}: {
-    initialCollections: LibraryCollectionSummary[];
-}) {
+}: UseInternalCollectionsStateProps) {
     const { sortField, textMatchQuery, view } = useCollectionsListStore();
 
     const [collections, setCollections] = React.useState<
@@ -1913,83 +1917,6 @@ export function replaceMultipleItemCollections(
             ? item
             : { ...item, collections: nextCollections };
     });
-}
-
-export function buildCollectionItemIndexes(
-    items: LibraryItemWithCollections[]
-): {
-    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
-    itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
-} {
-    const itemsByCollectionId = new Map<string, LibraryItemWithCollections[]>();
-    for (const item of items) {
-        for (const collection of item.collections) {
-            const entries = itemsByCollectionId.get(collection.id);
-            if (entries) {
-                entries.push(item);
-            } else {
-                itemsByCollectionId.set(collection.id, [item]);
-            }
-        }
-    }
-
-    const collectionPreviewThumbnailUrlsById = new Map<string, string[]>();
-    for (const [collectionId, collectionItems] of itemsByCollectionId) {
-        collectionPreviewThumbnailUrlsById.set(
-            collectionId,
-            buildCollectionPreviewThumbnailUrls(collectionId, collectionItems)
-        );
-    }
-
-    return {
-        collectionPreviewThumbnailUrlsById,
-        itemsByCollectionId,
-    };
-}
-
-export function buildFavoriteItemIndexes(
-    items: readonly LibraryItemWithCollections[]
-): {
-    favoriteItemIdSet: ReadonlySet<string>;
-    favoriteItems: LibraryItemWithCollections[];
-} {
-    const favoriteItems = items
-        .filter(
-            (
-                item
-            ): item is LibraryItemWithCollections & { favoritedAt: Date } =>
-                item.favoritedAt !== null
-        )
-        .toSorted(
-            (left, right) =>
-                right.favoritedAt.getTime() - left.favoritedAt.getTime()
-        );
-    const favoriteItemIdSet = new Set(favoriteItems.map((item) => item.id));
-
-    return { favoriteItemIdSet, favoriteItems };
-}
-
-function buildCollectionPreviewThumbnailUrls(
-    collectionId: string,
-    items: LibraryItemWithCollections[]
-): string[] {
-    const previewEntries: Array<{ orderSeed: number; url: string }> = [];
-
-    for (const item of items) {
-        const url = itemPreviewImageUrl(item);
-        if (url === null) {
-            continue;
-        }
-        previewEntries.push({
-            orderSeed: djb2Hash(`${collectionId}:${item.id}`),
-            url,
-        });
-    }
-
-    return previewEntries
-        .sort((left, right) => left.orderSeed - right.orderSeed)
-        .slice(0, COLLECTION_PREVIEW_THUMBNAIL_LIMIT)
-        .map((entry) => entry.url);
 }
 
 function getToggledArchivePriority(
@@ -2506,19 +2433,23 @@ export function Collections() {
     );
 }
 
-export function CollectionsProvider({
-    children,
-    initialCollections,
-    setItems,
-}: React.PropsWithChildren<{
+interface CollectionsProviderProps extends React.PropsWithChildren {
     initialCollections: LibraryCollectionSummary[];
     setItems: React.Dispatch<
         React.SetStateAction<LibraryItemWithCollections[]>
     >;
-}>) {
+}
+
+export function CollectionsRootProvider({
+    children,
+    initialCollections,
+    setItems,
+}: CollectionsProviderProps) {
     const state = useInternalCollectionsState({ initialCollections });
     const createDialog = useCreateDialogState();
-
+    const hoverHotkeySurface = useRefWithInit(
+        createCollectionHoverHotkeySurface
+    ).current;
     const [pendingCollectionActionKeys, setPendingCollectionActionKeys] =
         React.useState<Set<string>>(() => new Set());
     const collectionActionKeys = useRefWithInit(
@@ -2618,6 +2549,7 @@ export function CollectionsProvider({
 
     const value: CollectionsRootContext = {
         ...state,
+        hoverHotkeySurface,
         onCloseCreate: createDialog.onCloseCreate,
         requestCreate: createDialog.requestCreate,
         syncCollectionCreated,
@@ -2667,8 +2599,12 @@ function CollectionsListFavoritesContent({
 }
 
 function CollectionsListProvider({ children }: React.PropsWithChildren) {
-    const { syncCollectionCreated, syncCollectionDeleted, syncCollectionName } =
-        useCollectionsContext();
+    const {
+        hoverHotkeySurface,
+        syncCollectionCreated,
+        syncCollectionDeleted,
+        syncCollectionName,
+    } = useCollectionsContext();
     const { setFavoriteCollectionIds } = useCollectionsListStore();
     const dialogs = useCollectionDialogRequests();
     const rowActions = useCollectionRowActions();
@@ -2677,14 +2613,22 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
     const hoveredCollectionSourceRef =
         React.useRef<CollectionListSource | null>(null);
 
+    useCollectionHoverHotkeys({
+        dialogs,
+        hoveredCollectionIdRef,
+        hoveredCollectionSourceRef,
+        hoverHotkeySurface,
+        rowActions,
+    });
+
+    useCollectionPanelHotkeys();
+
     const syncDeleted = useStableCallback((collectionId: string) => {
         syncCollectionDeleted(collectionId);
-
         if (hoveredCollectionIdRef.current === collectionId) {
             hoveredCollectionIdRef.current = null;
-            clearCollectionHoverHotkeySurface();
+            hoverHotkeySurface.clear();
         }
-
         setFavoriteCollectionIds((current) =>
             current.includes(collectionId)
                 ? removeValue(current, collectionId)
@@ -2698,36 +2642,26 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
         }
     );
 
-    useCollectionHoverHotkeys({
-        dialogs,
-        hoveredCollectionIdRef,
-        hoveredCollectionSourceRef,
-        rowActions,
-    });
-
-    useCollectionPanelHotkeys();
-
     React.useEffect(() => {
         const clearStaleCollectionHover = () => {
             hoveredCollectionIdRef.current = null;
             hoveredCollectionSourceRef.current = null;
-            clearCollectionHoverHotkeySurface();
+            hoverHotkeySurface.clear();
         };
         const handleVisibilityChange = () => {
             if (document.visibilityState === "hidden") {
                 clearStaleCollectionHover();
             }
         };
-        window.addEventListener("blur", clearStaleCollectionHover);
-        document.addEventListener("visibilitychange", handleVisibilityChange);
+        const win = getOwnerWindow();
+        const doc = getOwnerDocument();
+        win.addEventListener("blur", clearStaleCollectionHover);
+        doc.addEventListener("visibilitychange", handleVisibilityChange);
         return () => {
-            window.removeEventListener("blur", clearStaleCollectionHover);
-            document.removeEventListener(
-                "visibilitychange",
-                handleVisibilityChange
-            );
+            win.removeEventListener("blur", clearStaleCollectionHover);
+            doc.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, []);
+    }, [hoverHotkeySurface]);
 
     const hoverContextValue: CollectionsListHoverContext = {
         hoveredCollectionIdRef,
@@ -2822,7 +2756,6 @@ function CollectionsListGroupTrigger({
     const summary =
         description ??
         (labels.length > 0 ? LIST_FORMATTER.format(labels) : placeholder);
-
     const priorityBreakdownEntries =
         buildPriorityBreakdownEntries(priorityCounts);
 
@@ -2882,6 +2815,10 @@ function CollectionsListTrigger(
     const collectionLabels = collectionSummaries.map(
         (collection) => collection.name
     );
+    const priorityCounts = countBy(
+        collectionSummaries,
+        (collection) => collection.priority
+    );
 
     return (
         <CollectionsListGroupTrigger
@@ -2890,10 +2827,7 @@ function CollectionsListTrigger(
             isOpen={isCollectionsListOpen}
             labels={collectionLabels}
             placeholder="No collections yet"
-            priorityCounts={countBy(
-                collectionSummaries,
-                (collection) => collection.priority
-            )}
+            priorityCounts={priorityCounts}
         />
     );
 }
@@ -2901,19 +2835,20 @@ function CollectionsListTrigger(
 function CollectionsListFavorites(
     props: React.ComponentProps<typeof Collapsible>
 ) {
-    const { collectionSummaries } = useCollectionsContext();
-    const { favoriteItems } = useLibraryItemsContext();
     const {
         favoriteCollectionIds,
         isFavoritesListOpen,
         setIsFavoritesListOpen,
     } = useCollectionsListStore();
+    const { collectionSummaries } = useCollectionsContext();
+    const { favoriteItems } = useLibraryItemsContext();
 
+    const hasFavoriteItems = favoriteItems.length > 0;
     const hasFavoriteCollections =
         getFavoriteCollections(collectionSummaries, favoriteCollectionIds)
             .length > 0;
 
-    if (!(hasFavoriteCollections || favoriteItems.length)) {
+    if (!(hasFavoriteCollections || hasFavoriteItems)) {
         return null;
     }
 
@@ -2926,10 +2861,9 @@ function CollectionsListFavorites(
     );
 }
 
-function CollectionsListFavoritesTrigger({
-    children,
-    ...props
-}: React.ComponentProps<typeof CollapsibleTrigger>) {
+function CollectionsListFavoritesTrigger(
+    props: React.ComponentProps<typeof CollapsibleTrigger>
+) {
     const { collectionSummaries } = useCollectionsContext();
     const { favoriteItems } = useLibraryItemsContext();
     const { favoriteCollectionIds, isFavoritesListOpen } =
@@ -2958,9 +2892,7 @@ function CollectionsListFavoritesTrigger({
                 favoriteCollections,
                 (collection) => collection.priority
             )}
-        >
-            {children}
-        </CollectionsListGroupTrigger>
+        />
     );
 }
 
@@ -3614,7 +3546,8 @@ function CollectionsListItem({
     style: styleProp,
     ...props
 }: CollectionsListItemProps) {
-    const { selectedCollectionIdSet } = useCollectionsContext();
+    const { hoverHotkeySurface, selectedCollectionIdSet } =
+        useCollectionsContext();
     const { hoveredCollectionIdRef, setHoveredCollectionSource } =
         useCollectionsListHoverContext();
 
@@ -3627,7 +3560,7 @@ function CollectionsListItem({
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
 
     const releaseHoverClaim = useStableCallback(() => {
-        releaseCollectionHoverHotkeySurface(hoverClaimIdRef.current);
+        hoverHotkeySurface.release(hoverClaimIdRef.current);
         hoverClaimIdRef.current = 0;
         if (hoveredCollectionIdRef.current === collection.id) {
             hoveredCollectionIdRef.current = null;
@@ -3639,7 +3572,7 @@ function CollectionsListItem({
         (event: React.MouseEvent<HTMLDivElement>) => {
             hoveredCollectionIdRef.current = collection.id;
             setHoveredCollectionSource(source);
-            hoverClaimIdRef.current = claimCollectionHoverHotkeySurface();
+            hoverClaimIdRef.current = hoverHotkeySurface.claim();
             handleMouseEnter?.(event);
         }
     );

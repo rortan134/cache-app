@@ -64,9 +64,7 @@ import {
 } from "@/components/billing/paywall";
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
-    buildCollectionItemIndexes,
-    buildFavoriteItemIndexes,
-    CollectionsProvider,
+    CollectionsRootProvider,
     LibraryItemsContext,
     reconcileCollectionTags,
     replaceMultipleItemCollections,
@@ -201,6 +199,11 @@ import {
     downloadMedia,
 } from "@/lib/collections/actions";
 import {
+    buildCollectionItemIndexes,
+    buildFavoriteItemIndexes,
+    type LibraryItemIndexes,
+} from "@/lib/collections/indexes";
+import {
     deleteLibraryItem,
     deleteLibraryItems,
     type LibraryItemCollectionsUpdateResult,
@@ -237,9 +240,9 @@ import {
     removeValue,
     toggleValue,
     updateById,
-} from "@/lib/common/arrays";
+} from "@/lib/common/array";
 import { cn } from "@/lib/common/cn";
-import { getColorGradientFromName } from "@/lib/common/colors";
+import { getColorGradientFromName } from "@/lib/common/color";
 import {
     ACTION_STATUS,
     BATCH_UPDATE_MAX_ITEMS,
@@ -249,14 +252,13 @@ import {
     ITEM_KIND_NOTE,
     MIME_TYPES,
 } from "@/lib/common/constants";
-import { parseDate } from "@/lib/common/dates";
+import { parseDate } from "@/lib/common/date";
 import {
-    cacheDimensions,
+    createDimensionsCache,
     type Dimensions,
-    pinDefaultDimensionsIfMissing,
-    readCachedDimensions,
+    type DimensionsCache,
     resolveDisplayDimensions,
-} from "@/lib/common/dimensions";
+} from "@/lib/common/dimension";
 import {
     getOwnerDocument,
     getOwnerWindow,
@@ -267,16 +269,16 @@ import {
     revokeFileAttachmentObjectUrl,
     saveFile,
 } from "@/lib/common/file";
-import { isCollectionHoverHotkeySurface } from "@/lib/common/hover-hotkey-surface";
+import type { CollectionHoverHotkeySurface } from "@/lib/common/hover-hotkey-surface";
 import { filterValidImageUrls } from "@/lib/common/image";
-import { getImageColors } from "@/lib/common/image-colors";
+import { getImageColors } from "@/lib/common/image-color";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getNoteExcerpt,
     normalizeWhitespace,
     slugify,
     truncateLabel,
-} from "@/lib/common/strings";
+} from "@/lib/common/string";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import {
     normalizeURL,
@@ -915,6 +917,12 @@ interface BrowserSimilarFilterOptions {
     source: LibraryItemSource;
 }
 
+interface LibraryItemIndexesCache {
+    indexes: LibraryItemIndexes;
+    items: LibraryItemWithCollections[];
+    previewUrlCache: WeakMap<LibraryItemWithCollections, string | null>;
+}
+
 const log = createLogger("library:browser");
 
 const BrowserContext = React.createContext<BrowserContext | null>(null);
@@ -947,6 +955,20 @@ const BrowserMasonryChildrenContext = React.createContext<
     | ((data: LibraryItemWithCollections, index: number) => React.ReactNode)
     | null
 >(null);
+
+const DimensionsCacheContext = React.createContext<DimensionsCache | null>(
+    null
+);
+
+function useDimensionsCacheContext(): DimensionsCache {
+    const cache = React.use(DimensionsCacheContext);
+    if (!cache) {
+        throw new Error(
+            "Media previews must be used inside <DimensionsCacheContext>."
+        );
+    }
+    return cache;
+}
 
 const MediaCardEnvironmentContext =
     React.createContext<MediaCardEnvironmentContext | null>(null);
@@ -1260,12 +1282,14 @@ function useLibraryItemActions(args: {
  * root so every card does not mount its own `useHotkeys` listeners.
  */
 function useCardHoverHotkeys({
+    hoverHotkeySurface,
     hoveredItemIdRef,
     itemsRef,
     onDelete,
     onItemFavoriteToggle,
     pendingDeleteItemIdRef,
 }: {
+    hoverHotkeySurface: CollectionHoverHotkeySurface;
     hoveredItemIdRef: React.RefObject<string | null>;
     itemsRef: React.RefObject<LibraryItemWithCollections[]>;
     onDelete: (item: LibraryItemWithCollections) => void;
@@ -1277,7 +1301,7 @@ function useCardHoverHotkeys({
     const resolveHoveredItem = useStableCallback(() => {
         // Collection rows claim the surface while hovered so pinned card
         // menus do not steal Alt+E / Alt+F / ⌘⌫ from collection shortcuts.
-        if (isCollectionHoverHotkeySurface()) {
+        if (hoverHotkeySurface.isClaimed()) {
             return null;
         }
         const id = hoveredItemIdRef.current;
@@ -1351,6 +1375,26 @@ function useCardHoverHotkeys({
         },
         [onDelete, resolveHoveredItem]
     );
+}
+
+function useLibraryItemIndexes(
+    items: LibraryItemWithCollections[]
+): LibraryItemIndexes {
+    const cacheRef = useRefWithInit<LibraryItemIndexesCache | null>(() => null);
+    const cached = cacheRef.current;
+    if (cached?.items === items) {
+        return cached.indexes;
+    }
+
+    const previewUrlCache =
+        cached?.previewUrlCache ??
+        new WeakMap<LibraryItemWithCollections, string | null>();
+    const indexes: LibraryItemIndexes = {
+        ...buildCollectionItemIndexes(items, previewUrlCache),
+        ...buildFavoriteItemIndexes(items),
+    };
+    cacheRef.current = { indexes, items, previewUrlCache };
+    return indexes;
 }
 
 function getLibraryItemDomain(url: string): string {
@@ -3609,22 +3653,25 @@ export function BrowserProvider({
     totalItemCount,
 }: React.PropsWithChildren<LibraryProps>) {
     const [items, setItems] = React.useState(initialItems);
+    const dimensionsCache = useRefWithInit(createDimensionsCache).current;
 
     return (
-        <CollectionsProvider
-            initialCollections={initialCollections}
-            setItems={setItems}
-        >
-            <BrowserContent
-                connectedIntegrationCount={connectedIntegrationCount}
-                items={items}
-                lockedItemCount={lockedItemCount}
+        <DimensionsCacheContext value={dimensionsCache}>
+            <CollectionsRootProvider
+                initialCollections={initialCollections}
                 setItems={setItems}
-                totalItemCount={totalItemCount}
             >
-                {children}
-            </BrowserContent>
-        </CollectionsProvider>
+                <BrowserContent
+                    connectedIntegrationCount={connectedIntegrationCount}
+                    items={items}
+                    lockedItemCount={lockedItemCount}
+                    setItems={setItems}
+                    totalItemCount={totalItemCount}
+                >
+                    {children}
+                </BrowserContent>
+            </CollectionsRootProvider>
+        </DimensionsCacheContext>
     );
 }
 
@@ -4587,6 +4634,7 @@ function MediaPreview({
     src: string | null;
     videoSrc?: string | null;
 }) {
+    const dimensionsCache = useDimensionsCacheContext();
     const imgRef = React.useRef<HTMLImageElement | null>(null);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
@@ -4597,7 +4645,7 @@ function MediaPreview({
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
     const [hasVideoStarted, setHasVideoStarted] = React.useState(false);
     const [dimensions, setDimensions] = React.useState<Dimensions | null>(() =>
-        readCachedDimensions(src)
+        dimensionsCache.readCachedDimensions(src)
     );
     const [prevSrc, setPrevSrc] = React.useState(src);
     const [prevVideoSrc, setPrevVideoSrc] = React.useState(videoSrc);
@@ -4605,7 +4653,7 @@ function MediaPreview({
     if (!Object.is(src, prevSrc)) {
         setPrevSrc(src);
         setHasImageFailed(false);
-        setDimensions(readCachedDimensions(src));
+        setDimensions(dimensionsCache.readCachedDimensions(src));
     }
 
     if (!Object.is(videoSrc, prevVideoSrc)) {
@@ -4677,7 +4725,7 @@ function MediaPreview({
                 return;
             }
             const next: Dimensions = { h, w };
-            cacheDimensions(src, next);
+            dimensionsCache.cacheDimensions(src, next);
             setDimensions((current) =>
                 current?.w === w && current.h === h ? current : next
             );
@@ -4691,7 +4739,7 @@ function MediaPreview({
             }
             // Pin a default slot when nothing is known yet so virtualization
             // remounts (and MediaPlaceholder) keep a stable aspect ratio.
-            setDimensions(pinDefaultDimensionsIfMissing(src));
+            setDimensions(dimensionsCache.pinDefaultDimensionsIfMissing(src));
             setHasImageFailed(true);
         }
     );
@@ -5795,6 +5843,7 @@ function BrowserContent({
     const {
         collectionSummaries: collections,
         collections: allCollections,
+        hoverHotkeySurface,
         mergeCollectionSummaries,
         onClearCollectionFilters,
         onSelectCollection: onRemoveCollectionFilter,
@@ -5803,11 +5852,12 @@ function BrowserContent({
         syncCollectionCreated,
     } = useCollectionsContext();
 
-    const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
-        buildCollectionItemIndexes(items);
-
-    const { favoriteItemIdSet, favoriteItems } =
-        buildFavoriteItemIndexes(items);
+    const {
+        collectionPreviewThumbnailUrlsById,
+        favoriteItemIdSet,
+        favoriteItems,
+        itemsByCollectionId,
+    } = useLibraryItemIndexes(items);
 
     const collectionUpdateRequestTokenByItemId = useRefWithInit(
         () => new Map<string, symbol>()
@@ -7054,7 +7104,7 @@ function BrowserContent({
         }
 
         if (event.key.toLowerCase() === "s") {
-            if (isCollectionHoverHotkeySurface()) {
+            if (hoverHotkeySurface.isClaimed()) {
                 return;
             }
             const id = hoveredItemIdRef.current;
@@ -7301,6 +7351,7 @@ function BrowserContent({
 
     useCardHoverHotkeys({
         hoveredItemIdRef,
+        hoverHotkeySurface,
         itemsRef,
         onDelete: handleRequestDelete,
         onItemFavoriteToggle: handleItemFavoriteToggle,
