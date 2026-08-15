@@ -37,7 +37,7 @@ export function LogoutPageClient() {
                 <div aria-hidden>
                     <Spinner className="size-8" />
                 </div>
-                <p className="text-muted-foreground text-sm">
+                <p className="shimmer shimmer-duration-1000 text-muted-foreground text-sm">
                     <T context="Logout redirect page">Signing out…</T>
                 </p>
             </div>
