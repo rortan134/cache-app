@@ -169,6 +169,7 @@ export function GradientWaveText({
         };
 
         animationFrame.request(tick);
+
         return animationFrame.cancel;
     }, [animationFrame, prefersReducedMotion, speed]);
 

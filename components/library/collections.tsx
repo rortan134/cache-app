@@ -4384,7 +4384,7 @@ function CollectionsListRecommendationItem({
                     <span className="absolute top-1/2 left-1.25 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border-none bg-muted text-muted-foreground sm:size-6">
                         <PlusIcon
                             aria-hidden
-                            className="size-4 sm:size-3.5"
+                            className="size-4"
                             focusable="false"
                         />
                     </span>
