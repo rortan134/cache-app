@@ -91,7 +91,7 @@ Avoid duplicating logic where necessary: If two components can share logic (such
 
 Never show the empty state during the loading state. Loading indicators (skeletons, spinners) and empty states are mutually exclusive — guard empty state checks with `isLoading` so the loading UI renders first, and the empty state only appears after loading completes with zero results.
 
-### File-Level Definition Order
+### Definition Order
 
 Make sure every component file follows the same vertical stack: one shared module block (steps 2–5) at the top, then the exported components in original order (each with its props interfaces above), then the private sub-components at the bottom. A symbol is a component when it has a PascalCase name (render-prop components like `SignedOutOnly` return `children` with no JSX literal in the body); camelCase functions that return JSX (`renderQueryMatch`, `formatShareValue`) are render helpers, not components — JSX element names must be capitalized, so they are called as functions, never rendered as elements.
 
@@ -104,62 +104,7 @@ Make sure every component file follows the same vertical stack: one shared modul
 7. Component definitions (exported, PascalCase), in original file order
 8. Private sub-components, at the bottom after the components, in original file order, each preceded by its props interface
 
-### Component Body: Internal Ordering
-
-Inside the component function, hooks and logic should be grouped in a predictable sequence:
-
-```ts
-export const DrawerPopup = (
-  componentProps: DrawerPopup.Props,
-  forwardedRef: React.ForwardedRef<HTMLDivElement>,
-) => {
-  // 1. Destructure render/className/style first, then ...elementProps
-  const { render, className, style, finalFocus, initialFocus, ...elementProps } = componentProps;
-
-  // 2. Context reads
-  const { store } = useDialogRootContext();
-  const { swipeDirection, ... } = useDrawerRootContext();
-
-  // 3. Store state reads (batched together)
-  const descriptionElementId = store.useState('descriptionElementId');
-  const modal = store.useState('modal');
-  const open = store.useState('open');
-  // ...
-
-  // 4. Other hooks that don't depend on #5-#7
-  useDialogPortalContext();
-
-  // 5. Derived values
-  const nestedDrawerOpen = nestedOpenDrawerCount > 0;
-
-  // 6. Local useState
-  const [popupHeight, setPopupHeight] = React.useState(0);
-
-  // 7. Refs
-  const popupHeightRef = React.useRef(0);
-
-  // 8. Handlers (useStableCallback / useCallback)
-  const measureHeight = useStableCallback(() => { ... });
-  const handleOpenChange = useStableCallback((nextOpen) => { ... });
-
-  // 9. Effects
-  useIsoLayoutEffect(() => { ... }, [...]);
-  React.useEffect(() => { ... }, [...]);
-
-  // 10. Build the state object for useRenderElement
-  const state: DrawerPopupState = { open, nested, ... };
-
-  // 11. Compute final props / styles
-  let popupHeightCssVarValue: string | undefined;
-  if (popupHeight && !shouldUseAutoHeight) {
-    popupHeightCssVarValue = `${popupHeight}px`;
-  }
-
-  // 12. Render
-  const element = useRenderElement('div', componentProps, { ... });
-  return <FloatingFocusManager ...>{element}</FloatingFocusManager>;
-};
-```
+Inside component functions, hooks and logic should be grouped in a predictable sequence.
 
 ### Boolean Naming Conventions
 

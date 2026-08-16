@@ -112,7 +112,7 @@ export default async function LocaleLayout(props: React.PropsWithChildren) {
                     />
                 )}
             </head>
-            <body>
+            <body suppressHydrationWarning>
                 <ThemeSync />
                 <ConsoleBanner version={packageJson.version} />
                 <span aria-atomic="true" aria-live="polite" className="sr-only">
