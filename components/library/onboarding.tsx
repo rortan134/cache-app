@@ -4,13 +4,7 @@ import { Toolbar } from "@base-ui/react";
 import { Checkbox } from "@base-ui/react/checkbox";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T, useGT } from "gt-next";
-import {
-    Check,
-    ChevronDown,
-    ChevronRight,
-    Component,
-    LibraryBig,
-} from "lucide-react";
+import { Check, ChevronRight, Component, LibraryBig } from "lucide-react";
 import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
@@ -439,7 +433,6 @@ export function OnboardingMenu({
                                             value={progressValue}
                                         />
                                         &nbsp;<T>Get to know Cache</T>
-                                        <ChevronDown className="inline-block size-3.5 shrink-0" />
                                     </Button>
                                 }
                             />
