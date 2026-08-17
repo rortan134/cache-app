@@ -36,7 +36,9 @@ interface ActivePathnameProps extends useRender.ComponentProps<"div"> {
  *
  * `aria-current="page"` is emitted for the actual active route, while
  * `data-active` is provided as a styling hook that can optionally be inverted
- * with `shouldReverseActive`.
+ * with `shouldReverseActive`. The attribute is emitted as `"true"` when active
+ * and omitted otherwise, so both existence (`data-[active]:`) and value
+ * (`data-[active=true]:`) selectors work.
  */
 export function ActivePathname({
     href,
@@ -52,12 +54,14 @@ export function ActivePathname({
             ? pathname === href || pathname.startsWith(`${href}/`)
             : pathname === href;
 
+    const isDataActive = shouldReverseActive
+        ? !isPathnameActive
+        : isPathnameActive;
+
     const defaultProps = {
         "aria-current": isPathnameActive ? "page" : undefined,
-        "data-active": shouldReverseActive
-            ? !isPathnameActive
-            : isPathnameActive,
-    } satisfies React.AriaAttributes & { "data-active"?: boolean };
+        "data-active": isDataActive ? "true" : undefined,
+    } satisfies React.AriaAttributes & { "data-active"?: "true" };
 
     return useRender({
         defaultTagName: "div",
