@@ -114,6 +114,7 @@
         "babel-plugin-react-compiler": "1.0.0",
         "gt": "2.16.5",
         "husky": "9.1.7",
+        "mitata": "1.0.34",
         "prisma": "7.9.1",
         "tailwindcss": "4.3.3",
         "typescript": "7.0.2",

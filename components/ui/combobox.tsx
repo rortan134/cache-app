@@ -179,7 +179,6 @@ interface ComboboxPopupProps extends ComboboxPrimitive.Popup.Props {
 
 export function ComboboxPopup({
     className,
-    children,
     align = "start",
     alignOffset,
     anchor: anchorProp,
@@ -194,7 +193,7 @@ export function ComboboxPopup({
     const anchor = anchorProp ?? chipsRef;
 
     return (
-        <ComboboxPrimitive.Portal container={container} {...portalProps}>
+        <ComboboxPrimitive.Portal {...portalProps} container={container}>
             <ComboboxPrimitive.Positioner
                 align={align}
                 alignOffset={alignOffset}
@@ -215,9 +214,7 @@ export function ComboboxPopup({
                         {...props}
                         className="flex max-h-[min(var(--available-height),23rem)] flex-1 flex-col text-foreground"
                         data-slot="combobox-popup"
-                    >
-                        {children}
-                    </ComboboxPrimitive.Popup>
+                    />
                 </span>
             </ComboboxPrimitive.Positioner>
         </ComboboxPrimitive.Portal>
