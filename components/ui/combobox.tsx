@@ -170,7 +170,6 @@ interface ComboboxPopupProps extends ComboboxPrimitive.Popup.Props {
     align?: ComboboxPrimitive.Positioner.Props["align"];
     alignOffset?: ComboboxPrimitive.Positioner.Props["alignOffset"];
     anchor?: ComboboxPrimitive.Positioner.Props["anchor"];
-    container?: ComboboxPrimitive.Portal.Props["container"];
     portalProps?: ComboboxPrimitive.Portal.Props;
     positionMethod?: ComboboxPrimitive.Positioner.Props["positionMethod"];
     side?: ComboboxPrimitive.Positioner.Props["side"];
@@ -185,7 +184,6 @@ export function ComboboxPopup({
     positionMethod,
     side = "bottom",
     sideOffset = 4,
-    container,
     portalProps,
     ...props
 }: ComboboxPopupProps) {
@@ -193,7 +191,7 @@ export function ComboboxPopup({
     const anchor = anchorProp ?? chipsRef;
 
     return (
-        <ComboboxPrimitive.Portal {...portalProps} container={container}>
+        <ComboboxPrimitive.Portal {...portalProps}>
             <ComboboxPrimitive.Positioner
                 align={align}
                 alignOffset={alignOffset}

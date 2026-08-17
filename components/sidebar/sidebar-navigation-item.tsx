@@ -18,11 +18,31 @@ interface SidebarNavigationItemProps extends React.ComponentProps<typeof Link> {
 export function SidebarNavigationItem({
     href,
     icon,
+    onMouseDown: onMouseDownProp,
     shortcutKeys,
     children,
     ...props
 }: SidebarNavigationItemProps) {
     const router = useRouter();
+
+    const handleMouseDown = useStableCallback(
+        (event: React.MouseEvent<HTMLAnchorElement>) => {
+            onMouseDownProp?.(event);
+
+            if (
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.altKey ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey
+            ) {
+                return;
+            }
+
+            router.push(href);
+        }
+    );
 
     const handleShortcut = useStableCallback(() => {
         router.push(href);
@@ -44,6 +64,7 @@ export function SidebarNavigationItem({
                             <Link
                                 {...props}
                                 href={href}
+                                onMouseDown={handleMouseDown}
                                 prefetch
                                 tabIndex={0}
                             />
