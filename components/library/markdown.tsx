@@ -683,7 +683,7 @@ export function MarkdownImportDialog() {
     const renderFooter = () => {
         if (step === "done") {
             return (
-                <DialogClose render={<Button size="sm" />}>Done</DialogClose>
+                <DialogClose render={<Button size="sm" />}>Close</DialogClose>
             );
         }
 

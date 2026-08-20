@@ -2,11 +2,6 @@
 
 import * as React from "react";
 
-export function useClientOnlyValue<T>(value: T, fallback?: T): T | null {
-    const boundaryValue = useClientBoundaryValue();
-    return boundaryValue === "server" ? (fallback ?? null) : value;
-}
-
 function useClientBoundaryValue() {
     return React.useSyncExternalStore(
         () => () => {
@@ -15,6 +10,11 @@ function useClientBoundaryValue() {
         () => "client",
         () => "server"
     );
+}
+
+export function useClientOnlyValue<T>(value: T, fallback?: T): T | null {
+    const boundaryValue = useClientBoundaryValue();
+    return boundaryValue === "server" ? (fallback ?? null) : value;
 }
 
 export function ClientOnly({ children }: React.PropsWithChildren) {

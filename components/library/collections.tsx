@@ -3609,8 +3609,6 @@ function CollectionsListItemTrigger({
     const { onSelectCollection } = useCollectionsContext();
     const { collectionPreviewThumbnailUrlsById } = useLibraryItemsContext();
     const { collection, isSelected } = useCollectionsListItemContext();
-    // Intent from Base UI (delayed open / close). Pointer over is raw presence
-    // so we can warm images during the open delay without mount-time N preloads.
     const [isHoverIntent, setIsHoverIntent] = React.useState(false);
     const [isPointerOver, setIsPointerOver] = React.useState(false);
 
@@ -3624,8 +3622,6 @@ function CollectionsListItemTrigger({
         thumbnails,
     });
 
-    // Gate the visible popup on a ready slide, but hard-clear intent on leave
-    // so a late load cannot ghost-open after the pointer is gone.
     const isOpen = isHoverIntent && activeSlide !== null;
 
     const onClick = useStableCallback(onClickProp);
@@ -5054,7 +5050,7 @@ function CollectionsRenameDialog() {
                             size="sm"
                             type="submit"
                         >
-                            Save
+                            Rename collection
                         </Button>
                     </DialogFooter>
                 </form>

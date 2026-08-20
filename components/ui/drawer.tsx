@@ -25,8 +25,9 @@ interface DrawerContext {
     position: DrawerPosition;
 }
 
-const DrawerContext: React.Context<DrawerContext> =
-    React.createContext<DrawerContext>({ position: "bottom" });
+const DrawerContext = React.createContext<DrawerContext>({
+    position: "bottom",
+});
 
 const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
 
@@ -179,7 +180,7 @@ export function DrawerPopup({
                     ),
                 variant === "inset" &&
                     "before:hidden sm:rounded-2xl sm:border sm:after:bg-transparent sm:before:rounded-[calc(var(--radius-2xl)-1px)] sm:**:data-[slot=drawer-footer]:rounded-b-[calc(var(--radius-2xl)-1px)]",
-                variant === "straight" && "[--stack-step:0]",
+                variant === "straight" && "shadow-none [--stack-step:0]",
                 (position === "bottom" || position === "top") &&
                     "h-(--drawer-height,auto) [--height:max(0px,calc(var(--drawer-frontmost-height,var(--drawer-height))))] data-nested-drawer-open:h-(--height)",
                 position === "bottom" &&

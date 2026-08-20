@@ -650,7 +650,7 @@ function SurveyDialog({
                                 Skip
                             </DialogClose>
                             <Button onClick={onSubmit} size="sm">
-                                Done
+                                Continue
                             </Button>
                         </DialogFooter>
                     </>

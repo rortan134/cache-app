@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useOnFirstRender } from "@base-ui/utils/useOnFirstRender";
 
 const ASCII_ART = `
    ______           __
@@ -26,7 +26,7 @@ const LINK_STYLE =
 let hasLoggedConsoleBanner = false;
 
 function logConsoleBanner(version: string): void {
-    if (typeof console === "undefined" || hasLoggedConsoleBanner) {
+    if (typeof window === "undefined" || hasLoggedConsoleBanner) {
         return;
     }
     hasLoggedConsoleBanner = true;
@@ -47,9 +47,9 @@ interface ConsoleBannerProps {
 }
 
 export function ConsoleBanner({ version }: ConsoleBannerProps) {
-    React.useEffect(() => {
+    useOnFirstRender(() => {
         logConsoleBanner(version);
-    }, [version]);
+    });
 
     return null;
 }

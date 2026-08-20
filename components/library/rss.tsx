@@ -135,7 +135,7 @@ export function RssManageDialog() {
                             <Button isLoading={isLoading} variant="ghost" />
                         }
                     >
-                        Done
+                        Close
                     </DialogClose>
                 </DialogFooter>
             </DialogPopup>
@@ -294,7 +294,7 @@ function RssAddFeedForm({ onFeedAdded }: RssAddFeedFormProps) {
                     value={url}
                 />
                 <Button isLoading={isPending} type="submit">
-                    Add
+                    Add feed
                 </Button>
             </div>
             {error ? (
