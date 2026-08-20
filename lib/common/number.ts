@@ -1,5 +1,9 @@
-export function clamp(value: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, value));
+export function clamp(
+    value: number,
+    min: number = Number.MIN_SAFE_INTEGER,
+    max: number = Number.MAX_SAFE_INTEGER
+): number {
+    return Math.max(min, Math.min(value, max));
 }
 
 export function formatPercent(value: number): string {
