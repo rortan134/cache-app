@@ -3,7 +3,11 @@ import { MESSAGE_TYPES, resolveCacheOrigin } from "@/lib/runtime";
 
 // Matches must be string literals — Plasmo reads them via static analysis.
 export const config: PlasmoCSConfig = {
-    matches: ["https://cachd.app/*", "https://*.cachd.app/*"],
+    matches: [
+        "https://cachd.app/*",
+        "https://*.cachd.app/*",
+        "$PLASMO_PUBLIC_CACHE_DEV_SITE_MATCH",
+    ],
     run_at: "document_idle",
 };
 

@@ -33,7 +33,8 @@
             "https://www.tiktok.com/*",
             "https://www.youtube.com/*",
             "https://cachd.app/*",
-            "https://*.cachd.app/*"
+            "https://*.cachd.app/*",
+            "$PLASMO_PUBLIC_CACHE_DEV_SITE_MATCH"
         ],
         "permissions": [
             "bookmarks",
