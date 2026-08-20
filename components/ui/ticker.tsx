@@ -1,15 +1,15 @@
 "use client";
 
-import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
+import { useReducedMotion } from "motion/react";
 import * as React from "react";
 import { cn } from "@/lib/common/cn";
 
 const DEFAULT_DURATION_SECONDS = 5;
 const MAX_SPEED_PX_PER_SECOND = 92;
 
-const REPEAT_KEYS = ["primary", "clone"];
+const REPEAT_KEYS = ["primary", "clone"] as const;
 const REPEAT_COUNT = REPEAT_KEYS.length;
 
 function getDurationInSeconds(travelDistancePx: number) {
@@ -35,64 +35,67 @@ export function Ticker({
     ref,
     ...props
 }: TickerProps) {
-    const animationFrame = useAnimationFrame();
     const [contentWidthPx, setContentWidthPx] = React.useState(0);
+    const prefersReducedMotion = useReducedMotion();
 
-    const trackRef = React.useRef<HTMLSpanElement | null>(null);
-    const mergedRef = useMergedRefs(ref, trackRef);
+    const containerRef = React.useRef<HTMLSpanElement | null>(null);
+    const mergedRef = useMergedRefs(ref, containerRef);
 
     useIsoLayoutEffect(() => {
-        const track = trackRef.current;
-        if (!track) {
+        const container = containerRef.current;
+        if (!container) {
             return;
         }
 
-        const content = track.firstElementChild?.firstElementChild;
+        const content = container.firstElementChild?.firstElementChild;
         if (!content) {
             return;
         }
 
-        let _trackWidthPx = 0;
+        let _containerWidthPx = 0;
         let _contentWidthPx = 0;
 
-        const resizeObserver = new ResizeObserver((entries) =>
-            animationFrame.request(() => {
-                for (const entry of entries) {
-                    const sizePx =
-                        entry.contentBoxSize?.[0]?.inlineSize ??
-                        entry.borderBoxSize?.[0]?.inlineSize ??
-                        entry.contentRect.width ??
-                        0;
+        const getWidth = (target: Element, entry: ResizeObserverEntry) => {
+            const borderBox = entry.borderBoxSize?.[0]?.inlineSize;
+            if (typeof borderBox === "number" && Number.isFinite(borderBox)) {
+                return borderBox;
+            }
+            return target.getBoundingClientRect().width; // Fallback path
+        };
 
-                    if (entry.target === track) {
-                        _trackWidthPx = sizePx;
-                    } else {
-                        _contentWidthPx = sizePx; // only two targets observed
-                    }
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const sizePx = getWidth(entry.target, entry);
+
+                if (entry.target === container) {
+                    _containerWidthPx = sizePx;
+                } else {
+                    _contentWidthPx = sizePx;
                 }
+            }
 
-                setContentWidthPx(
-                    _contentWidthPx > _trackWidthPx ? _contentWidthPx : 0
-                );
-            })
-        );
+            setContentWidthPx(
+                _contentWidthPx > _containerWidthPx ? _contentWidthPx : 0
+            );
+        });
 
-        resizeObserver.observe(track);
+        resizeObserver.observe(container);
         resizeObserver.observe(content);
-
         return () => {
             resizeObserver.disconnect();
-            animationFrame.cancel();
         };
     }, []);
 
+    const isOverflowing = contentWidthPx > 0 && !prefersReducedMotion;
+    const repeatCount = isOverflowing ? REPEAT_COUNT : 1;
+
     const trackStyle = {
-        // Translate by exactly one copy width so the loop restarts seamlessly.
         "--animation-distance": `${-100 / REPEAT_COUNT}%`,
         "--duration": `${getDurationInSeconds(contentWidthPx)}s`,
+        ...(direction === "right"
+            ? { animationDirection: "reverse" as const }
+            : {}),
     } as React.CSSProperties;
-    const isOverflowing = contentWidthPx > 0;
-    const repeatCount = isOverflowing ? REPEAT_COUNT : 1;
 
     return (
         <span
@@ -107,20 +110,23 @@ export function Ticker({
                 className={cn(
                     "flex shrink-0 select-none",
                     isOverflowing &&
-                        "paused group-hover:running hover:running group-hover:animate-marquee group-hover:delay-200",
-                    direction === "right" && "direction-reverse"
+                        "paused group-hover:running hover:running group-hover:animate-marquee group-hover:delay-200"
                 )}
                 style={trackStyle}
             >
-                {REPEAT_KEYS.slice(0, repeatCount).map((repeatKey, index) => (
-                    <span
-                        aria-hidden={index > 0 || undefined}
-                        className="shrink-0 p-px pr-4"
-                        key={repeatKey}
-                    >
-                        {children}
-                    </span>
-                ))}
+                {REPEAT_KEYS.slice(0, repeatCount).map((repeatKey, index) => {
+                    const isClone = index > 0;
+                    return (
+                        <span
+                            aria-hidden={isClone || undefined}
+                            className="shrink-0 p-px pr-4"
+                            inert={isClone || undefined}
+                            key={repeatKey}
+                        >
+                            {children}
+                        </span>
+                    );
+                })}
             </span>
         </span>
     );

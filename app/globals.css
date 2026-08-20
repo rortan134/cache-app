@@ -278,7 +278,16 @@
 
 /* ── Custom utilities ── */
 @utility animate-marquee {
-    animation: marquee var(--duration, 5s) linear infinite;
+    animation-name: marquee;
+    animation-duration: var(--duration, 5s);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+        animation: none !important;
+    }
 }
 
 @utility animate-smart-collections-indicator {
@@ -339,10 +348,6 @@
 
 @utility draggable-ui {
     -webkit-app-region: drag;
-}
-
-@view-transition {
-    navigation: auto;
 }
 
 /* Suppress transitions during theme flips (applied by hooks/use-theme.ts). */
