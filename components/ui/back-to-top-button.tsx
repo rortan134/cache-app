@@ -1,7 +1,6 @@
 "use client";
 
 import type { BaseUIEvent } from "@base-ui/react";
-import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useReducedMotion } from "motion/react";
 import * as React from "react";
@@ -11,22 +10,32 @@ import { getOwnerWindow } from "@/lib/common/dom";
 
 const SCROLL_THRESHOLD = 800;
 
+function subscribe(callbackFn: () => void) {
+    const ownerWindow = getOwnerWindow();
+    ownerWindow.addEventListener("scroll", callbackFn, { passive: true });
+    return () => ownerWindow.removeEventListener("scroll", callbackFn);
+}
+
+function getSnapshot() {
+    return getOwnerWindow().scrollY > SCROLL_THRESHOLD;
+}
+
+function getServerSnapshot() {
+    return false;
+}
+
 export function BackToTopButton({
     className,
     onClick,
     ...props
 }: React.ComponentProps<typeof Button>) {
     const prefersReducedMotion = useReducedMotion();
-    const animationFrame = useAnimationFrame();
-    const [isVisible, setIsVisible] = React.useState(false);
+    const isVisible = React.useSyncExternalStore(
+        subscribe,
+        getSnapshot,
+        getServerSnapshot
+    );
     const containerRef = React.useRef<HTMLDivElement>(null);
-
-    const handleScroll = useStableCallback(() => {
-        animationFrame.request(() => {
-            const ownerWindow = getOwnerWindow(containerRef.current);
-            setIsVisible(ownerWindow.scrollY > SCROLL_THRESHOLD);
-        });
-    });
 
     const scrollToTop = useStableCallback(
         (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {
@@ -37,13 +46,6 @@ export function BackToTopButton({
             });
         }
     );
-
-    React.useEffect(() => {
-        const ownerWindow = getOwnerWindow(containerRef.current);
-        handleScroll();
-        ownerWindow.addEventListener("scroll", handleScroll, { passive: true });
-        return () => ownerWindow.removeEventListener("scroll", handleScroll);
-    }, [handleScroll]);
 
     return (
         <div
