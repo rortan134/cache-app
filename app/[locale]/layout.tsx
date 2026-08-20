@@ -5,7 +5,6 @@ import { GTProvider, getLocales } from "gt-next";
 import { getGT, getLocale } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import type * as React from "react";
 import { ConsoleBanner } from "@/components/ui/console-banner";
 import { ShortcutsProvider } from "@/components/ui/shortcuts";
@@ -103,14 +102,6 @@ export default async function LocaleLayout(props: React.PropsWithChildren) {
                     content="9c251d927955d913b23e047ef08ed572"
                     name="p:domain_verify"
                 />
-                {process.env.NODE_ENV === "development" && (
-                    <Script
-                        crossOrigin="anonymous"
-                        integrity="sha384-DDZCsimcjpG92OUulxf7DHi4rGS/fNIW7lC5DT8+5ftaTDiUKfzIq+pDTUbPjC86"
-                        src="https://unpkg.com/react-scan@0.5.7/dist/auto.global.js"
-                        strategy="beforeInteractive"
-                    />
-                )}
             </head>
             <body suppressHydrationWarning>
                 <ThemeSync />

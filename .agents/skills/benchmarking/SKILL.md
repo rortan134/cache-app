@@ -100,13 +100,13 @@ When benchmarking DOM code, avoid layout thrashing — interleaved reads and wri
 ```ts
 // ❌ Bad: alternating reads and writes (each read forces layout)
 for (const el of elements) {
-    el.style.height = el.offsetHeight * 2;
+    el.style.height = `${el.offsetHeight * 2}px`;
 }
 
 // ✅ Good: batch reads first, then writes
 const heights = elements.map((el) => el.offsetHeight);
 for (let i = 0; i < elements.length; i++) {
-    elements[i].style.height = heights[i] * 2;
+    elements[i].style.height = `${heights[i] * 2}px`;
 }
 ```
 
