@@ -27,6 +27,7 @@ function getServerSnapshot() {
 export function BackToTopButton({
     className,
     onClick,
+    size = "sm",
     ...props
 }: React.ComponentProps<typeof Button>) {
     const prefersReducedMotion = useReducedMotion();
@@ -35,12 +36,14 @@ export function BackToTopButton({
         getSnapshot,
         getServerSnapshot
     );
-    const containerRef = React.useRef<HTMLDivElement>(null);
 
     const scrollToTop = useStableCallback(
         (event: BaseUIEvent<React.MouseEvent<HTMLButtonElement>>) => {
             onClick?.(event);
-            getOwnerWindow(containerRef.current).scrollTo({
+            if (event.defaultPrevented) {
+                return;
+            }
+            getOwnerWindow().scrollTo({
                 behavior: prefersReducedMotion ? "auto" : "smooth",
                 top: 0,
             });
@@ -55,14 +58,13 @@ export function BackToTopButton({
                 className
             )}
             data-slot="back-to-top-button"
-            inert={!isVisible}
-            ref={containerRef}
+            inert={!isVisible || undefined}
         >
             <Button
                 {...props}
                 aria-label="Back to top"
                 onClick={scrollToTop}
-                size="sm"
+                size={size}
             />
         </div>
     );
