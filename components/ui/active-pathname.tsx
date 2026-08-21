@@ -4,6 +4,7 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
+import { normalizePathname } from "@/lib/common/url";
 
 interface ActivePathnameProps extends useRender.ComponentProps<"div"> {
     /**
@@ -49,23 +50,38 @@ export function ActivePathname({
 }: ActivePathnameProps) {
     const pathname = usePathname();
 
-    const isPathnameActive =
-        match === "prefix"
-            ? pathname === href || pathname.startsWith(`${href}/`)
-            : pathname === href;
+    const isActive = isPathnameActive(pathname, href, match);
+    const isDataActive = shouldReverseActive ? !isActive : isActive;
 
-    const isDataActive = shouldReverseActive
-        ? !isPathnameActive
-        : isPathnameActive;
-
-    const defaultProps = {
-        "aria-current": isPathnameActive ? "page" : undefined,
+    const defaultProps: React.AriaAttributes & { "data-active"?: "true" } = {
+        "aria-current": isActive ? "page" : undefined,
         "data-active": isDataActive ? "true" : undefined,
-    } satisfies React.AriaAttributes & { "data-active"?: "true" };
+    };
 
     return useRender({
         defaultTagName: "div",
         props: mergeProps<"div">(defaultProps, props),
         render,
     });
+}
+
+function isPathnameActive(
+    pathname: string,
+    href: string,
+    match: "exact" | "prefix" = "exact"
+): boolean {
+    const normalizedPathname = normalizePathname(pathname);
+    const normalizedHref = normalizePathname(href);
+
+    if (match === "prefix") {
+        if (normalizedHref === "/") {
+            return normalizedPathname === "/";
+        }
+        return (
+            normalizedPathname === normalizedHref ||
+            normalizedPathname.startsWith(`${normalizedHref}/`)
+        );
+    }
+
+    return normalizedPathname === normalizedHref;
 }

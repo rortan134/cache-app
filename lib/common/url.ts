@@ -97,6 +97,13 @@ export function isHttpUrl(value: string | null | undefined): value is string {
     }
 }
 
+export function normalizePathname(pathname: string): string {
+    if (pathname.length > 1 && pathname.endsWith("/")) {
+        return pathname.slice(0, -1);
+    }
+    return pathname || "/";
+}
+
 const TRACKING_QUERY_PARAMS = new Set([
     "_ga",
     "_gl",
@@ -178,10 +185,7 @@ export function canonicalBookmarkUrl(
         }
     }
 
-    let pathname = parsed.pathname || "/";
-    if (pathname.length > 1 && pathname.endsWith("/")) {
-        pathname = pathname.slice(0, -1);
-    }
+    const pathname = normalizePathname(parsed.pathname || "/");
 
     const keptParams = [...parsed.searchParams.entries()]
         .filter(([name]) => !isTrackingQueryParam(name))
