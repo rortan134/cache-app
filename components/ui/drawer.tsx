@@ -77,6 +77,28 @@ export function DrawerClose(props: DrawerPrimitive.Close.Props) {
     return <DrawerPrimitive.Close {...props} data-slot="drawer-close" />;
 }
 
+export function DrawerSwipeArea({
+    className,
+    ...props
+}: DrawerPrimitive.SwipeArea.Props) {
+    const { position } = React.use(DrawerContext);
+
+    return (
+        <DrawerPrimitive.SwipeArea
+            {...props}
+            className={cn(
+                "fixed z-40",
+                position === "bottom" && "inset-x-0 bottom-0 h-6",
+                position === "top" && "inset-x-0 top-0 h-6",
+                position === "left" && "inset-y-0 left-0 w-6",
+                position === "right" && "inset-y-0 right-0 w-6",
+                className
+            )}
+            data-slot="drawer-swipe-area"
+        />
+    );
+}
+
 interface DrawerViewportProps extends DrawerPrimitive.Viewport.Props {
     portalProps?: DrawerPrimitive.Portal.Props;
     position?: DrawerPosition;
