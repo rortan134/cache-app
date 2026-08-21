@@ -333,7 +333,10 @@ export function SidebarItem({
 
 export function SidebarItemValue({ children }: React.PropsWithChildren) {
     return (
-        <div className="flex min-w-0 grow items-center" data-sidebar-label="">
+        <div
+            className="flex min-w-0 flex-1 grow items-center"
+            data-sidebar-label=""
+        >
             <span className="truncate">{children}</span>
         </div>
     );
