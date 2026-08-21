@@ -1,24 +1,6 @@
 # Contributing to Cache
 
-Thank you for your interest in contributing to Cache! We welcome contributions in all forms—from bug fixes and documentation to new features. This repository favors incremental change over perfection.
-
----
-
-## Table of Contents
-
-- [Contributing to Cache](#contributing-to-cache)
-  - [Table of Contents](#table-of-contents)
-  - [How to Contribute](#how-to-contribute)
-  - [Reporting Issues](#reporting-issues)
-  - [Pull Request Process](#pull-request-process)
-  - [Commit Message Guidelines](#commit-message-guidelines)
-  - [Local Development Setup](#local-development-setup)
-    - [Prerequisites](#prerequisites)
-    - [Setup](#setup)
-    - [Useful Commands](#useful-commands)
-  - [License](#license)
-
----
+Thank you for your interest in contributing to the Cache App. We welcome contributions in all forms—from bug fixes and documentation to new features. This repository favors incremental change over perfection.
 
 ## How to Contribute
 
@@ -26,18 +8,18 @@ Thank you for your interest in contributing to Cache! We welcome contributions i
 
 2. **Clone Your Fork**
 
-   ```bash
-   git clone https://github.com/<your-username>/cache.git
-   cd cache
-   ```
+    ```bash
+    git clone https://github.com/<your-username>/cache.git
+    cd cache
+    ```
 
 3. **Create a Feature Branch**
 
-   ```bash
-   git checkout -b feat/your-feature-name
-   ```
+    ```bash
+    git checkout -b feat/your-feature-name
+    ```
 
-   Use clear naming conventions: `feat/`, `fix/`, `docs/`, `refactor/`, `chore/`.
+    Use clear naming conventions: `feat/`, `fix/`, `docs/`, `refactor/`, `chore/`.
 
 4. **Make Your Changes** — Keep changes small, focused, and consistent with existing code style.
 
@@ -45,9 +27,9 @@ Thank you for your interest in contributing to Cache! We welcome contributions i
 
 6. **Push Your Branch**
 
-   ```bash
-   git push origin feat/your-feature-name
-   ```
+    ```bash
+    git push origin feat/your-feature-name
+    ```
 
 7. **Create a Pull Request** — Open a PR against the `main` branch. Provide a clear description and reference any related issues (e.g., `fixes #123`).
 
@@ -70,11 +52,11 @@ If you find a bug or have a feature request, open an issue on GitHub. Please inc
 1. **Keep your branch up to date** — Rebase onto the latest `main` before submitting.
 2. **Run quality checks** — Your code must pass all CI checks:
 
-   ```bash
-   bun run type-check
-   bun run lint
-   bun run test
-   ```
+    ```bash
+    bun run type-check
+    bun run lint
+    bun run test
+    ```
 
 3. **Include tests** — New features should include tests. Bug fixes should include a regression test.
 4. **Document changes** — Update relevant documentation if your PR changes behaviour or adds features.
@@ -141,16 +123,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Useful Commands
 
-| Command              | Description                |
-| -------------------- | -------------------------- |
-| `bun run dev`        | Start dev server           |
-| `bun run build`      | Production build           |
-| `bun run lint`       | Run Ultracite linter       |
-| `bun run lint:fix`   | Auto-fix lint issues       |
-| `bun run test`       | Run test suite             |
-| `bun run type-check` | TypeScript type check      |
-| `bun run db-deploy`  | Deploy database migrations |
-| `bun run db-migrate` | Create a new migration     |
+| Command              | Description           |
+| -------------------- | --------------------- |
+| `bun run dev`        | Start dev server      |
+| `bun run build`      | Production build      |
+| `bun run lint`       | Run Ultracite linter  |
+| `bun run lint:fix`   | Auto-fix lint issues  |
+| `bun run test`       | Run unit test suite   |
+| `bun run type-check` | TypeScript type check |
 
 ---
 
